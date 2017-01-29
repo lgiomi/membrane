@@ -630,7 +630,7 @@ void init_random()
 
 void get_rhs(double *rhs)
 {
-	double laplace(long), epsilon=0.1, lagrange=0;
+	double laplace(long), epsilon=0.05, lagrange=0;
 	long i; 	
 	
 	// Calculate the Lagrange multiplier

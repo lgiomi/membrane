@@ -1,0 +1,26 @@
+#!/bin/bash
+
+rm -f membrane
+rm -f *.dat
+rm -f *.png
+rm -f *.pdf
+make
+
+# Values passed to membrane
+# 1. Mesh location
+# 2. Total time
+# 3. Number of time steps 
+# 4. Integration method (Euler = 1, Rk2 = 2, Rk4 = 3 )
+# 5. Value of sigma
+# 6. Total concentration
+# 7. Random seed
+
+./membrane << EOF
+mesh/spherocylinder.msh
+3
+200000
+1
+1
+.25
+$RANDOM	
+EOF
