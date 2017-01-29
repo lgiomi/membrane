@@ -6,7 +6,6 @@ rm -f *.png
 rm -f *.pdf
 make
 
-# Values passed to membrane
 # 1. Mesh location
 # 2. Total time
 # 3. Number of time steps 
@@ -15,12 +14,14 @@ make
 # 6. Total concentration
 # 7. Random seed
 
-./membrane << EOF
-mesh/spherocylinder.msh
-3
-200000
-1
-1
-.25
-$RANDOM	
-EOF
+#./membrane << EOF
+#mesh/spherocylinder.msh
+#3
+#200000
+#1
+#1
+#.25
+#$RANDOM	
+#EOF
+
+./membrane -m mesh/spherocylinder.msh -t .2 -e .1 -i 20000 -I 3 -r $RANDOM .4 

@@ -28,8 +28,10 @@ long method;
 int num_of_domains;
 
 double total_area;
-double sigma;
+double sigma=1,area,epsilon;
 double DT;
+
+long seed;
 
 void rk2();
 void rk4();
@@ -52,9 +54,9 @@ void export_graphic_complex(FILE *);
 
 /*******************************************************************/
 
-main() 
+main(int argc, char *argv[])
 {	
-	init();
+	init(argc, argv);
 	time(&t1);
 	run();
 	end();
@@ -64,38 +66,100 @@ main()
 
 /*******************************************************************/
 
-void init()
+void init(int argc, char *argv[])
 {
 	double box_size, run_time;
 	char f_name[32];
 	long cflag;
-
-	printf("Input mesh file ");
-	scanf("%s",f_name);
-
+	int n;                           
+   
+	if(argc>12){
+	for( n = 1; n < argc; n++ ){         /* Scan through args. */
+		switch((int)argv[n][0]){     /* Check for option character. */
+			case '-':	                  
+					switch((int)argv[n][1]){
+						case 'm':
+								snprintf(f_name, sizeof(f_name), "%s", argv[n+1]);
+								printf( "Mesh file: %s\n",f_name);
+								n++;
+								break;
+						case 't':
+								run_time=atof(argv[n+1]);
+								printf( "Run time: %lg\n",run_time);
+								n++;
+								break;
+						case 'e':
+								epsilon=atof(argv[n+1]);
+								printf( "Epsilon : %lg\n",epsilon);
+								n++;
+								break;
+						case 'i':
+								num_of_iteration=atol(argv[n+1]);
+								printf( "# iterations: %ld\n",num_of_iteration);
+								n++;
+								break;
+						case 'I':
+								switch((int)argv[n+1][0]){
+									case '1': method=1;break;
+									case '2': method=2;break;
+									case '3': method=3;break;
+									default:printf( "Illegal integration method  %c\n",(int)argv[n+1][0]);
+										printf( "\nType ./membrane -h for help\n"); 
+										exit(1);
+										break;
+								}
+								printf( "Integration method: %ld\n",method);		
+								n++;
+								break;
+						case 'r':
+								seed=atol(argv[n+1]);
+								area=atof(argv[n+2]);
+								if(area>=0&&area<=1){
+									printf( "Random initial data with seed %ld and total concentration %lg\n",seed,area);
+									n+=2;
+								}else{
+									printf( "Error, mean concentration has to be between 0 and 1 (you passed %lg) \n",area);
+									printf( "\nType ./membrane -h for help\n"); 
+									exit(1);
+								};
+								break;             
+						default:  
+							printf( "Illegal option code = %c\n",(int)argv[n][1]);
+							printf( "\nType ./membrane -h for help\n"); 
+							exit(1);
+							break;
+					}
+                 			break;
+			default:  
+				printf( "\nError: give input in the following format:\n"); 
+				printf( "./membrane -m MESH_FILE -t RUN_TIME -i TOTAL_ITERATIONS -I INTEGRATION_METHOD -e EPSILON -r RANDOM_SEED MEAN_CONCENTRATION -C GAMMA_H GAMMA_H^2 GAMMA_KG\n"); 
+				printf( "\nType ./membrane -h for help\n"); 
+				n=argc;
+				exit(1);
+                 		break;
+		}	
+	}
+	DT = run_time/num_of_iteration;
+	}
+	else if(argc>1 && argc < 13){
+				printf( "\nError not enough arguments given. Write input in the following format:\n"); 
+				printf( "./membrane -m MESH_FILE -t RUN_TIME -i TOTAL_ITERATIONS -I INTEGRATION_METHOD -e EPSILON -r RANDOM_SEED MEAN_CONCENTRATION -C GAMMA_H GAMMA_H^2 GAMMA_KG\n"); 
+				printf( "\nType ./membrane -h for help\n"); 
+				exit(1);}
+	else{
+	printf("You did not specify arguments to parse, assume input is from stdin\n");
+	printf("Input mesh file ");	if(scanf("%s",f_name)==1){};
+	printf("Input run time ");	if(scanf("%lg",&run_time)==1){};
+  	printf("Input iterations ");	if(scanf("%ld",&num_of_iteration)==1){};
+	DT = run_time/num_of_iteration;
+	printf("Choose integration method\n\n\t1. Euler\n\t2. Runge-Kutta (2 steps)\n\t3. Runge-Kutta (4 steps)\n\nInput flag "); if(scanf("%ld",&method)==1){};
+	printf("Input sigma "); if(scanf("%lg",&sigma)==1){};
+	printf("Input epsilon "); if(scanf("%lg",&epsilon)==1){};
+	printf("Input area percentage "); if(scanf("%lg",&area)){};
+	printf("Input random seed "); if(scanf("%ld",&seed)){};
+	}
 	import_mesh(f_name);
 	get_geometry();
-	
-	printf("Input run time ");  
-  	scanf("%lg",&run_time);
-
-  	printf("Input iterations ");  
-  	scanf("%ld",&num_of_iteration);
-
-	DT = run_time/num_of_iteration;
-
-	printf("Choose integration method "); 
-  	printf("\n");
-  	printf("\n\t1. Euler");
-  	printf("\n\t2. Runge-Kutta (2 steps)");
-  	printf("\n\t3. Runge-Kutta (4 steps)");
-  	printf("\n\n");
-  	printf("Input flag ");
-  	scanf("%ld",&method);
-  
-	printf("Input sigma "); 
-  	scanf("%lg",&sigma);
-
 	init_random();
 }
 
@@ -105,7 +169,11 @@ void import_mesh(char *f_name)
 {
 	long i, v1, v2, v3, chi, dummy, num_of_edges=0;
 
-	
+	if( access( f_name, F_OK ) == -1 ) {
+		printf("\nError: file %s does not exist\n",f_name);
+		exit(1);
+	};
+
 	FILE *f_in = fopen(f_name,"r");
 
 	/*
@@ -133,16 +201,11 @@ void import_mesh(char *f_name)
 	
 	char line[LINESIZE];
 	
-	fgets(line,LINESIZE-1,f_in); 
-	fgets(line,LINESIZE-1,f_in); 
-	fgets(line,LINESIZE-1,f_in); 
-	fgets(line,LINESIZE-1,f_in); 
-	fgets(line,LINESIZE-1,f_in); 
-	fgets(line,LINESIZE-1,f_in); 
-	fgets(line,LINESIZE-1,f_in); 
-	fgets(line,LINESIZE-1,f_in);
+	for (i=0; i<8; i++){
+	if(fgets(line,LINESIZE-1,f_in)){};
+	}
 	
-	fscanf(f_in,"%ld",&num_of_meshpoint);
+	if(fscanf(f_in,"%ld",&num_of_meshpoint)){};
 
 	if (num_of_meshpoint>MAX_SIZE){
 		printf("Error: the number of vertices (%ld) exceeds MAX_SIZE (%d)\n",num_of_meshpoint,MAX_SIZE);
@@ -150,18 +213,18 @@ void import_mesh(char *f_name)
 	}
 		
 	for (i=0; i<num_of_meshpoint; i++){
-		fscanf(f_in,"%ld%lg%lg%lg",
+		if(fscanf(f_in,"%ld%lg%lg%lg",
 		&dummy,
 		&vertex[i].x,
 		&vertex[i].y,
-		&vertex[i].z);
+		&vertex[i].z)){}else{printf("Failed to read mesh point.");};
 	}
 	
-	fgets(line,LINESIZE-1,f_in); 
-	fgets(line,LINESIZE-1,f_in); 
-	fgets(line,LINESIZE-1,f_in); 
+	for (i=0; i<3; i++){
+	if(fgets(line,LINESIZE-1,f_in)){};
+	}
 	
-	fscanf(f_in,"%ld",&num_of_triangles);
+	if(fscanf(f_in,"%ld",&num_of_triangles)){};
 		
 	if (num_of_triangles>MAX_SIZE){
 		printf("Error: the number of triangles (%ld) exceeds MAX_SIZE (%d)\n",num_of_triangles,MAX_SIZE);
@@ -169,7 +232,7 @@ void import_mesh(char *f_name)
 	}	
 		
 	for (i=0; i<num_of_triangles; i++){
-		fscanf(f_in,"%ld%ld%ld%ld%ld%ld%ld%ld",
+		if(fscanf(f_in,"%ld%ld%ld%ld%ld%ld%ld%ld",
 		&dummy,
 		&dummy,
 		&dummy,
@@ -177,7 +240,7 @@ void import_mesh(char *f_name)
 		&dummy,
 		&v1,
 		&v2,
-		&v3);
+		&v3)){};
 		triangle[i].v1 = v1-1;
 		triangle[i].v2 = v2-1;
 		triangle[i].v3 = v3-1;
@@ -509,7 +572,7 @@ void get_geometry()
 	
 	FILE *f_ou;
 	
-	f_ou = fopen("ge.dat","w");
+	f_ou = fopen("geometry.dat","w");
 	
 	for (i=0; i<num_of_meshpoint; i++){
 		
@@ -612,15 +675,9 @@ long which_triangle(long a, long b, long c)
 
 void init_random()
 {
-	double area, noise=0.1, ran2(long *);
-	long i, seed;
+	double  noise=0.1, ran2(long *);
+	long i;
 		
-	printf("Input area percentage ");
-	scanf("%lg",&area);
-	
-	printf("Input random seed ");
-    scanf("%ld",&seed);
-
 	for (i=0; i<num_of_meshpoint; i++){
 		vertex[i].phi = (2*area-1)+noise*(1-2*ran2(&seed));
 	}
@@ -630,7 +687,7 @@ void init_random()
 
 void get_rhs(double *rhs)
 {
-	double laplace(long), epsilon=0.05, lagrange=0;
+	double laplace(long), lagrange=0;
 	long i; 	
 	
 	// Calculate the Lagrange multiplier
@@ -1016,25 +1073,36 @@ void end()
 
 void write_hi(FILE *f_ou, long t)
 {
-	double phi_tot=0;
 	long m, i, j;
+	double c0=0,phisq=0,kin=0,pot=0,en=0,tph,tpa;
  	
 	for (i=0; i<num_of_meshpoint; i++){
-		phi_tot += vertex[i].area*vertex[i].phi;
+		tph=vertex[i].phi;
+		tpa=vertex[i].area;
+		phisq += tpa*tph*tph;
+		c0 += tpa*tph;
+		kin+=-.5*tpa*tph*laplace(i);
+		pot+=.25*tpa*pow(epsilon,-2.)*pow(pow(tph,2.)-1,2.);
+		en=kin+pot;
 	}
+
 	
-	fprintf(f_ou,"%.10f\t%.10f\t%.10f\t%d\n",
+	fprintf(f_ou,"%.10f\t%.10f\t%.10f\t%.10f\t%.10f\t%d\n",
 	t*DT,
-	vertex[0].phi,
-	phi_tot,
+	kin/total_area,
+	pot/total_area,
+	(kin+pot)/total_area,
+	phisq/total_area-c0/total_area*c0/total_area,
 	num_of_domains);
 	
-	// Legend
+	// Legend [TO UPDATE]
 	
 	// 1) Time
-	// 2) Phi
-	// 3) Integral of Phi
-	// 4) Number of domains
+	// 2) Kinetic Energy
+	// 3) Potential Energy
+	// 4) Total Energy
+	// 5) Correlation function \phi^2
+	// 6) Number of domains
 }
 
 /*******************************************************************/
