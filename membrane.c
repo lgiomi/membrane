@@ -2,9 +2,7 @@
 **                                                               **
 **                           MEMBRANE                            **
 **                                                               **
-** Program: membrane.c                                           **
-** Version: 2.1                                                  **
-** Last Change: Nov 28 2016                                      **
+**			      V 2.3                              **
 **                                                               **
 *******************************************************************/
 
@@ -24,12 +22,15 @@ long num_of_meshpoint;
 long num_of_triangles;
 long num_of_iteration;
 long method;
+long export;
 
 int num_of_domains;
 
 double total_area;
 double sigma=1,area,epsilon;
 double DT;
+double gamma_h,gamma_h2,gamma_kg;
+double lagrange;
 
 long seed;
 
@@ -51,6 +52,7 @@ void write_hi(FILE *, long);
 void export_conf(long, long);
 void get_time(time_t, CPU_Time *);
 void export_graphic_complex(FILE *);
+void help();
 
 /*******************************************************************/
 
@@ -73,7 +75,17 @@ void init(int argc, char *argv[])
 	long cflag;
 	int n;                           
    
-	if(argc>12){
+	if(argc>1){
+	run_time=0;
+	epsilon=0;
+	num_of_iteration=0;
+	export=0;
+	gamma_h=0;
+	gamma_h2=0;
+	gamma_kg=0;
+	method=0;
+	seed=0;
+	
 	for( n = 1; n < argc; n++ ){         /* Scan through args. */
 		switch((int)argv[n][0]){     /* Check for option character. */
 			case '-':	                  
@@ -82,6 +94,9 @@ void init(int argc, char *argv[])
 								snprintf(f_name, sizeof(f_name), "%s", argv[n+1]);
 								printf( "Mesh file: %s\n",f_name);
 								n++;
+								break;
+						case 'h':
+								help();
 								break;
 						case 't':
 								run_time=atof(argv[n+1]);
@@ -97,6 +112,18 @@ void init(int argc, char *argv[])
 								num_of_iteration=atol(argv[n+1]);
 								printf( "# iterations: %ld\n",num_of_iteration);
 								n++;
+								break;
+						case 'x':
+								export=atol(argv[n+1]);
+								printf( "Export field configuration every %ld steps\n",export);
+								n++;
+								break;
+						case 'C':
+								gamma_h=atof(argv[n+1]);
+								gamma_h2=atof(argv[n+2]);
+								gamma_kg=atof(argv[n+3]);
+								printf( "(differences of) couplings: Leibler = %lg, bending rigidities = %lg, saddle splays = %lg\n",gamma_h,gamma_h2,gamma_kg);
+								n+=3;
 								break;
 						case 'I':
 								switch((int)argv[n+1][0]){
@@ -132,20 +159,24 @@ void init(int argc, char *argv[])
                  			break;
 			default:  
 				printf( "\nError: give input in the following format:\n"); 
-				printf( "./membrane -m MESH_FILE -t RUN_TIME -i TOTAL_ITERATIONS -I INTEGRATION_METHOD -e EPSILON -r RANDOM_SEED MEAN_CONCENTRATION -C GAMMA_H GAMMA_H^2 GAMMA_KG\n"); 
+				printf("./membrane -m MESH_FILE -t RUN_TIME -i TOTAL_ITERATIONS -I INTEGRATION_METHOD -x STEPS -e EPSILON -r RANDOM_SEED MEAN_CONCENTRATION -C GAMMA_H GAMMA_H^2 GAMMA_KG\n\n");	
 				printf( "\nType ./membrane -h for help\n"); 
 				n=argc;
 				exit(1);
                  		break;
-		}	
-	}
-	DT = run_time/num_of_iteration;
-	}
-	else if(argc>1 && argc < 13){
-				printf( "\nError not enough arguments given. Write input in the following format:\n"); 
-				printf( "./membrane -m MESH_FILE -t RUN_TIME -i TOTAL_ITERATIONS -I INTEGRATION_METHOD -e EPSILON -r RANDOM_SEED MEAN_CONCENTRATION -C GAMMA_H GAMMA_H^2 GAMMA_KG\n"); 
+			}	
+		}
+		DT = run_time/num_of_iteration;
+		if(argc < 13 || run_time==0 || num_of_iteration ==0 || method == 0 || epsilon == 0 || seed == 0){
+				printf( "\nError not enough arguments given or wrong parameter values . Write input in the following format:\n"); 
+				printf("./membrane -m MESH_FILE -t RUN_TIME -i TOTAL_ITERATIONS -I INTEGRATION_METHOD -x STEPS -e EPSILON -r RANDOM_SEED MEAN_CONCENTRATION -C GAMMA_H GAMMA_H^2 GAMMA_KG\n\n");
 				printf( "\nType ./membrane -h for help\n"); 
-				exit(1);}
+				exit(1);
+		}
+		if(export == 0){
+			printf( "\nNo -x option given, assuming no intermediate output.\n"); 
+		}
+	}
 	else{
 	printf("You did not specify arguments to parse, assume input is from stdin\n");
 	printf("Input mesh file ");	if(scanf("%s",f_name)==1){};
@@ -161,6 +192,25 @@ void init(int argc, char *argv[])
 	import_mesh(f_name);
 	get_geometry();
 	init_random();
+}
+
+/*******************************************************************/
+
+void help()
+{
+	printf("\nThe program can either take values as in-line commands or from stdin. In the former case the syntax is\n\n");	
+	printf("./membrane -m MESH_FILE -t RUN_TIME -i TOTAL_ITERATIONS -I INTEGRATION_METHOD -x STEPS -e EPSILON -r RANDOM_SEED MEAN_CONCENTRATION -C GAMMA_H GAMMA_H^2 GAMMA_KG\n\n");
+	printf("\nWhere:\n");
+	printf("\n\t -m MESH_FILE\t: specifies the .msh file (works only with a single gmsh format)\n");
+	printf("\n\t -t (double)#\t: specifies the total time of the simulation\n");
+	printf("\n\t -i (long)#\t: specifies the total numver of iterations\n");
+	printf("\n\t -I (int)#\t: specifies the time integration method -  #=1 Euler, #=2 RK2, #=3 RK4\n");
+	printf("\n\t -x (int)#\t: if specified and #!=0, decides the frequency with which to export field configurations \n");
+	printf("\n\t -e (double)#\t: specifies the value of epsilon (i.e. diffusion constant and interface thickness)\n");
+	printf("\n\t -r (int)#1 (double)#2\t: specifies the seed #1 for the random intial condition and the desired mean concentration value #2\n");
+	printf("\n\t -C (double)#1 #2 #3\t: specifies the values of the three cubic couplings with H, H^2 and K_G\n\n");
+
+	exit(0);
 }
 
 /*******************************************************************/
@@ -545,6 +595,7 @@ void get_geometry()
 			vertex[i].hx += dx*(cota+cotb)/4;
 			vertex[i].hy += dy*(cota+cotb)/4;
 			vertex[i].hz += dz*(cota+cotb)/4;
+
 			
 			// Calculate the area of a vertex
 			
@@ -566,6 +617,10 @@ void get_geometry()
 		vertex[i].hx /= vertex[i].area;
 		vertex[i].hy /= vertex[i].area;
 		vertex[i].hz /= vertex[i].area;
+
+		// Calculate the total squared curvature at point i
+
+		vertex[i].h2 = vertex[i].hx*vertex[i].hx+vertex[i].hy*vertex[i].hy+vertex[i].hz*vertex[i].hz;
 		
 		total_area += vertex[i].area;
 	}
@@ -582,7 +637,7 @@ void get_geometry()
 			vertex[i].y,
 			vertex[i].z,
 			vertex[i].area,
-			vertex[i].hx*vertex[i].hx+vertex[i].hy*vertex[i].hy+vertex[i].hz*vertex[i].hz);
+			vertex[i].h2);
 			
 		for (j=0; j<vertex[i].num_of_neighbors; j++){
 			fprintf(f_ou,"%.10f\t",vertex[i].weight[j]);
@@ -687,13 +742,15 @@ void init_random()
 
 void get_rhs(double *rhs)
 {
-	double laplace(long), lagrange=0;
+	double laplace(long);
 	long i; 	
 	
 	// Calculate the Lagrange multiplier
 	
+	lagrange = 0;
+
 	for (i=0; i<num_of_meshpoint; i++){
-		lagrange += vertex[i].area*(sigma*laplace(i)-vertex[i].phi*(vertex[i].phi*vertex[i].phi-1)/(epsilon*epsilon));		
+		lagrange += vertex[i].area*(sigma*laplace(i)-vertex[i].phi*(vertex[i].phi*vertex[i].phi-1)/(epsilon*epsilon)+gamma_h2/epsilon*(vertex[i].phi*vertex[i].phi-1)*vertex[i].h2);		
 	}		
 	
 	lagrange /= total_area;
@@ -702,7 +759,7 @@ void get_rhs(double *rhs)
 	
 	for (i=0; i<num_of_meshpoint; i++){
 		
-		rhs[i] = sigma*laplace(i)-vertex[i].phi*(vertex[i].phi*vertex[i].phi-1)/(epsilon*epsilon)-lagrange;
+		rhs[i] = sigma*laplace(i)-vertex[i].phi*(vertex[i].phi*vertex[i].phi-1)/(epsilon*epsilon)+gamma_h2/epsilon*(vertex[i].phi*vertex[i].phi-1)*vertex[i].h2-lagrange;
 	}
 }
 
@@ -724,7 +781,7 @@ double laplace(long i)
 
 void run()
 {
-	long t, export=50;
+	long t;
 	char f_na[32];
 	
 	FILE *f_hi, *f_ou;
@@ -733,14 +790,14 @@ void run()
 	
 	for (t=0; t<num_of_iteration; t++){
 		write_hi(f_hi,t);
-		/*
-		if (t%export==0){
-			sprintf(f_na,"gc_%ld.m",t);
+		
+		if (export>0 && t%export==0){
+			sprintf(f_na,"gc_%08ld.m",t);
 			f_ou = fopen(f_na,"w");
 			export_graphic_complex(f_ou);
 			fclose(f_ou);
 		}
-		*/
+		
 		//track_domains();
 		progress_bar(t);
 		one_step();
@@ -1081,18 +1138,19 @@ void write_hi(FILE *f_ou, long t)
 		tpa=vertex[i].area;
 		phisq += tpa*tph*tph;
 		c0 += tpa*tph;
-		kin+=-.5*tpa*tph*laplace(i);
-		pot+=.25*tpa*pow(epsilon,-2.)*pow(pow(tph,2.)-1,2.);
+		kin+=-epsilon*epsilon*.5*tpa*tph*laplace(i);
+		pot+=.25*tpa*pow(pow(tph,2.)-1,2.);
 		en=kin+pot;
 	}
 
 	
-	fprintf(f_ou,"%.10f\t%.10f\t%.10f\t%.10f\t%.10f\t%d\n",
+	fprintf(f_ou,"%.10f\t%.10f\t%.10f\t%.10f\t%.10f\t%.10f\t%d\n",
 	t*DT,
 	kin/total_area,
 	pot/total_area,
 	(kin+pot)/total_area,
 	phisq/total_area-c0/total_area*c0/total_area,
+	epsilon*epsilon*lagrange,
 	num_of_domains);
 	
 	// Legend [TO UPDATE]
@@ -1101,8 +1159,9 @@ void write_hi(FILE *f_ou, long t)
 	// 2) Kinetic Energy
 	// 3) Potential Energy
 	// 4) Total Energy
-	// 5) Correlation function \phi^2
-	// 6) Number of domains
+	// 5) <\phi^2>-<\phi>^2
+	// 6) Lagrange multiplier
+	// 7) Number of domains
 }
 
 /*******************************************************************/
@@ -1115,7 +1174,7 @@ void export_conf(long t, long period)
 	FILE *f_ou;
 
 	if (t%period!=0) return;
-	sprintf(f_na,"s-t%ld.dat",t);
+	sprintf(f_na,"s-t%6ld.dat",t);
 	if (t<0) sprintf(f_na,"last.dat");
 	
 	f_ou = fopen(f_na,"w");
