@@ -22,6 +22,7 @@
 #define LINESIZE 100
 #define MAX_SIZE 100000
 #define MAX_NEIGHBORS 500
+#define PI 3.141592653589793238462643383279502884
 
 #ifndef TYPES_DECLARATION
 
@@ -39,7 +40,11 @@ typedef struct {
 	double hx;
 	double hy;
 	double hz;
+
+	double h2;
 	
+	double kg;
+
 	double phi;
 	
 	double area;

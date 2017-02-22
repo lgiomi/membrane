@@ -3,8 +3,7 @@
 rm -f membrane
 rm -f *.dat
 rm -f *.png
-rm -f *.pdf
-rm *.m
+rm -f *.m
 make
 
-./membrane -m mesh/cube.msh -t 2.5 -e .04 -i 80000 -I 1 -r $RANDOM .4 -C 0 0 0 -x 10000
+./membrane -m mesh/cube.msh -t 2 -e .05 -i 30000 -I 3 -r $RANDOM .25 -C 0 -.6 0 -x 2500

@@ -25,12 +25,17 @@ long method;
 long export;
 
 int num_of_domains;
+double l_min,l_max,h2_min,h2_max,kg_min,kg_max;
+double current_time;
 
 double total_area;
+double willmore_energy;
 double sigma=1,area,epsilon;
-double DT;
+double DT,run_time;
 double gamma_h,gamma_h2,gamma_kg;
 double lagrange;
+double current_energy,previous_energy;
+double energy_error_max=.1,energy_error_min=.001;
 
 long seed;
 
@@ -51,7 +56,7 @@ void import_mesh(char *);
 void write_hi(FILE *, long);
 void export_conf(long, long);
 void get_time(time_t, CPU_Time *);
-void export_graphic_complex(FILE *);
+void export_graphic_complex(FILE *, long);
 void help();
 
 /*******************************************************************/
@@ -70,7 +75,7 @@ main(int argc, char *argv[])
 
 void init(int argc, char *argv[])
 {
-	double box_size, run_time;
+	double box_size;
 	char f_name[32];
 	long cflag;
 	int n;                           
@@ -87,7 +92,7 @@ void init(int argc, char *argv[])
 	seed=0;
 	
 	for( n = 1; n < argc; n++ ){         /* Scan through args. */
-		switch((int)argv[n][0]){     /* Check for option character. */
+		switch((int)argv[n][0]){     /* Check for option character "-" */
 			case '-':	                  
 					switch((int)argv[n][1]){
 						case 'm':
@@ -110,7 +115,8 @@ void init(int argc, char *argv[])
 								break;
 						case 'i':
 								num_of_iteration=atol(argv[n+1]);
-								printf( "# iterations: %ld\n",num_of_iteration);
+								if(num_of_iteration==-1){printf("Will compute time step automatically\n");}
+								else{printf( "Total number of iterations: %ld\n",num_of_iteration);};
 								n++;
 								break;
 						case 'x':
@@ -122,7 +128,7 @@ void init(int argc, char *argv[])
 								gamma_h=atof(argv[n+1]);
 								gamma_h2=atof(argv[n+2]);
 								gamma_kg=atof(argv[n+3]);
-								printf( "(differences of) couplings: Leibler = %lg, bending rigidities = %lg, saddle splays = %lg\n",gamma_h,gamma_h2,gamma_kg);
+								printf( "Geometry couplings: Leibler = %lg, bending rigidity = %lg, saddle splay = %lg\n",gamma_h,gamma_h2,gamma_kg);
 								n+=3;
 								break;
 						case 'I':
@@ -151,7 +157,7 @@ void init(int argc, char *argv[])
 								};
 								break;             
 						default:  
-							printf( "Illegal option code = %c\n",(int)argv[n][1]);
+							printf( "Illegal option code \"-%c\"\n",(int)argv[n][1]);
 							printf( "\nType ./membrane -h for help\n"); 
 							exit(1);
 							break;
@@ -161,14 +167,14 @@ void init(int argc, char *argv[])
 				printf( "\nError: give input in the following format:\n"); 
 				printf("./membrane -m MESH_FILE -t RUN_TIME -i TOTAL_ITERATIONS -I INTEGRATION_METHOD -x STEPS -e EPSILON -r RANDOM_SEED MEAN_CONCENTRATION -C GAMMA_H GAMMA_H^2 GAMMA_KG\n\n");	
 				printf( "\nType ./membrane -h for help\n"); 
-				n=argc;
+				//n=argc;
 				exit(1);
                  		break;
 			}	
 		}
 		DT = run_time/num_of_iteration;
 		if(argc < 13 || run_time==0 || num_of_iteration ==0 || method == 0 || epsilon == 0 || seed == 0){
-				printf( "\nError not enough arguments given or wrong parameter values . Write input in the following format:\n"); 
+				printf( "\nError: not enough arguments given or wrong parameter values. Write input in the following format:\n"); 
 				printf("./membrane -m MESH_FILE -t RUN_TIME -i TOTAL_ITERATIONS -I INTEGRATION_METHOD -x STEPS -e EPSILON -r RANDOM_SEED MEAN_CONCENTRATION -C GAMMA_H GAMMA_H^2 GAMMA_KG\n\n");
 				printf( "\nType ./membrane -h for help\n"); 
 				exit(1);
@@ -203,7 +209,7 @@ void help()
 	printf("\nWhere:\n");
 	printf("\n\t -m MESH_FILE\t: specifies the .msh file (works only with a single gmsh format)\n");
 	printf("\n\t -t (double)#\t: specifies the total time of the simulation\n");
-	printf("\n\t -i (long)#\t: specifies the total numver of iterations\n");
+	printf("\n\t -i (long)#\t: specifies the total number of iterations. If the value -1 is set, it will compute automatically time step and adapt it thorughout iterations until total time is reached.\n");
 	printf("\n\t -I (int)#\t: specifies the time integration method -  #=1 Euler, #=2 RK2, #=3 RK4\n");
 	printf("\n\t -x (int)#\t: if specified and #!=0, decides the frequency with which to export field configurations \n");
 	printf("\n\t -e (double)#\t: specifies the value of epsilon (i.e. diffusion constant and interface thickness)\n");
@@ -217,7 +223,7 @@ void help()
 
 void import_mesh(char *f_name)
 {
-	long i, v1, v2, v3, chi, dummy, num_of_edges=0;
+	long i, v1, v2, v3, chi, triangle_test, dummy, num_of_edges=0;
 
 	if( access( f_name, F_OK ) == -1 ) {
 		printf("\nError: file %s does not exist\n",f_name);
@@ -284,13 +290,14 @@ void import_mesh(char *f_name)
 	for (i=0; i<num_of_triangles; i++){
 		if(fscanf(f_in,"%ld%ld%ld%ld%ld%ld%ld%ld",
 		&dummy,
-		&dummy,
+		&triangle_test,
 		&dummy,
 		&dummy,
 		&dummy,
 		&v1,
 		&v2,
 		&v3)){};
+		if(triangle_test!=2){break;}; //Only elements with the second column equal to 2 are triangles: therefore, ignore anything else.
 		triangle[i].v1 = v1-1;
 		triangle[i].v2 = v2-1;
 		triangle[i].v3 = v3-1;
@@ -306,14 +313,14 @@ void import_mesh(char *f_name)
 	
 	if (!num_of_edges%2){
 		printf("Error: bad triangulation, 2E = %ld\n",num_of_edges);
-		exit(0);
+		exit(1);
 	}
 
 	chi = num_of_meshpoint-num_of_edges/2+num_of_triangles;
 	
 	if (chi!=2){
-		printf("Error: bad triangulation, chi = %ld\n",chi);
-		exit(0);
+		printf("Error: bad triangulation or not a g=0 surface, chi = %ld\n",chi);
+		exit(1);
 	} 
 }	
 
@@ -403,14 +410,25 @@ int is_neighbor(long i, long j)
 void get_geometry()
 {
 	double x[3], y[3], dx, dy, dz, norm, cota, cotb, base, height;
-	double theta_this, theta_next, area_prev, area_next;
-	
+	double theta_this, theta_next, area_prev, area_next, theta_a, theta_b;
+
+
+	l_min=1E10;
+	l_max=0;
+
+	h2_min=1E10;
+	h2_max=-1E10;
+
+	kg_min=1E10;
+	kg_max=-1E10;
+
 	long i, j, tmp, next, prev, this,  obtuse[MAX_SIZE], num_of_obtuse=0;
 	long which_triangle(long,long,long);
 	
 	int swap(long *,long *), swapped;
 	
 	total_area = 0;	
+	willmore_energy = 0;	
 			
 	for (i=0; i<num_of_meshpoint; i++){
 	
@@ -445,7 +463,7 @@ void get_geometry()
 		y[1] /= norm;
 		y[2] /= norm;
 	
-		// Sort neighbors count-clockwise on the tangent plane	
+		// Sort neighbors on the tangent plane (orientation is arbitrary)
 				
 		do {
 			
@@ -461,7 +479,8 @@ void get_geometry()
 					+(vertex[i].y-vertex[vertex[i].neighbor[j]].y)*y[1]
 					+(vertex[i].z-vertex[vertex[i].neighbor[j]].z)*y[2];						
 				
-				theta_this = atan2(dy,dx);
+				theta_this = atan2(-dy,-dx);
+
 				
 				dx = (vertex[i].x-vertex[vertex[i].neighbor[j+1]].x)*x[0] 
 					+(vertex[i].y-vertex[vertex[i].neighbor[j+1]].y)*x[1]
@@ -471,8 +490,8 @@ void get_geometry()
 					+(vertex[i].y-vertex[vertex[i].neighbor[j+1]].y)*y[1]
 					+(vertex[i].z-vertex[vertex[i].neighbor[j+1]].z)*y[2];
 
-				theta_next = atan2(dy,dx);
-				
+				theta_next = atan2(-dy,-dx);
+
 				if (theta_this > theta_next){
 					swapped = swap(&vertex[i].neighbor[j],&vertex[i].neighbor[j+1]);
 				}
@@ -485,6 +504,7 @@ void get_geometry()
 		vertex[i].hy = 0;
 		vertex[i].hz = 0;
 		vertex[i].area = 0;
+		vertex[i].kg=2*PI;
 	
 		for (j=0; j<vertex[i].num_of_neighbors; j++){
 			
@@ -529,7 +549,7 @@ void get_geometry()
 				+(vertex[i].z-vertex[prev].z)*y[2];				
 		    	
 			cota = dx/dy;
-		
+
 			area_prev = base*height/2;
 		
 			if (cota<0){
@@ -552,6 +572,7 @@ void get_geometry()
 			y[0] = vertex[i].x-vertex[next].x;
 			y[1] = vertex[i].y-vertex[next].y;
 			y[2] = vertex[i].z-vertex[next].z;
+
 				
 			norm = x[0]*y[0]+x[1]*y[1]+x[2]*y[2];
 				
@@ -581,6 +602,58 @@ void get_geometry()
 				obtuse[num_of_obtuse] = which_triangle(i,this,next); 
 				num_of_obtuse++;
 			}
+
+			// Calculate angle at vertex i in triangle_prev
+
+			x[0] = vertex[i].x-vertex[prev].x;
+			x[1] = vertex[i].y-vertex[prev].y;
+			x[2] = vertex[i].z-vertex[prev].z;
+
+			norm = sqrt(x[0]*x[0]+x[1]*x[1]+x[2]*x[2]);
+				
+			x[0] /= norm;
+			x[1] /= norm;
+			x[2] /= norm;
+
+			y[0] = vertex[i].x-vertex[this].x;
+			y[1] = vertex[i].y-vertex[this].y;
+			y[2] = vertex[i].z-vertex[this].z;
+
+			norm = sqrt(y[0]*y[0]+y[1]*y[1]+y[2]*y[2]);
+
+			y[0] /= norm;
+			y[1] /= norm;
+			y[2] /= norm;
+
+			theta_a = acos(x[0]*y[0]+x[1]*y[1]+x[2]*y[2]);
+
+			// Calculate angle at vertex i in triangle_next
+
+			x[0] = vertex[i].x-vertex[next].x;
+			x[1] = vertex[i].y-vertex[next].y;
+			x[2] = vertex[i].z-vertex[next].z;
+
+			norm = sqrt(x[0]*x[0]+x[1]*x[1]+x[2]*x[2]);
+				
+			x[0] /= norm;
+			x[1] /= norm;
+			x[2] /= norm;
+
+			y[0] = vertex[i].x-vertex[this].x;
+			y[1] = vertex[i].y-vertex[this].y;
+			y[2] = vertex[i].z-vertex[this].z;
+
+			norm = sqrt(y[0]*y[0]+y[1]*y[1]+y[2]*y[2]);
+
+			y[0] /= norm;
+			y[1] /= norm;
+			y[2] /= norm;
+
+			theta_b = acos(x[0]*y[0]+x[1]*y[1]+x[2]*y[2]);
+
+			// Subtract the computed angles to 2Pi in K_G
+
+			vertex[i].kg-=(theta_a+theta_b)/2;
 			
 			// Calculate the un-normalized Laplacian weights
 			
@@ -596,13 +669,10 @@ void get_geometry()
 			vertex[i].hy += dy*(cota+cotb)/4;
 			vertex[i].hz += dz*(cota+cotb)/4;
 
-			
 			// Calculate the area of a vertex
-			
-			//vertex[i].area += (dx*dx+dy*dy+dz*dz)*(cota+cotb)/8;
-			
-			vertex[i].area += ( cota>0 ? (dx*dx+dy*dy+dz*dz)*cota/8 : area_prev/4);
-			vertex[i].area += ( cotb>0 ? (dx*dx+dy*dy+dz*dz)*cotb/8 : area_next/4);
+
+			vertex[i].area += ( cota>0 && theta_a < PI/2 && PI-atan(1/cota)-theta_a < PI/2 ? (dx*dx+dy*dy+dz*dz)*cota/8 : (theta_a > PI/2 ? area_prev/4 : area_prev/8));
+			vertex[i].area += ( cotb>0 && theta_b < PI/2 && PI-atan(1/cotb)-theta_b < PI/2 ? (dx*dx+dy*dy+dz*dz)*cotb/8 : (theta_b > PI/2 ? area_next/4 : area_next/8));
 		}
 		
 		// Normalized the Laplacian weights 
@@ -618,11 +688,14 @@ void get_geometry()
 		vertex[i].hy /= vertex[i].area;
 		vertex[i].hz /= vertex[i].area;
 
-		// Calculate the total squared curvature at point i
+		vertex[i].kg /= vertex[i].area;
+
+		// Calculate the total squared curvature 
 
 		vertex[i].h2 = vertex[i].hx*vertex[i].hx+vertex[i].hy*vertex[i].hy+vertex[i].hz*vertex[i].hz;
 		
 		total_area += vertex[i].area;
+		willmore_energy += vertex[i].area*vertex[i].h2;
 	}
 	
 	FILE *f_ou;
@@ -630,22 +703,48 @@ void get_geometry()
 	f_ou = fopen("geometry.dat","w");
 	
 	for (i=0; i<num_of_meshpoint; i++){
-		
-		fprintf(f_ou,"%ld\t%.10f\t%.10f\t%.10f\t%.10f\t%.10f\t",
+
+		fprintf(f_ou,"%ld\t%.10f\t%.10f\t%.10f\t%.10f\t%.10f\t%.10lg\t",
 			i,
 			vertex[i].x,
 			vertex[i].y,
 			vertex[i].z,
 			vertex[i].area,
-			vertex[i].h2);
+			vertex[i].h2,
+			vertex[i].kg);
 			
 		for (j=0; j<vertex[i].num_of_neighbors; j++){
 			fprintf(f_ou,"%.10f\t",vertex[i].weight[j]);
+
+			this = vertex[i].neighbor[j];
+		
+			x[0] = vertex[i].x-vertex[this].x;
+			x[1] = vertex[i].y-vertex[this].y;
+			x[2] = vertex[i].z-vertex[this].z;
+			base=sqrt(x[0]*x[0]+x[1]*x[1]+x[2]*x[2]);
+
+			if(l_max<base){l_max=base;};
+			if(l_min>base){l_min=base;};
+
+			if(h2_max<vertex[i].h2){h2_max=vertex[i].h2;};
+			if(h2_min>vertex[i].h2){h2_min=vertex[i].h2;};
+
+			if(kg_max<vertex[i].kg){kg_max=vertex[i].kg;};
+			if(kg_min>vertex[i].kg){kg_min=vertex[i].kg;};
+			
 		}	
 		
 		fprintf(f_ou,"\n");
 	}
 
+	fclose(f_ou);
+
+	f_ou = fopen("mean_curvature.m","w");
+	export_graphic_complex(f_ou,2);
+	fclose(f_ou);
+
+	f_ou = fopen("gaussian_curvature.m","w");
+	export_graphic_complex(f_ou,3);
 	fclose(f_ou);
 
 	/*
@@ -695,9 +794,17 @@ void get_geometry()
 	printf("\n");
 	printf("\tVertices %ld\n",num_of_meshpoint);
 	printf("\tTriangles %ld\n",num_of_triangles);
-	printf("\tObtuse triangles %ld\n",num_of_obtuse);
+	printf("\tObtuse triangles %ld (%.1ld%% of total)\n",num_of_obtuse/2,100*num_of_obtuse/2/num_of_triangles);
 	printf("\tTotal surface area %lg\n",total_area);
+	printf("\tWillmore energy %lg (asphericity %lg)\n",willmore_energy,willmore_energy/4/PI-1);
+	printf("\tMin/max length (%lg,%lg)\n",l_min,l_max);
+	printf("\tMin/max H2 (%lg,%lg)\n",h2_min,h2_max);
+	printf("\tMin/max KG (%lg,%lg)\n",kg_min,kg_max);
+	printf("\tProposed initial time-step %lg\n",.9/sigma*l_min*l_min/2);			// For diffusion processes on flat space, explicit discretization schemes (as ours) are stable only for sigma*DT/DX^2 < 1/2.
+	printf("\tProposed initial time-step with fast time %lg\n",.9/sigma*l_min*l_min/2/epsilon/epsilon); 	
 	printf("\n");
+
+	//exit(0);
 
 }
 
@@ -743,6 +850,7 @@ void init_random()
 void get_rhs(double *rhs)
 {
 	double laplace(long);
+	double dV(long);
 	long i; 	
 	
 	// Calculate the Lagrange multiplier
@@ -750,7 +858,8 @@ void get_rhs(double *rhs)
 	lagrange = 0;
 
 	for (i=0; i<num_of_meshpoint; i++){
-		lagrange += vertex[i].area*(sigma*laplace(i)-vertex[i].phi*(vertex[i].phi*vertex[i].phi-1)/(epsilon*epsilon)+gamma_h2/epsilon*(vertex[i].phi*vertex[i].phi-1)*vertex[i].h2);		
+
+		lagrange += vertex[i].area*(sigma*laplace(i)-dV(i)/(epsilon*epsilon));		
 	}		
 	
 	lagrange /= total_area;
@@ -759,7 +868,7 @@ void get_rhs(double *rhs)
 	
 	for (i=0; i<num_of_meshpoint; i++){
 		
-		rhs[i] = sigma*laplace(i)-vertex[i].phi*(vertex[i].phi*vertex[i].phi-1)/(epsilon*epsilon)+gamma_h2/epsilon*(vertex[i].phi*vertex[i].phi-1)*vertex[i].h2-lagrange;
+		rhs[i] = sigma*laplace(i)-dV(i)/(epsilon*epsilon)-lagrange;
 	}
 }
 
@@ -779,29 +888,104 @@ double laplace(long i)
 
 /*******************************************************************/
 
+// Define the potential and its fucntional derivative
+
+double dV(long i)
+{
+	double react,dv;
+
+	react = vertex[i].phi*(vertex[i].phi*vertex[i].phi-1);
+
+	dv = 3./4.*(1-vertex[i].phi*vertex[i].phi)*epsilon;
+	
+	return react+dv*(gamma_h2*vertex[i].h2+gamma_kg*vertex[i].kg+gamma_h*sqrt(vertex[i].h2));
+}
+
+double V(long i)
+{
+	double V_0,V_int;
+
+	V_0 = pow((vertex[i].phi*vertex[i].phi-1),2)/4;
+
+	V_int = epsilon*pow((vertex[i].phi+1),2)*(2-vertex[i].phi)/4;
+	
+	return V_0+V_int*(gamma_h2*vertex[i].h2+gamma_kg*vertex[i].kg+gamma_h*sqrt(vertex[i].h2));
+}
+
+/*******************************************************************/
+
 void run()
 {
-	long t;
+	long t=0;
+	double DE,DE_old,DDE;
 	char f_na[32];
 	
 	FILE *f_hi, *f_ou;
 	
 	f_hi = fopen("hi.dat","w");	
-	
-	for (t=0; t<num_of_iteration; t++){
-		write_hi(f_hi,t);
+
+	current_time=0;
+	current_energy=0;
+	previous_energy=0;
+	DE_old=0;
+	DE=0;
+
+	if(num_of_iteration==-1){
+		DT = .9/sigma*l_min*l_min/2;
+		while(current_time<run_time){
+
+			current_time+=DT;
+
+			previous_energy=current_energy;
+			DE_old=DE;
+
+			write_hi(f_hi,t);
+
+			DE=(previous_energy-current_energy)/DT;
+			//DE=sqrt(DE*DE);
+
+			DDE=(DE-DE_old)/DT;
+
+			DDE=sqrt(DDE*DDE);
+
+			if(t>100 && DDE<energy_error_min){DT*=1.01;		/*printf("t=%lg, changing DT to %lg with DE %lg\n",current_time,DT,DE);*/};	
+			if(t>100 && DDE>energy_error_max){DT*=.95;		/*printf("t=%lg, changing DT to %lg with DE %lg\n",current_time,DT,DE);*/};
+			if(t>100){printf("t=%lg\tE=%lg\tDE=%lg\tDDE=%lg\tDT=%lg\n",current_time,current_energy,DE,DDE,DT);};
 		
-		if (export>0 && t%export==0){
-			sprintf(f_na,"gc_%08ld.m",t);
-			f_ou = fopen(f_na,"w");
-			export_graphic_complex(f_ou);
-			fclose(f_ou);
+			if (export>0 && t%export==0){
+				sprintf(f_na,"gc_%06ld.m",t);
+				f_ou = fopen(f_na,"w");
+				export_graphic_complex(f_ou,1);
+				fclose(f_ou);
+			}
+			//track_domains();
+			//progress_bar(t);
+			one_step();
+			t++;
 		}
-		
-		//track_domains();
-		progress_bar(t);
-		one_step();
+		printf("Total time steps: %ld\n",t);
 	}
+	else{
+		for (t=0; t<num_of_iteration; t++){
+
+			current_time+=DT;
+
+			write_hi(f_hi,t);
+
+			if (export>0 && t%export==0){
+				sprintf(f_na,"gc_%08ld.m",t);
+				f_ou = fopen(f_na,"w");
+				export_graphic_complex(f_ou,1);
+				fclose(f_ou);
+			}
+		
+			//track_domains();
+			progress_bar(t);
+			one_step();
+		}
+	};
+
+
 
 	fclose(f_hi);
 }
@@ -1110,7 +1294,7 @@ void end()
   	printf("\n");
 	
 	f_ou = fopen("last.m","w");
-	export_graphic_complex(f_ou);
+	export_graphic_complex(f_ou,1);
 	fclose(f_ou);
 	
 	f_ou = fopen("ou.dat","w");	
@@ -1131,6 +1315,8 @@ void end()
 void write_hi(FILE *f_ou, long t)
 {
 	long m, i, j;
+	double V(long);
+
 	double c0=0,phisq=0,kin=0,pot=0,en=0,tph,tpa;
  	
 	for (i=0; i<num_of_meshpoint; i++){
@@ -1138,14 +1324,16 @@ void write_hi(FILE *f_ou, long t)
 		tpa=vertex[i].area;
 		phisq += tpa*tph*tph;
 		c0 += tpa*tph;
-		kin+=-epsilon*epsilon*.5*tpa*tph*laplace(i);
-		pot+=.25*tpa*pow(pow(tph,2.)-1,2.);
+		kin+=-sigma*.5*tpa*tph*laplace(i);
+		pot+=tpa*V(i)/(epsilon*epsilon);
 		en=kin+pot;
 	}
 
+	current_energy=en;
 	
-	fprintf(f_ou,"%.10f\t%.10f\t%.10f\t%.10f\t%.10f\t%.10f\t%d\n",
-	t*DT,
+	fprintf(f_ou,"%.10ld\t%.10f\t%.10f\t%.10f\t%.10f\t%.10f\t%.10f\t%d\n",
+	t,
+	current_time,
 	kin/total_area,
 	pot/total_area,
 	(kin+pot)/total_area,
@@ -1180,13 +1368,10 @@ void export_conf(long t, long period)
 	f_ou = fopen(f_na,"w");
 	
 	for (i=0; i<num_of_meshpoint; i++){
-		fprintf(f_ou,"%.10f\t%.10f\t%.10f\t%.10f\t%.10f\t%.10f\t%.10f\t%d\n",
+		fprintf(f_ou,"%.10f\t%.10f\t%.10f\t%.10f\t%d\n",
 		vertex[i].x,
 		vertex[i].y,
 		vertex[i].z,
-		vertex[i].hx,
-		vertex[i].hy,
-		vertex[i].hz,
 		vertex[i].phi,
 		vertex[i].label);
 	}
@@ -1195,7 +1380,7 @@ void export_conf(long t, long period)
 
 /*******************************************************************/
 
-void export_graphic_complex(FILE *f_ou)
+void export_graphic_complex(FILE *f_ou, long l)
 {
 	double r, g, b;
 	long i, j;
@@ -1226,16 +1411,22 @@ void export_graphic_complex(FILE *f_ou)
 	fprintf(f_ou,"}],VertexColors->{");
 	
 	for (i=0; i<num_of_meshpoint; i++){
-		r = 0.5*(1+atan(vertex[i].phi));
-		g = 0.5*(1-atan(vertex[i].phi));
-		b = 0;
+		switch(l){
+			case 1: r = 0.5*(1+atan(vertex[i].phi));
+				g = 0.5*(1-atan(vertex[i].phi));
+				b = 0;
+				break;
+			case 2: r = (vertex[i].h2-h2_min)/(h2_max-h2_min);
+				g = (vertex[i].h2-h2_min)/(h2_max-h2_min);
+				b = 1-r-g;
+				break;
+			case 3: r = (vertex[i].kg-kg_min)/(kg_max-kg_min);
+				b = (vertex[i].kg-kg_min)/(kg_max-kg_min);
+				g = 1-r-b;
+				break;
+			 }
+
 		fprintf(f_ou,"RGBColor[{%lg,%lg,%lg}],",r,g,b);
-		//if (vertex[i].phi<0){
-		//	fprintf(f_ou,"Black,");
-		//} 
-		//else {
-		//	fprintf(f_ou,"Hue[%lg],",1.0*vertex[i].label/num_of_domains);
-		//}
 	}
 
 	fseek(f_ou,-1, SEEK_CUR);
