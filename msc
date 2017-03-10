@@ -4,6 +4,7 @@ rm -f membrane
 rm -f *.dat
 rm -f *.png
 rm -f *.m
+rm -f *.mkv
 make
 
-./membrane -m mesh/cube.msh -t 2 -e .05 -i 30000 -I 3 -r $RANDOM .25 -C 0 -.6 0 -x 2500
+./membrane -m mesh/cube.msh -M 1 -t 10 -e .05 -I 5 -r $RANDOM .35 -C 0 0 0 -x 250 -P 0 0 0 

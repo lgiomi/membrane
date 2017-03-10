@@ -18,6 +18,7 @@
 #define NTAB 32
 #define NDIV (1+IMM1/NTAB)
 #define EPS 1.2e-7
+#define TOL 1e-10
 #define RNMX (1.0-EPS)
 #define LINESIZE 100
 #define MAX_SIZE 100000
@@ -36,6 +37,9 @@ typedef struct {
   	double x;
 	double y;
 	double z;
+
+	double gridx;
+	double gridy;
 	
 	double hx;
 	double hy;
