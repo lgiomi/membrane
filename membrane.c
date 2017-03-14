@@ -27,12 +27,12 @@ long export;
 int num_of_domains;
 double l_min,l_max,h2_min,h2_max,kg_min,kg_max;
 double c_x,c_y,c_z;
-int c_flag=0,m_flag=2;
+int c_flag=0,o_flag=1,i_flag=0;
 double current_time;
 
 double total_area;
 double willmore_energy,euler_chi;
-double sigma=1,area,epsilon,DTauto;
+double sigma=1,c_0,epsilon,DTauto;
 double DT,run_time;
 double gamma_h,gamma_h2,gamma_kg;
 double lagrange;
@@ -55,6 +55,7 @@ void init();
 
 void one_step();
 void init_random();
+void import_initial(char *);
 void get_geometry();
 void track_domains();
 void find_neighbors();
@@ -62,7 +63,6 @@ void get_rhs(double *);
 void progress_bar(long);
 void import_mesh(char *);
 void write_hi(FILE *, long);
-void export_conf(long, long);
 void get_time(time_t, CPU_Time *);
 void export_graphic_complex(FILE *, long);
 void export_dat(FILE *);
@@ -87,7 +87,7 @@ void init(int argc, char *argv[])
 {
 	double box_size;
 	char f_name[32];
-	long cflag;
+	char import_name[32];
 	int n;                           
    
 	if(argc>1){
@@ -113,9 +113,9 @@ void init(int argc, char *argv[])
 						case 'h':
 								help();
 								break;
-						case 'M':
-								m_flag=atol(argv[n+1]);
-								printf( ".m export flag: %d\n",m_flag);
+						case 'O':
+								o_flag=atol(argv[n+1]);
+								printf( "Output level flag: %d\n",o_flag);
 								n++;
 								break;
 						case 't':
@@ -143,7 +143,7 @@ void init(int argc, char *argv[])
 								gamma_h=atof(argv[n+1]);
 								gamma_h2=atof(argv[n+2]);
 								gamma_kg=atof(argv[n+3]);
-								printf( "Geometry couplings: Leibler = %lg, bending rigidity = %lg, saddle splay = %lg\n",gamma_h,gamma_h2,gamma_kg);
+								printf( "Couplings: (%lg H, %lg H^2, %lg K_G )\n",gamma_h,gamma_h2,gamma_kg);
 								n+=3;
 								break;
 						case 'P':
@@ -163,7 +163,7 @@ void init(int argc, char *argv[])
 									case '5': method=5;break;
 									default:printf( "Illegal integration method  %c\n",(int)argv[n+1][0]);
 										printf( "\nType ./membrane -h for help\n"); 
-										exit(1);
+										exit(0);
 										break;
 								}
 								printf( "Integration method: %ld\n",method);		
@@ -171,20 +171,27 @@ void init(int argc, char *argv[])
 								break;
 						case 'r':
 								seed=atol(argv[n+1]);
-								area=atof(argv[n+2]);
-								if(area>=0&&area<=1){
-									printf( "Random initial data with seed %ld and total concentration %lg\n",seed,area);
+								c_0=atof(argv[n+2]);
+								if(c_0>=0&&c_0<=1){
+									printf( "Random initial data with seed %ld and total concentration %lg\n",seed,c_0);
+									i_flag+=2;
 									n+=2;
 								}else{
-									printf( "Error, mean concentration has to be between 0 and 1 (you passed %lg) \n",area);
+									printf( "Error, total relative concentration has to be between 0 and 1 (you passed %lg) \n",c_0);
 									printf( "\nType ./membrane -h for help\n"); 
-									exit(1);
+									exit(0);
 								};
+								break;
+						case 'R':
+								snprintf(import_name, sizeof(import_name), "%s", argv[n+1]);
+								printf( "Import initial configuration from file: %s\n",import_name);
+								i_flag+=1;
+								n++;
 								break;             
 						default:  
 							printf( "Illegal option code \"-%c\"\n",(int)argv[n][1]);
 							printf( "\nType ./membrane -h for help\n"); 
-							exit(1);
+							exit(0);
 							break;
 					}
                  			break;
@@ -192,20 +199,19 @@ void init(int argc, char *argv[])
 				printf( "\nError: give input in the following format:\n"); 
 				print_cmd_line();
 				printf( "\nType ./membrane -h for help\n"); 
-				//n=argc;
-				exit(1);
+				exit(0);
                  		break;
 			}	
 		}
 		DT = run_time/num_of_iteration;
-		if( run_time==0 ||  method == 0 || (num_of_iteration == -1 && method < 4) || epsilon == 0 || seed == 0){
+		if( run_time==0 ||  method == 0 || (num_of_iteration == 1 && method < 4) || epsilon == 0 || i_flag <1){
 				printf( "\nError: not enough arguments given or wrong parameter values. Write input in the following format:\n"); 
 				print_cmd_line();
-				printf( "\nType ./membrane -h for help\n"); 
-				exit(1);
+				printf( "Type ./membrane -h for help\n"); 
+				exit(0);
 		}
 		if(export == 0){
-			printf( "\nNo -x option given, assuming no intermediate output.\n"); 
+			printf( "No -x option given, assuming no intermediate output.\n"); 
 		}
 	}
 	else{
@@ -214,43 +220,51 @@ void init(int argc, char *argv[])
 	printf("Input run time ");	if(scanf("%lg",&run_time)==1){};
   	printf("Input iterations ");	if(scanf("%ld",&num_of_iteration)==1){};
 	DT = run_time/num_of_iteration;
-	printf("Choose integration method\n\n\t1. Euler\n\t2. Runge-Kutta (2 steps)\n\t3. Runge-Kutta (4 steps)\n\t4. Adaptive Heun-Euler\n\t5. RKF45\n\nInput flag "); if(scanf("%ld",&method)==1){};
+	printf("Choose integration method\n\n\t1. Euler\n\t2. Runge-Kutta (2 steps)\n\t3. Runge-Kutta (4 steps)\n\t4. Adaptive Heun-Euler\n\t5. RKF45\n\n"); if(scanf("%ld",&method)==1){};
 	printf("Input sigma "); if(scanf("%lg",&sigma)==1){};
 	printf("Input epsilon "); if(scanf("%lg",&epsilon)==1){};
-	printf("Input area percentage "); if(scanf("%lg",&area)){};
+	printf("Input area percentage "); if(scanf("%lg",&c_0)){};
 	printf("Input random seed "); if(scanf("%ld",&seed)){};
+	i_flag=2;
 	}
 	import_mesh(f_name);
 	get_geometry();
-	init_random();
+	if(i_flag==1){
+		import_initial(import_name);
+	}
+	else if(i_flag==2){
+		init_random();
+	};
 }
 
 /*******************************************************************/
 
 void print_cmd_line()
 {
-	printf("./membrane -m MESH_FILE -t RUN_TIME -i TOTAL_ITERATIONS -I METHOD -x STEPS -e EPSILON -r SEED MEAN_CONCENTRATION -C GAMMA_H GAMMA_H^2 GAMMA_KG -P CX CY CZ -M FLAG\n\n");
+	printf("./membrane -m MESH_FILE -t RUN_TIME -I METHOD -e EPSILON  (-r SEED MEAN_CONCENTRATION | -R START_FILE ) [-O LEVEL] [-x STEPS] [-i TOTAL_ITERATIONS] [-C GAMMA_H GAMMA_H^2 GAMMA_KG] [-P CX CY CZ]\n\n");
 }
 
 /*******************************************************************/
 
 void help()
 {
-	printf("\nThe program can either take values as in-line commands or from stdin. In the former case the syntax is\n\n");	
+	printf("\nThis program takes input values as in-line commands or from stdin (deprecated). In the former case the syntax is\n\n");	
 	print_cmd_line();
 	printf("Where:\n");
 	printf("\t -m MESH_FILE\t: specifies the .msh file (works only with standard gmsh mesh format)\n");
-	printf("\t -t RUN_TIME\t: specifies the total time of the simulation\n");
-	printf("\t -i ITERATIONS\t: specifies the total number of iterations (-I 4 and -I 5 do not use this parameter)\n");
-	printf("\t -I METHOD\t: specifies the integration method\n\t\t\t\t1) Euler\n\t\t\t\t2) RK2\n\t\t\t\t3) RK4\n\t\t\t\t4) RK2-Euler with adaptive step-size [NOT FULLY WORKING]\n\t\t\t\t5) RKF45 with adaptive stepsize\n");
-	printf("\t -x STEPS\t: if specified and #!=0, decides the frequency with which to export field configurations \n");
+	printf("\t -t RUN_TIME\t: specifies the upper bound on the total time of the simulation\n");
+	printf("\t -I METHOD\t: specifies the integration method\n\t\t\t\t1: Euler\n\t\t\t\t2: RK2\n\t\t\t\t3: RK4\n\t\t\t\t4: RK2-Euler with adaptive step-size [NOT FULLY WORKING]\n\t\t\t\t5: RKF45 with adaptive stepsize\n");
 	printf("\t -e EPSILON\t: specifies the value of epsilon (i.e. diffusion constant and interface thickness)\n");
 	printf("\t -r #1 #2\t: specifies the seed #1 for the random intial condition and the desired mean concentration value #2\n");
+	printf("\t -R FILE\t: specifies where to import from the initial configuration of the phase field on the mesh (does not work with -r)\n");
+	printf("\t -O LEVEL\t: choose which output files will be printed\n\t\t\t\t0: 'histo.dat', 'last.dat', 'final.dat'\n\t\t\t\t1: previous + 'geometry.dat','last.m' + 'gc_#.dat' if -x is set [DEFAULT]\n\t\t\t\t2: previous + 'mean_curvature.m','gaussian_curvature.m' + 'gc_#.m' if -x is set\n\t\t\t\t3: as in '1' + debug files\n");
+	printf("\t -x STEPS\t: if specified and #!=0, decides the frequency with which to export field configurations \n");
+	printf("\t -i ITERATIONS\t: specifies the total number of iterations (-I 4 and -I 5 do not use this parameter)\n");
 	printf("\t -C #1 #2 #3\t: specifies the values of the three cubic couplings with H, H^2 and K_G\n");
 	printf("\t -P #1 #2 #3\t: specifies the coordinates of the center for two-dimensional stereographic projection of the surface\n");
-	printf("\t -M FLAG\t: determines how many .m files are going to be exported (0=none,1=only geometrical and final configuration,2=as specified by -x). Default is 1\n\n");
 
-	exit(0);
+	printf("\n");
+	exit(1);
 }
 
 /*******************************************************************/
@@ -261,7 +275,7 @@ void import_mesh(char *f_name)
 
 	if( access( f_name, F_OK ) == -1 ) {
 		printf("\nError: file %s does not exist\n",f_name);
-		exit(1);
+		exit(0);
 	};
 
 	FILE *f_in = fopen(f_name,"r");
@@ -347,14 +361,14 @@ void import_mesh(char *f_name)
 	
 	if (!num_of_edges%2){
 		printf("Error: bad triangulation, 2E = %ld\n",num_of_edges);
-		exit(1);
+		exit(0);
 	}
 
 	chi = num_of_meshpoint-num_of_edges/2+num_of_triangles;
 	
 	if (chi!=2){
 		printf("Error: bad triangulation or not a g=0 surface, chi = %ld\n",chi);
-		exit(1);
+		exit(0);
 	} 
 }	
 
@@ -747,59 +761,61 @@ void get_geometry()
 	
 	FILE *f_ou;
 	
-	f_ou = fopen("geometry.dat","w");
+	if(o_flag>=1){
+		f_ou = fopen("geometry.dat","w");
 
-	for (i=0; i<num_of_meshpoint; i++){
+		for (i=0; i<num_of_meshpoint; i++){
 
-		if(c_flag==0){
-			fprintf(f_ou,"%ld\t%.10f\t%.10f\t%.10f\t%.10f\t%.10f\t%.10lg\t",
-				i,
-				vertex[i].x,
-				vertex[i].y,
-				vertex[i].z,
-				vertex[i].area,
-				vertex[i].h2,
-				vertex[i].kg);
-		}else if(c_flag==1){
-			fprintf(f_ou,"%ld\t%.10f\t%.10f\t%.10f\t%.10f\t%.10f\t%.10lg\t%.10lg\t%.10lg\t",
-				i,
-				vertex[i].x,
-				vertex[i].y,
-				vertex[i].z,
-				vertex[i].area,
-				vertex[i].h2,
-				vertex[i].kg,
-				vertex[i].gridx,
-				vertex[i].gridy);
-		};
+			if(c_flag==0){
+				fprintf(f_ou,"%ld\t%.10f\t%.10f\t%.10f\t%.10f\t%.10f\t%.10lg\t",
+					i,
+					vertex[i].x,
+					vertex[i].y,
+					vertex[i].z,
+					vertex[i].area,
+					vertex[i].h2,
+					vertex[i].kg);
+			}else if(c_flag==1){
+				fprintf(f_ou,"%ld\t%.10f\t%.10f\t%.10f\t%.10f\t%.10f\t%.10lg\t%.10lg\t%.10lg\t",
+					i,
+					vertex[i].x,
+					vertex[i].y,
+					vertex[i].z,
+					vertex[i].area,
+					vertex[i].h2,
+					vertex[i].kg,
+					vertex[i].gridx,
+					vertex[i].gridy);
+			};
+				
+			for (j=0; j<vertex[i].num_of_neighbors; j++){
+				fprintf(f_ou,"%.10f\t",vertex[i].weight[j]);
+	
+				this = vertex[i].neighbor[j];
 			
-		for (j=0; j<vertex[i].num_of_neighbors; j++){
-			fprintf(f_ou,"%.10f\t",vertex[i].weight[j]);
-
-			this = vertex[i].neighbor[j];
-		
-			x[0] = vertex[i].x-vertex[this].x;
-			x[1] = vertex[i].y-vertex[this].y;
-			x[2] = vertex[i].z-vertex[this].z;
-			base=sqrt(x[0]*x[0]+x[1]*x[1]+x[2]*x[2]);
-
-			if(l_max<base){l_max=base;};
-			if(l_min>base){l_min=base;};
-
-			if(h2_max<vertex[i].h2){h2_max=vertex[i].h2;};
-			if(h2_min>vertex[i].h2){h2_min=vertex[i].h2;};
-
-			if(kg_max<vertex[i].kg){kg_max=vertex[i].kg;};
-			if(kg_min>vertex[i].kg){kg_min=vertex[i].kg;};
+				x[0] = vertex[i].x-vertex[this].x;
+				x[1] = vertex[i].y-vertex[this].y;
+				x[2] = vertex[i].z-vertex[this].z;
+				base=sqrt(x[0]*x[0]+x[1]*x[1]+x[2]*x[2]);
+	
+				if(l_max<base){l_max=base;};
+				if(l_min>base){l_min=base;};
+	
+				if(h2_max<vertex[i].h2){h2_max=vertex[i].h2;};
+				if(h2_min>vertex[i].h2){h2_min=vertex[i].h2;};
+	
+				if(kg_max<vertex[i].kg){kg_max=vertex[i].kg;};
+				if(kg_min>vertex[i].kg){kg_min=vertex[i].kg;};
+				
+			}	
 			
-		}	
-		
-		fprintf(f_ou,"\n");
+			fprintf(f_ou,"\n");
+	}	
+	
+	fclose(f_ou);
 	}
 
-	fclose(f_ou);
-
-	if(m_flag>=1){
+	if(o_flag==2){
 		f_ou = fopen("mean_curvature.m","w");
 		export_graphic_complex(f_ou,2);
 		fclose(f_ou);
@@ -810,11 +826,7 @@ void get_geometry()
 	}
 
 	/*
-	f_ou = fopen("debug.dat","w");
-
-	fclose(f_ou);
-	
-	f_ou = fopen("ob.dat","w");
+	f_ou = fopen("obtuse_debug.dat","w");
 	
 	for (i=0; i<num_of_obtuse; i++){
 		fprintf(f_ou,"%ld {%lg,%lg,%lg} {%lg,%lg,%lg} {%lg,%lg,%lg}\n",
@@ -843,8 +855,7 @@ void get_geometry()
 	printf("\tMin/max length (%lg,%lg)\n",l_min,l_max);
 	printf("\tMin/max H2 (%lg,%lg)\n",h2_min,h2_max);
 	printf("\tMin/max KG (%lg,%lg)\n",kg_min,kg_max);
-	printf("\tProposed initial time-step %lg\n",.5/sigma*l_min*l_min/2);				// For diffusion processes on flat space, explicit discretization schemes (as ours) are stable only for sigma*DT/DX^2 < 1/2.
-	//printf("\tProposed initial time-step with fast time %lg\n",.9/sigma*l_min*l_min/2/epsilon/epsilon); 	
+	printf("\tProposed initial time-step %lg\n",.1/sigma*l_min*l_min/2);// For diffusion processes on flat space, explicit discretization schemes (as ours) are stable only for sigma*DT/DX^2 < 1/2.
 	printf("\n");
 
 	/*f_ou = fopen("negative_kg_debug.m","w");
@@ -873,7 +884,7 @@ void get_geometry()
 
 	fclose(f_ou);*/
 
-	//exit(0);
+	//exit(1);
 	
 
 }
@@ -911,8 +922,51 @@ void init_random()
 	long i;
 		
 	for (i=0; i<num_of_meshpoint; i++){
-		vertex[i].phi = (2*area-1)+noise*(1-2*ran2(&seed));
+		vertex[i].phi = (2*c_0-1)+noise*(1-2*ran2(&seed));
 	}
+}
+
+/*******************************************************************/
+
+void import_initial(char *import_name)
+{
+	int i,lines=0;
+	char line[LINESIZE];
+
+	if( access(import_name, F_OK ) == -1 ) {
+		printf("\nError: file %s does not exist\n",import_name);
+		exit(0);
+	};
+
+	FILE *f_in = fopen(import_name,"r");
+
+	while(fgets(line,LINESIZE-1,f_in) != NULL)
+	{
+ 		lines++;
+	};
+	fclose(f_in);
+
+	//printf("Total number of lines : %d\n",lines);
+
+	if(lines==num_of_meshpoint){
+		c_0=0;
+		FILE *f_in = fopen(import_name,"r");
+		for (i=0; i<num_of_meshpoint; i++){
+		if(fscanf(f_in,"%lg%*[^\n]",&vertex[i].phi)){
+			c_0+=vertex[i].area*vertex[i].phi;
+		}else{
+			printf("Error: failed to read mesh point in %s.\n",import_name);
+			exit(0);
+		};
+		}
+
+		fclose(f_in);
+	}else{
+		printf("Error, number of lines of %s does not match mesh size\n",import_name);
+		exit(0);
+	};
+	c_0=.5+c_0/2.;
+	printf("Imported initial configuration from %s with mean concentration %g\n",import_name,c_0);
 }
 
 /*******************************************************************/
@@ -991,15 +1045,23 @@ void run()
 	
 	FILE *f_hi, *f_ou;
 	
-	f_hi = fopen("hi.dat","w");	
+	f_hi = fopen("histo.dat","w");	
 
 	current_time=0;
 
-	DTauto=.5/sigma*l_min*l_min/2;
+	DTauto=.1/sigma*l_min*l_min/2;
 
 	if(method>=4){
 		DT=DTauto;
 		printf("Setting initial time step automatically to %f\n",DT);
+	}
+	
+	if(export>0 && c_flag==0 && o_flag!=2){
+		printf("You chose to export configurations every %ld time steps, but did not specify a sterographic center nor chose -O 2. Assuming -C 0 0 0.\n",export);
+		c_flag=1;
+		c_x=0;
+		c_y=0;
+		c_z=0;
 	}
 
 	if(num_of_iteration==-1 || method == 4 || method == 5){
@@ -1011,13 +1073,13 @@ void run()
 
 			if (export>0 && t%export==0){
 
-				if(m_flag>1){
+				if(o_flag == 2 && c_flag==1){
 					sprintf(f_math_na,"gc_%08ld.m",t);
 					f_ou = fopen(f_math_na,"w");
 					export_graphic_complex(f_ou,1);
 					fclose(f_ou);
 				}
-				if(c_flag==1){
+				if(c_flag==1 && o_flag>=1){
 					sprintf(f_dat_na,"gc_%08ld.dat",t);
 					f_ou = fopen(f_dat_na,"w");
 					export_dat(f_ou);
@@ -1038,13 +1100,13 @@ void run()
 			write_hi(f_hi,t);
 
 			if (export>0 && t%export==0){
-				if(m_flag>1){
+				if(o_flag == 2 && c_flag==1){
 					sprintf(f_math_na,"gc_%08ld.m",t);
 					f_ou = fopen(f_math_na,"w");
 					export_graphic_complex(f_ou,1);
 					fclose(f_ou);
 				}
-				if(c_flag==1){
+				if(c_flag==1 && o_flag>=1){
 					sprintf(f_dat_na,"gc_%08ld.dat",t);
 					f_ou = fopen(f_dat_na,"w");
 					export_dat(f_ou);
@@ -1198,12 +1260,13 @@ void heun_euler()
 
 	if(Q_average<tol)halt_now=1;
 
-	/*
-	FILE *f_ou;
-	f_ou = fopen("Q_avg_debug.dat","a");
-	fprintf(f_ou,"%.8f\t %2.8f\t\n",current_time,Q_average);
-	fclose(f_ou);
-	*/
+
+	if(o_flag>=3){
+		FILE *f_ou;
+		f_ou = fopen("Q_avg_debug.dat","a");
+		fprintf(f_ou,"%.8f\t %2.8f\t\n",current_time,Q_average);
+		fclose(f_ou);
+	}
 }
 
 /*******************************************************************/
@@ -1218,7 +1281,7 @@ void rkf45()
 	double rhs5[MAX_SIZE];
 	double rhs6[MAX_SIZE];
 	double Q[MAX_SIZE];
-	double tol=1E-3,Q_average=0,delta;
+	double tol=1E-4,Q_average=0,delta;
 	double DTmin=DTauto,DTmax=DTauto*100.;
 	long i;
 
@@ -1280,9 +1343,11 @@ void rkf45()
 	if(DT<DTmin)DT=DTmin;
 	if(DT>DTmax)DT=DTmax;
 
-	f_ou = fopen("Q_avg_debug.dat","a");
-	fprintf(f_ou,"%.8f\t %2.8f\t %2.8f\t %2.8f\n",current_time,Q_average,delta,DT);
-	fclose(f_ou);
+	if(o_flag>=3){
+		f_ou = fopen("Q_avg_debug.dat","a");
+		fprintf(f_ou,"%.8f\t %2.8f\t %2.8f\t %2.8f\n",current_time,Q_average,delta,DT);
+		fclose(f_ou);
+	}
 
 
 }
@@ -1476,9 +1541,7 @@ void end()
   	get_time(t2-t1,&cpu_time);
 	
 	track_domains();
-	
-	export_conf(-1,-1);			
-			
+
 	printf("\n");
 	printf("\tNumber of domains %d\n",num_of_domains);
 	if(method<=3){printf("\tTime step %g\n",DT);};
@@ -1487,19 +1550,19 @@ void end()
 	 cpu_time.m,cpu_time.s);
   	printf("\n");
 	
-	if(m_flag>=1){
+	if(o_flag>=1){
 		f_ou = fopen("last.m","w");
 		export_graphic_complex(f_ou,1);
 		fclose(f_ou);
 	}
 	
-	if(c_flag==1){
+	if(c_flag>=0){
 		f_ou = fopen("last.dat","w");
 		export_dat(f_ou);
 		fclose(f_ou);
 	};
 	
-	f_ou = fopen("ou.dat","w");	
+	f_ou = fopen("final.dat","w");	
 	fprintf(f_ou,"Number of domains %d\n",num_of_domains);
 	if(method<=3){fprintf(f_ou,"Time step %g\n",DT);};
 	fprintf(f_ou,"CPU Time %ld:%ld:%ld:%ld\n",
@@ -1554,28 +1617,6 @@ void write_hi(FILE *f_ou, long t)
 	
 }
 
-/*******************************************************************/
-
-void export_conf(long t, long period)
-{
-	char f_na[32];
-	long i, j;
-
-	FILE *f_ou;
-
-	if (t%period!=0) return;
-	sprintf(f_na,"s-t%6ld.dat",t);
-	if (t<0) sprintf(f_na,"last.dat");
-	
-	f_ou = fopen(f_na,"w");
-	
-	for (i=0; i<num_of_meshpoint; i++){
-		fprintf(f_ou,"%.10f\t%d\n",
-		vertex[i].phi,
-		vertex[i].label);
-	}
-	fclose(f_ou);
-}
 
 /*******************************************************************/
 

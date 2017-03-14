@@ -1,8 +1,7 @@
 #!/bin/bash
 
 file=`ls gc_*.dat | sort -n -k 1.4`
-n_file=`ls gc*.dat | wc -w`
-
+n_file=`ls gc_*.dat | wc -w`
 
 cat geometry.dat |  awk -F " " {'printf "%5g\t%g\n", $8, $9'} > tmp.dat
 
@@ -38,15 +37,15 @@ gnuplot <<EOF
 	set xrange [-3.1415:3.1415]
 	set yrange [-1.57:1.57]
 	set title "Stereographic projection"
-	set xlabel "Angle  with z axis"
-	set ylabel "Angle sith x axis"
-	set term png crop medium size 1200,800 font 'Verdana,10'
+	set xlabel "Angle with x axis"
+	set ylabel "Angle with z axis"
+	set term png size 1920,1080 font 'Verdana,14'
 	set cbrange [-1:1]
 	set palette defined (-1 "red", 1 "green")
 	set out '$namegc_f'
 	set nokey
 	set view map
-	set dgrid3d 60,60,3
+	set dgrid3d 100,100,3
 	splot $gp_f
 	set cbrange [0:1]
 	set contour
