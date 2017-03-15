@@ -36,8 +36,7 @@ double sigma=1,c_0,epsilon,DTauto;
 double DT,run_time;
 double gamma_h,gamma_h2,gamma_kg;
 double lagrange;
-double current_energy,previous_energy;
-double energy_error_max=.1,energy_error_min=.001;
+double current_energy;
 
 long seed;
 
@@ -46,8 +45,9 @@ int halt_now=0;
 void euler();
 void rk2();
 void rk4();
-void rkf45();
 void heun_euler();
+void rkf45();
+
 
 void run();
 void end();
@@ -66,6 +66,7 @@ void write_hi(FILE *, long);
 void get_time(time_t, CPU_Time *);
 void export_graphic_complex(FILE *, long);
 void export_dat(FILE *);
+
 void help();
 void print_cmd_line();
 
@@ -107,25 +108,25 @@ void init(int argc, char *argv[])
 					switch((int)argv[n][1]){
 						case 'm':
 								snprintf(f_name, sizeof(f_name), "%s", argv[n+1]);
-								printf( "Mesh file: %s\n",f_name);
+								printf( "Mesh file\t\t: %s\n",f_name);
 								n++;
 								break;
 						case 'h':
 								help();
 								break;
-						case 'O':
+						case 'L':
 								o_flag=atol(argv[n+1]);
-								printf( "Output level flag: %d\n",o_flag);
+								printf( "Output level\t\t: %d\n",o_flag);
 								n++;
 								break;
 						case 't':
 								run_time=atof(argv[n+1]);
-								printf( "Run time: %lg\n",run_time);
+								printf( "Run time\t\t: %lg\n",run_time);
 								n++;
 								break;
 						case 'e':
 								epsilon=atof(argv[n+1]);
-								printf( "Epsilon : %lg\n",epsilon);
+								printf( "Epsilon\t\t\t: %lg\n",epsilon);
 								n++;
 								break;
 						case 'i':
@@ -143,7 +144,7 @@ void init(int argc, char *argv[])
 								gamma_h=atof(argv[n+1]);
 								gamma_h2=atof(argv[n+2]);
 								gamma_kg=atof(argv[n+3]);
-								printf( "Couplings: (%lg H, %lg H^2, %lg K_G )\n",gamma_h,gamma_h2,gamma_kg);
+								printf( "Couplings\t\t: (%lg H, %lg H^2, %lg KG )\n",gamma_h,gamma_h2,gamma_kg);
 								n+=3;
 								break;
 						case 'P':
@@ -166,7 +167,7 @@ void init(int argc, char *argv[])
 										exit(0);
 										break;
 								}
-								printf( "Integration method: %ld\n",method);		
+								printf( "Integration method\t: %ld\n",method);		
 								n++;
 								break;
 						case 'r':
@@ -184,7 +185,7 @@ void init(int argc, char *argv[])
 								break;
 						case 'R':
 								snprintf(import_name, sizeof(import_name), "%s", argv[n+1]);
-								printf( "Import initial configuration from file: %s\n",import_name);
+								printf( "Initial configuration\t: %s\n",import_name);
 								i_flag+=1;
 								n++;
 								break;             
@@ -241,14 +242,14 @@ void init(int argc, char *argv[])
 
 void print_cmd_line()
 {
-	printf("./membrane -m MESH_FILE -t RUN_TIME -I METHOD -e EPSILON  (-r SEED MEAN_CONCENTRATION | -R START_FILE ) [-O LEVEL] [-x STEPS] [-i TOTAL_ITERATIONS] [-C GAMMA_H GAMMA_H^2 GAMMA_KG] [-P CX CY CZ]\n\n");
+	printf("./membrane -m MESH_FILE -t RUN_TIME -I METHOD -e EPSILON  (-r SEED MEAN_CONCENTRATION | -R START_FILE ) [-L LEVEL] [-x STEPS] [-i TOTAL_ITERATIONS] [-C GAMMA_H GAMMA_H^2 GAMMA_KG] [-P CX CY CZ]\n\n");
 }
 
 /*******************************************************************/
 
 void help()
 {
-	printf("\nThis program takes input values as in-line commands or from stdin (deprecated). In the former case the syntax is\n\n");	
+	printf("\nThis program takes input from either in-line commands or from stdin [deprecated]. In the former case the syntax is\n\n");	
 	print_cmd_line();
 	printf("Where:\n");
 	printf("\t -m MESH_FILE\t: specifies the .msh file (works only with standard gmsh mesh format)\n");
@@ -257,7 +258,7 @@ void help()
 	printf("\t -e EPSILON\t: specifies the value of epsilon (i.e. diffusion constant and interface thickness)\n");
 	printf("\t -r #1 #2\t: specifies the seed #1 for the random intial condition and the desired mean concentration value #2\n");
 	printf("\t -R FILE\t: specifies where to import from the initial configuration of the phase field on the mesh (does not work with -r)\n");
-	printf("\t -O LEVEL\t: choose which output files will be printed\n\t\t\t\t0: 'histo.dat', 'last.dat', 'final.dat'\n\t\t\t\t1: previous + 'geometry.dat','last.m' + 'gc_#.dat' if -x is set [DEFAULT]\n\t\t\t\t2: previous + 'mean_curvature.m','gaussian_curvature.m' + 'gc_#.m' if -x is set\n\t\t\t\t3: as in '1' + debug files\n");
+	printf("\t -L LEVEL\t: choose which output files will be printed\n\t\t\t\t0: 'histo.dat', 'last.dat', 'final.dat'\n\t\t\t\t1: previous + 'geometry.dat','last.m' + 'gc_#.dat' if -x is set [DEFAULT]\n\t\t\t\t2: previous + 'mean_curvature.m','gaussian_curvature.m' + 'gc_#.m' if -x is set\n\t\t\t\t3: as in '1' + debug files\n");
 	printf("\t -x STEPS\t: if specified and #!=0, decides the frequency with which to export field configurations \n");
 	printf("\t -i ITERATIONS\t: specifies the total number of iterations (-I 4 and -I 5 do not use this parameter)\n");
 	printf("\t -C #1 #2 #3\t: specifies the values of the three cubic couplings with H, H^2 and K_G\n");
@@ -844,7 +845,7 @@ void get_geometry()
 	
 	fclose(f_ou);
 	*/
-
+	DTauto=.1/sigma*l_min*l_min/2;
 	printf("\n");
 	printf("\tVertices %ld\n",num_of_meshpoint);
 	printf("\tTriangles %ld\n",num_of_triangles);
@@ -855,7 +856,7 @@ void get_geometry()
 	printf("\tMin/max length (%lg,%lg)\n",l_min,l_max);
 	printf("\tMin/max H2 (%lg,%lg)\n",h2_min,h2_max);
 	printf("\tMin/max KG (%lg,%lg)\n",kg_min,kg_max);
-	printf("\tProposed initial time-step %lg\n",.1/sigma*l_min*l_min/2);// For diffusion processes on flat space, explicit discretization schemes (as ours) are stable only for sigma*DT/DX^2 < 1/2.
+	printf("\tProposed initial time-step %lg\n",DTauto);// For diffusion processes on flat space, explicit discretization schemes (as ours) are stable only for sigma*DT/DX^2 < 1/2.
 	printf("\n");
 
 	/*f_ou = fopen("negative_kg_debug.m","w");
@@ -1048,8 +1049,6 @@ void run()
 	f_hi = fopen("histo.dat","w");	
 
 	current_time=0;
-
-	DTauto=.1/sigma*l_min*l_min/2;
 
 	if(method>=4){
 		DT=DTauto;
@@ -1281,8 +1280,8 @@ void rkf45()
 	double rhs5[MAX_SIZE];
 	double rhs6[MAX_SIZE];
 	double Q[MAX_SIZE];
-	double tol=1E-4,Q_average=0,delta;
-	double DTmin=DTauto,DTmax=DTauto*100.;
+	double tol=1E-6,Q_average=0,delta,rhs_average=0;
+	double DTmin=DTauto/10,DTmax=DTauto*10000.;
 	long i;
 
 	FILE *f_ou;
@@ -1325,27 +1324,26 @@ void rkf45()
 
 	for (i=0; i<num_of_meshpoint; i++){
 		vertex[i].phi = rhs0[i]+DT*(25./216.*rhs1[i]+1408./2565.*rhs3[i]+2197./4104.*rhs4[i]-1./5.*rhs5[i]);
-		Q[i] =  (1/360.*rhs1[i]-128./4275.*rhs3[i]+2197./75240.*rhs4[i]+1/50.*rhs5[i]+2./55.*rhs6[i]);
+		Q[i] = (1/360.*rhs1[i]-128./4275.*rhs3[i]-2197./75240.*rhs4[i]+1/50.*rhs5[i]+2./55.*rhs6[i]);
 		if(Q[i]<0)Q[i]*=-1;
 		Q_average+=vertex[i].area*Q[i]/total_area;
+		rhs_average+=vertex[i].area*sqrt(rhs5[i]*rhs5[i])/total_area;
 	}
 
-	if(Q_average<tol/100.)halt_now=1;
+	if(rhs_average<tol)halt_now=1;
 
 	delta=pow(tol/Q_average/2.,.25);
 
-	if(current_time>epsilon){
-		if(delta<.9){DT+=-.001*DTauto;}
-		else if(delta>1.){DT+=.0001*DTauto;}
-		else {DT*=delta;};
-	}
+	if(delta<.1){DT*=.1;}
+	else if(delta>4.){DT*=4.;}
+	else {DT*=delta;};
 
 	if(DT<DTmin)DT=DTmin;
 	if(DT>DTmax)DT=DTmax;
 
 	if(o_flag>=3){
 		f_ou = fopen("Q_avg_debug.dat","a");
-		fprintf(f_ou,"%.8f\t %2.8f\t %2.8f\t %2.8f\n",current_time,Q_average,delta,DT);
+		fprintf(f_ou,"%.8f\t %2.8f\t %2.8f\t %2.8f\t %2.8f\n",current_time,Q_average,delta,DT,rhs_average);
 		fclose(f_ou);
 	}
 

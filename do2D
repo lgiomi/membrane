@@ -39,7 +39,7 @@ gnuplot <<EOF
 	set title "Stereographic projection"
 	set xlabel "Angle with x axis"
 	set ylabel "Angle with z axis"
-	set term png size 1920,1080 font 'Verdana,14'
+	set term png crop size 1920,1080 font 'Verdana,14'
 	set cbrange [-1:1]
 	set palette defined (-1 "red", 1 "green")
 	set out '$namegc_f'

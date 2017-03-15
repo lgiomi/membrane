@@ -1,0 +1,4 @@
+f='histo.dat'
+set logscale y
+plot f u 3:4 w l, f u 3:5 w l, f u 3:6 w l, f u 3:7 w l, f u 3:(abs($8)) w l, f u 3:(abs($9)) w l, f u 3:(abs($10)) w l
+pause -1
