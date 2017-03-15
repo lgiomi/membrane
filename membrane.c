@@ -458,9 +458,14 @@ int is_neighbor(long i, long j)
 
 void get_geometry()
 {
-	double x[3], y[3], dx, dy, dz, norm, cota, cotb, base, height;
-	double theta_this, theta_next, area_prev, area_next, theta_a, theta_b;
 
+	int a,b,c;
+	double lab,lbc,lca;
+	double cota,cotb,cotc;
+	double theta_a,theta_b,theta_c;
+	double sp,area_t;
+	int this;
+	double dx, dy, dz,norm, base, x[3];
 
 	l_min=1E10;
 	l_max=0;
@@ -471,274 +476,121 @@ void get_geometry()
 	kg_min=1E10;
 	kg_max=-1E10;
 
-	long i, j, tmp, next, prev, this,  obtuse[MAX_SIZE], num_of_obtuse=0;
-	long which_triangle(long,long,long);
-	
-	int swap(long *,long *), swapped;
+	long i, j, obtuse[MAX_SIZE], num_of_obtuse=0;
 	
 	total_area = 0;	
 	willmore_energy = 0;	
 	euler_chi= 0;	
-			
+
+	// Setting all vertex variables to zero before looping through triangles
+
 	for (i=0; i<num_of_meshpoint; i++){
-	
-		// Construct an approximation for the tangent plane at each vertex
-		
-		this = vertex[i].neighbor[0];
-		next = vertex[i].neighbor[1];
-		
-		x[0] = vertex[this].x-vertex[i].x;
-		x[1] = vertex[this].y-vertex[i].y;
-		x[2] = vertex[this].z-vertex[i].z;
-		
-		norm = sqrt(x[0]*x[0]+x[1]*x[1]+x[2]*x[2]);
-		
-		x[0] /= norm;
-		x[1] /= norm;
-		x[2] /= norm;
-					
-		y[0] = vertex[next].x-vertex[i].x;
-		y[1] = vertex[next].y-vertex[i].y;
-		y[2] = vertex[next].z-vertex[i].z;
-			
-		norm = x[0]*y[0]+x[1]*y[1]+x[2]*y[2];
-			
-		y[0] -= norm*x[0];
-		y[1] -= norm*x[1];
-		y[2] -= norm*x[2];
-		
-		norm = sqrt(y[0]*y[0]+y[1]*y[1]+y[2]*y[2]);
-		
-		y[0] /= norm;
-		y[1] /= norm;
-		y[2] /= norm;
-	
-		// Sort neighbors on the tangent plane (orientation is arbitrary)
-				
-		do {
-			
-			swapped = 0;
-			
-			for (j=0; j<vertex[i].num_of_neighbors-1; j++){
-				
-				dx = (vertex[i].x-vertex[vertex[i].neighbor[j]].x)*x[0] 
-					+(vertex[i].y-vertex[vertex[i].neighbor[j]].y)*x[1]
-					+(vertex[i].z-vertex[vertex[i].neighbor[j]].z)*x[2];
-					
-				dy = (vertex[i].x-vertex[vertex[i].neighbor[j]].x)*y[0] 
-					+(vertex[i].y-vertex[vertex[i].neighbor[j]].y)*y[1]
-					+(vertex[i].z-vertex[vertex[i].neighbor[j]].z)*y[2];						
-				
-				theta_this = atan2(-dy,-dx);
-
-				
-				dx = (vertex[i].x-vertex[vertex[i].neighbor[j+1]].x)*x[0] 
-					+(vertex[i].y-vertex[vertex[i].neighbor[j+1]].y)*x[1]
-					+(vertex[i].z-vertex[vertex[i].neighbor[j+1]].z)*x[2];
-
-				dy = (vertex[i].x-vertex[vertex[i].neighbor[j+1]].x)*y[0] 
-					+(vertex[i].y-vertex[vertex[i].neighbor[j+1]].y)*y[1]
-					+(vertex[i].z-vertex[vertex[i].neighbor[j+1]].z)*y[2];
-
-				theta_next = atan2(-dy,-dx);
-
-				if (theta_this > theta_next){
-					swapped = swap(&vertex[i].neighbor[j],&vertex[i].neighbor[j+1]);
-				}
-			}
-		} while(swapped);	
-		
-	// Calculate the Laplacian weights and the mean curvature
-		
 		vertex[i].hx = 0;
 		vertex[i].hy = 0;
 		vertex[i].hz = 0;
 		vertex[i].area = 0;
 		vertex[i].kg=2*PI;
-	
 		for (j=0; j<vertex[i].num_of_neighbors; j++){
-			
-			this = vertex[i].neighbor[j];
-			prev = vertex[i].neighbor[mod(j-1,vertex[i].num_of_neighbors)];
-			next = vertex[i].neighbor[mod(j+1,vertex[i].num_of_neighbors)];
-		
-			// Calculate cot(a)
-			
-			x[0] = vertex[this].x-vertex[prev].x;
-			x[1] = vertex[this].y-vertex[prev].y;
-			x[2] = vertex[this].z-vertex[prev].z;
-			
-			base = sqrt(x[0]*x[0]+x[1]*x[1]+x[2]*x[2]);
-				
-			x[0] /= base;
-			x[1] /= base;
-			x[2] /= base;
-						
-			y[0] = vertex[i].x-vertex[prev].x;
-			y[1] = vertex[i].y-vertex[prev].y;
-			y[2] = vertex[i].z-vertex[prev].z;
-				
-			norm = x[0]*y[0]+x[1]*y[1]+x[2]*y[2];
-				
-			y[0] -= norm*x[0];
-			y[1] -= norm*x[1];
-			y[2] -= norm*x[2];
-			
-			height = sqrt(y[0]*y[0]+y[1]*y[1]+y[2]*y[2]);
-			
-			y[0] /= height;
-			y[1] /= height;
-			y[2] /= height;
-					
-			dx = (vertex[i].x-vertex[prev].x)*x[0]
-				+(vertex[i].y-vertex[prev].y)*x[1]
-				+(vertex[i].z-vertex[prev].z)*x[2];
-				
-			dy = (vertex[i].x-vertex[prev].x)*y[0]
-				+(vertex[i].y-vertex[prev].y)*y[1]
-				+(vertex[i].z-vertex[prev].z)*y[2];				
-		    	
-			cota = dx/dy;
-
-			area_prev = base*height/2;
-		
-			if (cota<0){
-				obtuse[num_of_obtuse] = which_triangle(i,this,prev); 
-				num_of_obtuse++;
-			}
-			
-			// Calculate cot(b)
-			
-			x[0] = vertex[this].x-vertex[next].x;
-			x[1] = vertex[this].y-vertex[next].y;
-			x[2] = vertex[this].z-vertex[next].z;
-			
-			base = sqrt(x[0]*x[0]+x[1]*x[1]+x[2]*x[2]);
-				
-			x[0] /= base;
-			x[1] /= base;
-			x[2] /= base;
-			
-			y[0] = vertex[i].x-vertex[next].x;
-			y[1] = vertex[i].y-vertex[next].y;
-			y[2] = vertex[i].z-vertex[next].z;
-
-				
-			norm = x[0]*y[0]+x[1]*y[1]+x[2]*y[2];
-				
-			y[0] -= norm*x[0];
-			y[1] -= norm*x[1];
-			y[2] -= norm*x[2];
-			
-			height = sqrt(y[0]*y[0]+y[1]*y[1]+y[2]*y[2]);
-			
-			y[0] /= height;
-			y[1] /= height;
-			y[2] /= height;
-			
-			dx = (vertex[i].x-vertex[next].x)*x[0]
-				+(vertex[i].y-vertex[next].y)*x[1]
-				+(vertex[i].z-vertex[next].z)*x[2];
-				
-			dy = (vertex[i].x-vertex[next].x)*y[0]
-				+(vertex[i].y-vertex[next].y)*y[1]
-				+(vertex[i].z-vertex[next].z)*y[2];
-			
-			cotb = dx/dy;
-			
-			area_next = base*height/2;
-			
-			if (cotb<0){
-				obtuse[num_of_obtuse] = which_triangle(i,this,next); 
-				num_of_obtuse++;
-			}
-
-			// Calculate angle at vertex i in triangle_prev
-
-			x[0] = vertex[i].x-vertex[prev].x;
-			x[1] = vertex[i].y-vertex[prev].y;
-			x[2] = vertex[i].z-vertex[prev].z;
-
-			norm = sqrt(x[0]*x[0]+x[1]*x[1]+x[2]*x[2]);
-				
-			x[0] /= norm;
-			x[1] /= norm;
-			x[2] /= norm;
-
-			y[0] = vertex[i].x-vertex[this].x;
-			y[1] = vertex[i].y-vertex[this].y;
-			y[2] = vertex[i].z-vertex[this].z;
-
-			norm = sqrt(y[0]*y[0]+y[1]*y[1]+y[2]*y[2]);
-
-			y[0] /= norm;
-			y[1] /= norm;
-			y[2] /= norm;
-
-			theta_a = atan2(sqrt(1.-pow(x[0]*y[0]+x[1]*y[1]+x[2]*y[2],2.)),x[0]*y[0]+x[1]*y[1]+x[2]*y[2]);
-
-			// Calculate angle at vertex i in triangle_next
-
-			x[0] = vertex[i].x-vertex[next].x;
-			x[1] = vertex[i].y-vertex[next].y;
-			x[2] = vertex[i].z-vertex[next].z;
-
-			norm = sqrt(x[0]*x[0]+x[1]*x[1]+x[2]*x[2]);
-				
-			x[0] /= norm;
-			x[1] /= norm;
-			x[2] /= norm;
-
-			y[0] = vertex[i].x-vertex[this].x;
-			y[1] = vertex[i].y-vertex[this].y;
-			y[2] = vertex[i].z-vertex[this].z;
-
-			norm = sqrt(y[0]*y[0]+y[1]*y[1]+y[2]*y[2]);
-
-			y[0] /= norm;
-			y[1] /= norm;
-			y[2] /= norm;
-
-			theta_b = atan2(sqrt(1.-pow(x[0]*y[0]+x[1]*y[1]+x[2]*y[2],2.)),x[0]*y[0]+x[1]*y[1]+x[2]*y[2]);
-
-			// Subtract the computed angles to 2Pi in K_G
-
-			vertex[i].kg-=(theta_a+theta_b)/2;
-
-			// Calculate the un-normalized Laplacian weights
-			
-			vertex[i].weight[j] = (cota+cotb)/2;
-			
-			// Calculate the un-normalized mean curvature vector
-			
-			dx = vertex[i].x-vertex[this].x;
-			dy = vertex[i].y-vertex[this].y;
-			dz = vertex[i].z-vertex[this].z;
-				
-			vertex[i].hx += dx*(cota+cotb)/4;
-			vertex[i].hy += dy*(cota+cotb)/4;
-			vertex[i].hz += dz*(cota+cotb)/4;
-
-			// Calculate the area of a vertex
-
-			vertex[i].area += ( cota>=0 && theta_a <= PI/2 && PI-atan(1/cota)-theta_a <= PI/2 ? (dx*dx+dy*dy+dz*dz)*cota/8 : (theta_a >= PI/2 ? area_prev/4 : area_prev/8));
-			vertex[i].area += ( cotb>=0 && theta_b <= PI/2 && PI-atan(1/cotb)-theta_b <= PI/2 ? (dx*dx+dy*dy+dz*dz)*cotb/8 : (theta_b >= PI/2 ? area_next/4 : area_next/8));
+			vertex[i].weight[j] = 0;
 		}
-		
-		// Normalized the Laplacian weights 
-		
-		for (j=0; j<vertex[i].num_of_neighbors; j++){
-			
-			vertex[i].weight[j] /= vertex[i].area;	
+	}
+
+	// Loop through triangles computing vertices weights, mean and gaussian curvatures and areas
+
+	for (i=0; i<num_of_triangles; i++){
+
+		a=triangle[i].v1;
+		b=triangle[i].v2;
+		c=triangle[i].v3;
+
+		lab=sqrt(pow((vertex[a].x-vertex[b].x),2.)+pow((vertex[a].y-vertex[b].y),2.)+pow((vertex[a].z-vertex[b].z),2.));
+		lbc=sqrt(pow((vertex[b].x-vertex[c].x),2.)+pow((vertex[b].y-vertex[c].y),2.)+pow((vertex[b].z-vertex[c].z),2.));
+		lca=sqrt(pow((vertex[c].x-vertex[a].x),2.)+pow((vertex[c].y-vertex[a].y),2.)+pow((vertex[c].z-vertex[a].z),2.));
+
+		sp=.5*(lab+lbc+lca);
+		area_t=sqrt(sp*(sp-lab)*(sp-lbc)*(sp-lca));
+
+		cota=(-lbc*lbc+lca*lca+lab*lab)/(4.*area_t);
+		cotb=(-lca*lca+lbc*lbc+lab*lab)/(4.*area_t);
+		cotc=(-lab*lab+lca*lca+lbc*lbc)/(4.*area_t);
+
+		if(cota<0){
+			obtuse[num_of_obtuse]=i;
+			num_of_obtuse++;
+			vertex[a].area+=.5*area_t;
+			vertex[b].area+=.25*area_t;
+			vertex[c].area+=.25*area_t;
 		}
-		
-		// Normalize the mean curvature vector
-				
+		else if(cotb<0){
+			obtuse[num_of_obtuse]=i;
+			num_of_obtuse++;
+			vertex[a].area+=.25*area_t;
+			vertex[b].area+=.5*area_t;
+			vertex[c].area+=.25*area_t;
+		}
+		else if(cotc<0){
+			obtuse[num_of_obtuse]=i;
+			num_of_obtuse++;
+			vertex[a].area+=.25*area_t;
+			vertex[b].area+=.25*area_t;
+			vertex[c].area+=.5*area_t;
+		}
+		else{
+			vertex[a].area+=.125*(lca*lca*cotb+lab*lab*cotc);
+			vertex[b].area+=.125*(lbc*lbc*cota+lab*lab*cotc);
+			vertex[c].area+=.125*(lca*lca*cotb+lbc*lbc*cota);
+		};
+
+		theta_a=atan2(4.*area_t,-lbc*lbc+lca*lca+lab*lab);
+		theta_b=atan2(4.*area_t,-lca*lca+lbc*lbc+lab*lab);
+		theta_c=atan2(4.*area_t,-lab*lab+lca*lca+lbc*lbc);
+
+		vertex[a].kg-=theta_a;
+		vertex[b].kg-=theta_b;
+		vertex[c].kg-=theta_c;
+
+		for (j=0; j<vertex[a].num_of_neighbors; j++){
+			if(vertex[a].neighbor[j]==b)vertex[a].weight[j] += .5*cotc;
+			if(vertex[a].neighbor[j]==c)vertex[a].weight[j] += .5*cotb;
+		}
+		for (j=0; j<vertex[b].num_of_neighbors; j++){
+			if(vertex[b].neighbor[j]==c)vertex[b].weight[j] += .5*cota;
+			if(vertex[b].neighbor[j]==a)vertex[b].weight[j] += .5*cotc;
+		}
+		for (j=0; j<vertex[c].num_of_neighbors; j++){
+			if(vertex[c].neighbor[j]==a)vertex[c].weight[j] += .5*cotb;
+			if(vertex[c].neighbor[j]==b)vertex[c].weight[j] += .5*cota;
+		}
+
+		vertex[a].hx += .25*(cotb*(vertex[c].x-vertex[a].x)+cotc*(vertex[b].x-vertex[a].x));
+		vertex[a].hy += .25*(cotb*(vertex[c].y-vertex[a].y)+cotc*(vertex[b].y-vertex[a].y));
+		vertex[a].hz += .25*(cotb*(vertex[c].z-vertex[a].z)+cotc*(vertex[b].z-vertex[a].z));
+
+		vertex[b].hx += .25*(cotc*(vertex[a].x-vertex[b].x)+cota*(vertex[c].x-vertex[b].x));
+		vertex[b].hy += .25*(cotc*(vertex[a].y-vertex[b].y)+cota*(vertex[c].y-vertex[b].y));
+		vertex[b].hz += .25*(cotc*(vertex[a].z-vertex[b].z)+cota*(vertex[c].z-vertex[b].z));
+
+		vertex[c].hx += .25*(cota*(vertex[b].x-vertex[c].x)+cotb*(vertex[a].x-vertex[c].x));
+		vertex[c].hy += .25*(cota*(vertex[b].y-vertex[c].y)+cotb*(vertex[a].y-vertex[c].y));
+		vertex[c].hz += .25*(cota*(vertex[b].z-vertex[c].z)+cotb*(vertex[a].z-vertex[c].z));
+
+	}
+
+	// One further loop through vertices to normalize things
+
+	for (i=0; i<num_of_meshpoint; i++){
+
 		vertex[i].hx /= vertex[i].area;
 		vertex[i].hy /= vertex[i].area;
 		vertex[i].hz /= vertex[i].area;
 
+		vertex[i].h2 = vertex[i].hx*vertex[i].hx+vertex[i].hy*vertex[i].hy+vertex[i].hz*vertex[i].hz;
+
 		vertex[i].kg /= vertex[i].area;
+
+		for (j=0; j<vertex[i].num_of_neighbors; j++){
+			vertex[i].weight[j] /= vertex[i].area;	
+		}
 
 		// Compute projective angles
 
@@ -751,14 +603,19 @@ void get_geometry()
 			vertex[i].gridy=atan2(dz,sqrt(dx*dx+dy*dy));
 		}
 
-		// Calculate the total squared curvature 
-
-		vertex[i].h2 = vertex[i].hx*vertex[i].hx+vertex[i].hy*vertex[i].hy+vertex[i].hz*vertex[i].hz;
-		
-		total_area += vertex[i].area;
+		total_area+=vertex[i].area;
 		willmore_energy += vertex[i].area*vertex[i].h2;
-		euler_chi += .5/PI*vertex[i].area*vertex[i].kg;
+		euler_chi += .5/PI*vertex[i].kg*vertex[i].area;
+
 	}
+
+/*	
+	printf("\tTotal area %g\n",total_area);
+	printf("\tObtuse triangles %ld (%.1ld%% of total)\n",num_of_obtuse,100*num_of_obtuse/num_of_triangles);
+	printf("\tEuler characteristic %lg\n",euler_chi);
+	printf("\tWillmore energy %lg (asphericity %lg)\n",willmore_energy,willmore_energy/4/PI-1);
+*/
+
 	
 	FILE *f_ou;
 	
@@ -811,12 +668,11 @@ void get_geometry()
 			}	
 			
 			fprintf(f_ou,"\n");
-	}	
-	
-	fclose(f_ou);
+		}	
+		fclose(f_ou);
 	}
 
-	if(o_flag==2){
+	if(o_flag>=2){
 		f_ou = fopen("mean_curvature.m","w");
 		export_graphic_complex(f_ou,2);
 		fclose(f_ou);
@@ -845,6 +701,7 @@ void get_geometry()
 	
 	fclose(f_ou);
 	*/
+
 	DTauto=.1/sigma*l_min*l_min/2;
 	printf("\n");
 	printf("\tVertices %ld\n",num_of_meshpoint);
@@ -856,7 +713,7 @@ void get_geometry()
 	printf("\tMin/max length (%lg,%lg)\n",l_min,l_max);
 	printf("\tMin/max H2 (%lg,%lg)\n",h2_min,h2_max);
 	printf("\tMin/max KG (%lg,%lg)\n",kg_min,kg_max);
-	printf("\tProposed initial time-step %lg\n",DTauto);// For diffusion processes on flat space, explicit discretization schemes (as ours) are stable only for sigma*DT/DX^2 < 1/2.
+	printf("\tProposed initial time-step %lg\n",DTauto); // For diffusion processes on flat space, explicit discretization schemes (as ours) are stable only for sigma*DT/DX^2 < 1/2.
 	printf("\n");
 
 	/*f_ou = fopen("negative_kg_debug.m","w");
@@ -890,30 +747,6 @@ void get_geometry()
 
 }
 
-/*******************************************************************/
-
-int swap(long *x, long *y)
-{
-	long z = (*x);
-	
-	(*x) = (*y); (*y) = z;
-	
-	return 1;
-}
-
-/*******************************************************************/
-
-long which_triangle(long a, long b, long c)
-{
-	long i;
-	
-	for (i=0; i<num_of_triangles; i++){
-		if (!(triangle[i].v1==a)||!(triangle[i].v1==b)||!(triangle[i].v1==c)) continue;
-		if (!(triangle[i].v2==a)||!(triangle[i].v2==b)||!(triangle[i].v2==c)) continue;
-		if (!(triangle[i].v3==a)||!(triangle[i].v3==b)||!(triangle[i].v3==c)) continue;
-		return i;
-	}
-}
 
 /*******************************************************************/
 
@@ -1280,7 +1113,7 @@ void rkf45()
 	double rhs5[MAX_SIZE];
 	double rhs6[MAX_SIZE];
 	double Q[MAX_SIZE];
-	double tol=1E-6,Q_average=0,delta,rhs_average=0;
+	double tol=1E-5,Q_average=0,delta,rhs_average=0;
 	double DTmin=DTauto/10,DTmax=DTauto*10000.;
 	long i;
 
