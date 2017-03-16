@@ -37,6 +37,7 @@ double DT,run_time;
 double gamma_h,gamma_h2,gamma_kg;
 double lagrange;
 double current_energy;
+double tol;
 
 long seed;
 
@@ -101,6 +102,7 @@ void init(int argc, char *argv[])
 	gamma_kg=0;
 	method=0;
 	seed=0;
+	tol=0;
 	
 	for( n = 1; n < argc; n++ ){         /* Scan through args. */
 		switch((int)argv[n][0]){     /* Check for option character "-" */
@@ -138,6 +140,11 @@ void init(int argc, char *argv[])
 						case 'x':
 								export=atol(argv[n+1]);
 								printf( "Export field configuration every %ld steps\n",export);
+								n++;
+								break;
+						case 'T':
+								tol=atof(argv[n+1]);
+								printf( "Tolerance set to\t: %g\n",tol);
 								n++;
 								break;
 						case 'C':
@@ -230,6 +237,10 @@ void init(int argc, char *argv[])
 	}
 	import_mesh(f_name);
 	get_geometry();
+	if(tol==0 && method>=4){
+		printf("You selected -I %ld but no tolerance was set: defaulting to 1E-6.\n",method);
+		tol=1E-6;
+	}
 	if(i_flag==1){
 		import_initial(import_name);
 	}
@@ -242,7 +253,7 @@ void init(int argc, char *argv[])
 
 void print_cmd_line()
 {
-	printf("./membrane -m MESH_FILE -t RUN_TIME -I METHOD -e EPSILON  (-r SEED MEAN_CONCENTRATION | -R START_FILE ) [-L LEVEL] [-x STEPS] [-i TOTAL_ITERATIONS] [-C GAMMA_H GAMMA_H^2 GAMMA_KG] [-P CX CY CZ]\n\n");
+	printf("./membrane -m MESH_FILE -t RUN_TIME -I METHOD -e EPSILON  (-r SEED MEAN_CONCENTRATION | -R START_FILE ) [-T TOL] [-L LEVEL] [-x STEPS] [-i TOTAL_ITERATIONS] [-C GAMMA_H GAMMA_H^2 GAMMA_KG] [-P CX CY CZ]\n\n");
 }
 
 /*******************************************************************/
@@ -258,7 +269,8 @@ void help()
 	printf("\t -e EPSILON\t: specifies the value of epsilon (i.e. diffusion constant and interface thickness)\n");
 	printf("\t -r #1 #2\t: specifies the seed #1 for the random intial condition and the desired mean concentration value #2\n");
 	printf("\t -R FILE\t: specifies where to import from the initial configuration of the phase field on the mesh (does not work with -r)\n");
-	printf("\t -L LEVEL\t: choose which output files will be printed\n\t\t\t\t0: 'histo.dat', 'last.dat', 'final.dat'\n\t\t\t\t1: previous + 'geometry.dat','last.m' + 'gc_#.dat' if -x is set [DEFAULT]\n\t\t\t\t2: previous + 'mean_curvature.m','gaussian_curvature.m' + 'gc_#.m' if -x is set\n\t\t\t\t3: as in '1' + debug files\n");
+	printf("\t -T TOL\t: set the tolerance for adaptive step-size integration methods\n");
+	printf("\t -L LEVEL\t: choose which output files will be printed\n\t\t\t\t0: 'histo.dat', 'last.dat', 'final.dat'\n\t\t\t\t1: previous + 'geometry.dat','last.m','triangles.dat' + 'gc_#.dat' if -x is set [DEFAULT]\n\t\t\t\t2: previous + 'mean_curvature.m','gaussian_curvature.m' + 'gc_#.m' if -x is set\n\t\t\t\t3: as in '1' + debug files\n");
 	printf("\t -x STEPS\t: if specified and #!=0, decides the frequency with which to export field configurations \n");
 	printf("\t -i ITERATIONS\t: specifies the total number of iterations (-I 4 and -I 5 do not use this parameter)\n");
 	printf("\t -C #1 #2 #3\t: specifies the values of the three cubic couplings with H, H^2 and K_G\n");
@@ -482,6 +494,8 @@ void get_geometry()
 	willmore_energy = 0;	
 	euler_chi= 0;	
 
+	FILE *f_ou;
+
 	// Setting all vertex variables to zero before looping through triangles
 
 	for (i=0; i<num_of_meshpoint; i++){
@@ -496,6 +510,8 @@ void get_geometry()
 	}
 
 	// Loop through triangles computing vertices weights, mean and gaussian curvatures and areas
+
+
 
 	for (i=0; i<num_of_triangles; i++){
 
@@ -576,6 +592,17 @@ void get_geometry()
 
 	}
 
+	if(o_flag>=1){
+		f_ou = fopen("triangles.dat","w");
+		for (i=0; i<num_of_triangles; i++){
+			fprintf(f_ou,"%ld\t%ld\t%ld\n",
+				triangle[i].v1,
+				triangle[i].v2,
+				triangle[i].v3);
+		}
+		fclose(f_ou);
+	}
+
 	// One further loop through vertices to normalize things
 
 	for (i=0; i<num_of_meshpoint; i++){
@@ -608,16 +635,8 @@ void get_geometry()
 		euler_chi += .5/PI*vertex[i].kg*vertex[i].area;
 
 	}
-
-/*	
-	printf("\tTotal area %g\n",total_area);
-	printf("\tObtuse triangles %ld (%.1ld%% of total)\n",num_of_obtuse,100*num_of_obtuse/num_of_triangles);
-	printf("\tEuler characteristic %lg\n",euler_chi);
-	printf("\tWillmore energy %lg (asphericity %lg)\n",willmore_energy,willmore_energy/4/PI-1);
-*/
-
 	
-	FILE *f_ou;
+
 	
 	if(o_flag>=1){
 		f_ou = fopen("geometry.dat","w");
@@ -1067,9 +1086,11 @@ void heun_euler()
 	double rhs1[MAX_SIZE];
 	double rhs2[MAX_SIZE];
 	double Q[MAX_SIZE];
-	double tol=1E-6,Q_average=0;
+	double Q_average=0,delta,rhs_average=0;
+	double DTmin=DTauto/10000,DTmax=DTauto*10000.;
 	long i;
 
+	FILE *f_ou;
 
 	for (i=0; i<num_of_meshpoint; i++){
 		rhs0[i] = vertex[i].phi; 
@@ -1088,15 +1109,23 @@ void heun_euler()
 		Q[i] = (rhs1[i]-rhs2[i])/2.;
 		if(Q[i]<0)Q[i]*=-1;
 		Q_average+=vertex[i].area*Q[i]/total_area;
+		rhs_average+=vertex[i].area*sqrt(rhs2[i]*rhs2[i])/total_area;
 	}
 
-	if(Q_average<tol)halt_now=1;
+	if(rhs_average<tol)halt_now=1;
 
+	delta=tol/Q_average/2;
+
+	if(delta<.1){DT*=.1;}
+	else if(delta>4.){DT*=4.;}
+	else {DT*=delta;};
+
+	if(DT<DTmin)DT=DTmin;
+	if(DT>DTmax)DT=DTmax;
 
 	if(o_flag>=3){
-		FILE *f_ou;
 		f_ou = fopen("Q_avg_debug.dat","a");
-		fprintf(f_ou,"%.8f\t %2.8f\t\n",current_time,Q_average);
+		fprintf(f_ou,"%.8E\t %.8E\t %.8E\t %.8E\t %.8E\n",current_time,Q_average,delta,DT,rhs_average);
 		fclose(f_ou);
 	}
 }
@@ -1113,8 +1142,8 @@ void rkf45()
 	double rhs5[MAX_SIZE];
 	double rhs6[MAX_SIZE];
 	double Q[MAX_SIZE];
-	double tol=1E-5,Q_average=0,delta,rhs_average=0;
-	double DTmin=DTauto/10,DTmax=DTauto*10000.;
+	double Q_average=0,delta,rhs_average=0;
+	double DTmin=DTauto/10000,DTmax=DTauto*10000.;
 	long i;
 
 	FILE *f_ou;
@@ -1156,7 +1185,8 @@ void rkf45()
 	get_rhs(rhs6);
 
 	for (i=0; i<num_of_meshpoint; i++){
-		vertex[i].phi = rhs0[i]+DT*(25./216.*rhs1[i]+1408./2565.*rhs3[i]+2197./4104.*rhs4[i]-1./5.*rhs5[i]);
+		//vertex[i].phi = rhs0[i]+DT*(25./216.*rhs1[i]+1408./2565.*rhs3[i]+2197./4104.*rhs4[i]-1./5.*rhs5[i]);
+		vertex[i].phi = rhs0[i]+DT*(16./135.*rhs1[i]+6656./12825.*rhs3[i]+28561./56430.*rhs4[i]-9./50.*rhs5[i]+2./55.*rhs6[i]);
 		Q[i] = (1/360.*rhs1[i]-128./4275.*rhs3[i]-2197./75240.*rhs4[i]+1/50.*rhs5[i]+2./55.*rhs6[i]);
 		if(Q[i]<0)Q[i]*=-1;
 		Q_average+=vertex[i].area*Q[i]/total_area;
@@ -1176,7 +1206,7 @@ void rkf45()
 
 	if(o_flag>=3){
 		f_ou = fopen("Q_avg_debug.dat","a");
-		fprintf(f_ou,"%.8f\t %2.8f\t %2.8f\t %2.8f\t %2.8f\n",current_time,Q_average,delta,DT,rhs_average);
+		fprintf(f_ou,"%.8E\t %.8E\t %.8E\t %.8E\t %.8E\n",current_time,Q_average,delta,DT,rhs_average);
 		fclose(f_ou);
 	}
 
@@ -1513,7 +1543,7 @@ void export_dat(FILE *f_ou)
 	
 	for (i=0; i<num_of_meshpoint; i++){
 		(vertex[i].phi>0)?(bphi=1):(bphi=0);
-		fprintf(f_ou,"%.10f\t%ld\n",
+		fprintf(f_ou,"%.12e\t%ld\n",
 		vertex[i].phi,
 		bphi);
 	}
