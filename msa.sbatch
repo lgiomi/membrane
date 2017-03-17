@@ -1,4 +1,11 @@
 #!/bin/bash
+#SBATCH -p weak-computation # queue (aka partition) name
+#SBATCH -c 1 # for multithreaded applications
+#SBATCH --mem-per-cpu 1800 # memory
+#SBATCH -o slurm_%A_%a.out # stdout
+#SBATCH -e slurm_%A_%a.out # stderr
+#SBATCH --mail-type=FAIL,START,END # notifications for job start,end and failure
+#SBATCH --mail-user=fonda@lorentz.leidenuniv.nl # send-to address
 
 rm -f membrane
 rm -f *.dat
@@ -40,7 +47,7 @@ while [ $g_c -le $n_g ];
 		cd temp_${g}_${c0}_${rpp_c}
 
 		sleep .5
-		membrane -e .08 -m ../mesh/cube.msh -t 30 -I 5 -r $RANDOM $c0 -C 0 $g 0 -L 0 -P 0 0 0 -T 1E-6
+		srun membrane -e .08 -m ../mesh/cube.msh -t 30 -I 5 -r $RANDOM $c0 -C 0 $g 0 -L 0 -P 0 0 0 -T 1E-6 > /dev/null
 		echo "Parameters at" $c0 $g $rpp_c 
 
 		cd ..
