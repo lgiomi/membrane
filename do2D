@@ -1,13 +1,15 @@
 #!/bin/bash
+rm -f temp*.dat
+rm -f tmp*.dat
+rm -f worldline*.dat
 
 file=`ls gc_*.dat | sort -n -k 1.4`
 n_file=`ls gc_*.dat | wc -w`
 
-cat geometry.dat |  awk -F " " {'printf "%5g\t%g\n", $8, $9'} > tmp.dat
+cat geometry.dat |  awk -F " " {'printf "%g\t%g\n", $8, $9'} > tmp.dat
+cat geometry.dat |  awk -F " " {'printf "%g\t%g\t%g\n", $2, $3, $4'} > tmp1.dat
 
 n=1
-
-rm -f worldline.dat
 
 for f in $file; do
 
@@ -20,8 +22,10 @@ n_f=$(echo "scale=2;  100*$n/$n_file" |bc)
 echo -ne "Processing file $f ($n_f%)..."\\r
 
 paste tmp.dat $f > temp.dat
+paste tmp1.dat $f > temp1.dat
 
-cat temp.dat | awk -v var="$gc_i" -F"\t" '$3 > -.2 && $3 <.2 {print $1 "\t" $2 "\t" var }' >> worldline.dat
+cat temp.dat | awk -v var="$gc_i" -F"\t" '$3 > -.2 && $3 <.2 {print $1 "\t" $2 "\t" var }' >> worldline_2D.dat
+cat temp1.dat | awk -v var="$gc_i" -F"\t" '$4 > -.2 && $4 <.2 {print $1 "\t" $2 "\t" $3 "\t" var }' >> worldline_3D.dat
 
 gp_f="'temp.dat' u 1:2:3 w pm3d"
 gp_b="'temp.dat' u 1:2:4 w pm3d"
@@ -36,7 +40,7 @@ gnuplot <<EOF
 	unset colorbox
 	set xrange [-3.1415:3.1415]
 	set yrange [-1.57:1.57]
-	set title "Stereographic projection"
+	set title "Projection on the unit sphere"
 	set xlabel "Angle with x axis"
 	set ylabel "Angle with z axis"
 	set term png crop size 1920,1080 font 'Verdana,14'
@@ -66,5 +70,5 @@ ffmpeg -framerate 10 -pattern_type glob -i "b*.png" binary_2d_field.mkv > /dev/n
 rm b0*.png
 rm 0*.png
 rm gc_*.dat
-rm -f temp.dat
-rm -f tmp.dat
+rm -f temp*.dat
+rm -f tmp*.dat

@@ -14,7 +14,7 @@ triangles = np.loadtxt("triangles.dat")
 try:
 	phi = np.transpose(np.loadtxt(sys.argv[1]))
 except:
-    sys.exit("Error: some files do not exist")
+    sys.exit("Error: input file does not exist")
 
 rgmap=[]
 

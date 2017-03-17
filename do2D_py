@@ -1,13 +1,15 @@
 #!/bin/bash
+rm -f temp*.dat
+rm -f tmp*.dat
+rm -f worldline*.dat
 
 file=`ls gc_*.dat | sort -n -k 1.4`
 n_file=`ls gc_*.dat | wc -w`
 
 cat geometry.dat |  awk -F " " {'printf "%g\t%g\n", $8, $9'} > tmp.dat
+cat geometry.dat |  awk -F " " {'printf "%g\t%g\t%g\n", $2, $3, $4'} > tmp1.dat
 
 n=1
-
-rm -f worldline.dat
 
 for f in $file; do
 
@@ -20,8 +22,10 @@ n_f=$(echo "scale=2;  100*$n/$n_file" |bc)
 echo -ne "Processing file $f ($n_f%)..."\\r
 
 paste tmp.dat $f > temp.dat
+paste tmp1.dat $f > temp1.dat
 
-cat temp.dat | awk -v var="$gc_i" -F"\t" '$3 > -.2 && $3 <.2 {print $1 "\t" $2 "\t" var }' >> worldline.dat
+cat temp.dat | awk -v var="$gc_i" -F"\t" '$3 > -.05 && $3 <.05 {print $1 "\t" $2 "\t" var }' >> worldline_2D.dat
+cat temp1.dat | awk -v var="$gc_i" -F"\t" '$4 > -.05 && $4 <.05 {print $1 "\t" $2 "\t" $3 "\t" var }' >> worldline_3D.dat
 
 python plot.py $f $namegc_f
 
@@ -36,6 +40,6 @@ ffmpeg -framerate 10 -pattern_type glob -i "0*.png" 2d_field.mkv > /dev/null
 
 rm -f b0*.png
 rm 0*.png
-#rm gc_*.dat
-rm -f temp.dat
-rm -f tmp.dat
+rm gc_*.dat
+rm -f temp*.dat
+rm -f tmp*.dat

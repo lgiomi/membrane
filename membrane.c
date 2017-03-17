@@ -263,18 +263,18 @@ void help()
 	printf("\nThis program takes input from either in-line commands or from stdin [deprecated]. In the former case the syntax is\n\n");	
 	print_cmd_line();
 	printf("Where:\n");
-	printf("\t -m MESH_FILE\t: specifies the .msh file (works only with standard gmsh mesh format)\n");
-	printf("\t -t RUN_TIME\t: specifies the upper bound on the total time of the simulation\n");
-	printf("\t -I METHOD\t: specifies the integration method\n\t\t\t\t1: Euler\n\t\t\t\t2: RK2\n\t\t\t\t3: RK4\n\t\t\t\t4: RK2-Euler with adaptive step-size [NOT FULLY WORKING]\n\t\t\t\t5: RKF45 with adaptive stepsize\n");
-	printf("\t -e EPSILON\t: specifies the value of epsilon (i.e. diffusion constant and interface thickness)\n");
-	printf("\t -r #1 #2\t: specifies the seed #1 for the random intial condition and the desired mean concentration value #2\n");
-	printf("\t -R FILE\t: specifies where to import from the initial configuration of the phase field on the mesh (does not work with -r)\n");
-	printf("\t -T TOL\t: set the tolerance for adaptive step-size integration methods\n");
-	printf("\t -L LEVEL\t: choose which output files will be printed\n\t\t\t\t0: 'histo.dat', 'last.dat', 'final.dat'\n\t\t\t\t1: previous + 'geometry.dat','last.m','triangles.dat' + 'gc_#.dat' if -x is set [DEFAULT]\n\t\t\t\t2: previous + 'mean_curvature.m','gaussian_curvature.m' + 'gc_#.m' if -x is set\n\t\t\t\t3: as in '1' + debug files\n");
-	printf("\t -x STEPS\t: if specified and #!=0, decides the frequency with which to export field configurations \n");
-	printf("\t -i ITERATIONS\t: specifies the total number of iterations (-I 4 and -I 5 do not use this parameter)\n");
-	printf("\t -C #1 #2 #3\t: specifies the values of the three cubic couplings with H, H^2 and K_G\n");
-	printf("\t -P #1 #2 #3\t: specifies the coordinates of the center for two-dimensional stereographic projection of the surface\n");
+	printf("\t -m MESH_FILE\t: import mesh from file (works only with standard gmsh mesh format .msh)\n");
+	printf("\t -t RUN_TIME\t: total simulation time. For adaptive stepsize is an (obligatory) upper bound\n");
+	printf("\t -I METHOD\t: choose integration method\n\t\t\t\t1: Euler\n\t\t\t\t2: RK2\n\t\t\t\t3: RK4\n\t\t\t\t4: RK2-Euler with adaptive step-size [NOT FULLY WORKING]\n\t\t\t\t5: RKF45 with adaptive stepsize\n");
+	printf("\t -e EPSILON\t: set the value of epsilon (i.e. diffusion constant and interface thickness)\n");
+	printf("\t -r $1 $2\t: random intial condition with seed $1 and mean concentration $2\n");
+	printf("\t -R FILE\t: import initial configuration from file (does not work with -r)\n");
+	printf("\t -T TOL\t\t: set the tolerance for adaptive step-size integration methods\n");
+	printf("\t -L LEVEL\t: choose which output files will be printed\n\t\t\t\t0: 'last.dat', 'final.dat'\n\t\t\t\t1: previous +  'histo.dat', 'geometry.dat','last.m','triangles.dat' + 'gc_#.dat' if -x is set [DEFAULT]\n\t\t\t\t2: previous + 'mean_curvature.m','gaussian_curvature.m' + 'gc_#.m' if -x is set\n\t\t\t\t3: as in '1' + debug files\n");
+	printf("\t -x STEPS\t: if specified and nonzero, decides the frequency with which to export field configurations \n");
+	printf("\t -i ITERATIONS\t: total number of iterations (-I 4 and -I 5 do not use this parameter)\n");
+	printf("\t -C $1 $2 $3\t: specifies the values of the three cubic couplings with H, H^2 and K_G\n");
+	printf("\t -P $1 $2 $3\t: specifies the coordinates of the center for two-dimensional stereographic projection of the surface\n");
 
 	printf("\n");
 	exit(1);
@@ -636,60 +636,56 @@ void get_geometry()
 
 	}
 	
+	if(o_flag>=1)f_ou = fopen("geometry.dat","w");
 
-	
-	if(o_flag>=1){
-		f_ou = fopen("geometry.dat","w");
+	for (i=0; i<num_of_meshpoint; i++){
 
-		for (i=0; i<num_of_meshpoint; i++){
-
-			if(c_flag==0){
-				fprintf(f_ou,"%ld\t%.10f\t%.10f\t%.10f\t%.10f\t%.10f\t%.10lg\t",
-					i,
-					vertex[i].x,
-					vertex[i].y,
-					vertex[i].z,
-					vertex[i].area,
-					vertex[i].h2,
-					vertex[i].kg);
-			}else if(c_flag==1){
-				fprintf(f_ou,"%ld\t%.10f\t%.10f\t%.10f\t%.10f\t%.10f\t%.10lg\t%.10lg\t%.10lg\t",
-					i,
-					vertex[i].x,
-					vertex[i].y,
-					vertex[i].z,
-					vertex[i].area,
-					vertex[i].h2,
-					vertex[i].kg,
-					vertex[i].gridx,
-					vertex[i].gridy);
-			};
-				
-			for (j=0; j<vertex[i].num_of_neighbors; j++){
-				fprintf(f_ou,"%.10f\t",vertex[i].weight[j]);
-	
-				this = vertex[i].neighbor[j];
+		if(o_flag>=1){if(c_flag==0){
+			fprintf(f_ou,"%ld\t%.10f\t%.10f\t%.10f\t%.10f\t%.10f\t%.10lg\t",
+				i,
+				vertex[i].x,
+				vertex[i].y,
+				vertex[i].z,
+				vertex[i].area,
+				vertex[i].h2,
+				vertex[i].kg);
+		}else if(c_flag==1){
+			fprintf(f_ou,"%ld\t%.10f\t%.10f\t%.10f\t%.10f\t%.10f\t%.10lg\t%.10lg\t%.10lg\t",
+				i,
+				vertex[i].x,
+				vertex[i].y,
+				vertex[i].z,
+				vertex[i].area,
+				vertex[i].h2,
+				vertex[i].kg,
+				vertex[i].gridx,
+				vertex[i].gridy);
+		};}
 			
-				x[0] = vertex[i].x-vertex[this].x;
-				x[1] = vertex[i].y-vertex[this].y;
-				x[2] = vertex[i].z-vertex[this].z;
-				base=sqrt(x[0]*x[0]+x[1]*x[1]+x[2]*x[2]);
-	
-				if(l_max<base){l_max=base;};
-				if(l_min>base){l_min=base;};
-	
-				if(h2_max<vertex[i].h2){h2_max=vertex[i].h2;};
-				if(h2_min>vertex[i].h2){h2_min=vertex[i].h2;};
-	
-				if(kg_max<vertex[i].kg){kg_max=vertex[i].kg;};
-				if(kg_min>vertex[i].kg){kg_min=vertex[i].kg;};
+		for (j=0; j<vertex[i].num_of_neighbors; j++){
+			if(o_flag>=1)fprintf(f_ou,"%.10f\t",vertex[i].weight[j]);
+
+			this = vertex[i].neighbor[j];
+		
+			x[0] = vertex[i].x-vertex[this].x;
+			x[1] = vertex[i].y-vertex[this].y;
+			x[2] = vertex[i].z-vertex[this].z;
+			base=sqrt(x[0]*x[0]+x[1]*x[1]+x[2]*x[2]);
+
+			if(l_max<base){l_max=base;};
+			if(l_min>base){l_min=base;};
+
+			if(h2_max<vertex[i].h2){h2_max=vertex[i].h2;};
+			if(h2_min>vertex[i].h2){h2_min=vertex[i].h2;};
+
+			if(kg_max<vertex[i].kg){kg_max=vertex[i].kg;};
+			if(kg_min>vertex[i].kg){kg_min=vertex[i].kg;};
 				
-			}	
-			
-			fprintf(f_ou,"\n");
 		}	
-		fclose(f_ou);
-	}
+			
+		if(o_flag>=1)fprintf(f_ou,"\n");
+	}	
+	if(o_flag>=1)fclose(f_ou);
 
 	if(o_flag>=2){
 		f_ou = fopen("mean_curvature.m","w");
@@ -898,7 +894,7 @@ void run()
 	
 	FILE *f_hi, *f_ou;
 	
-	f_hi = fopen("histo.dat","w");	
+	if(o_flag>=1)f_hi = fopen("histo.dat","w");	
 
 	current_time=0;
 
@@ -920,7 +916,7 @@ void run()
 
 			current_time+=DT;
 
-			write_hi(f_hi,t);
+			if(o_flag>=1)write_hi(f_hi,t);
 
 			if (export>0 && t%export==0){
 
@@ -948,7 +944,7 @@ void run()
 
 			current_time+=DT;
 
-			write_hi(f_hi,t);
+			if(o_flag>=1)write_hi(f_hi,t);
 
 			if (export>0 && t%export==0){
 				if(o_flag == 2 && c_flag==1){
@@ -970,7 +966,7 @@ void run()
 			one_step();
 		}
 	};
-	fclose(f_hi);
+	if(o_flag>=1)fclose(f_hi);
 }
 
 /*******************************************************************/
@@ -1185,12 +1181,12 @@ void rkf45()
 	get_rhs(rhs6);
 
 	for (i=0; i<num_of_meshpoint; i++){
-		//vertex[i].phi = rhs0[i]+DT*(25./216.*rhs1[i]+1408./2565.*rhs3[i]+2197./4104.*rhs4[i]-1./5.*rhs5[i]);
-		vertex[i].phi = rhs0[i]+DT*(16./135.*rhs1[i]+6656./12825.*rhs3[i]+28561./56430.*rhs4[i]-9./50.*rhs5[i]+2./55.*rhs6[i]);
-		Q[i] = (1/360.*rhs1[i]-128./4275.*rhs3[i]-2197./75240.*rhs4[i]+1/50.*rhs5[i]+2./55.*rhs6[i]);
+		//vertex[i].phi = rhs0[i]+DT*(25./216.*rhs1[i]+1408./2565.*rhs3[i]+2197./4104.*rhs4[i]-1./5.*rhs5[i]); 			// This is  the correct integration step at order 4
+		vertex[i].phi = rhs0[i]+DT*(16./135.*rhs1[i]+6656./12825.*rhs3[i]+28561./56430.*rhs4[i]-9./50.*rhs5[i]+2./55.*rhs6[i]); // This one instead at order 5
+		Q[i] = (1/360.*rhs1[i]-128./4275.*rhs3[i]-2197./75240.*rhs4[i]+1/50.*rhs5[i]+2./55.*rhs6[i]); 				// And this is their difference, which serves as an estimate to the (local) error
 		if(Q[i]<0)Q[i]*=-1;
-		Q_average+=vertex[i].area*Q[i]/total_area;
-		rhs_average+=vertex[i].area*sqrt(rhs5[i]*rhs5[i])/total_area;
+		Q_average+=vertex[i].area*Q[i]/total_area; 			// We integrate abs(Q) over the surface
+		rhs_average+=vertex[i].area*sqrt(rhs5[i]*rhs5[i])/total_area;	// And integrate the square of the evolution equation as an estimate of the distance from equilibrium
 	}
 
 	if(rhs_average<tol)halt_now=1;
@@ -1203,6 +1199,8 @@ void rkf45()
 
 	if(DT<DTmin)DT=DTmin;
 	if(DT>DTmax)DT=DTmax;
+
+	//printf("Qua stamo a %.8E\t %.8E\t %.8E\t %.8E\t %.8E\n",current_time,Q_average,delta,DT,rhs_average);
 
 	if(o_flag>=3){
 		f_ou = fopen("Q_avg_debug.dat","a");
@@ -1395,6 +1393,8 @@ void progress_bar(long t)
 void end()
 {	
 	CPU_Time cpu_time;
+	double c0=0,phisq=0,kin=0,pot=0,tph,tpa,phiH2=0,phiKG=0;
+	int i;
 	
 	FILE *f_ou;
 	
@@ -1403,14 +1403,6 @@ void end()
 	
 	track_domains();
 
-	printf("\n");
-	printf("\tNumber of domains %d\n",num_of_domains);
-	if(method<=3){printf("\tTime step %g\n",DT);};
-	printf("\tCPU Time %ld:%ld:%ld:%ld\n",
-	 cpu_time.d,cpu_time.h,
-	 cpu_time.m,cpu_time.s);
-  	printf("\n");
-	
 	if(o_flag>=1){
 		f_ou = fopen("last.m","w");
 		export_graphic_complex(f_ou,1);
@@ -1422,13 +1414,48 @@ void end()
 		export_dat(f_ou);
 		fclose(f_ou);
 	};
-	
-	f_ou = fopen("final.dat","w");	
-	fprintf(f_ou,"Number of domains %d\n",num_of_domains);
-	if(method<=3){fprintf(f_ou,"Time step %g\n",DT);};
-	fprintf(f_ou,"CPU Time %ld:%ld:%ld:%ld\n",
+
+ 	
+	for (i=0; i<num_of_meshpoint; i++){
+
+		tph=vertex[i].phi;
+		tpa=vertex[i].area;
+
+		phisq 	+=tpa*tph*tph;
+		c0 	+=tpa*tph;
+		kin	-=tpa*sigma*.5*tph*laplace(i);
+		pot	+=tpa*V(i)/(epsilon*epsilon);
+		phiH2	+=tpa*tph*vertex[i].h2;
+		phiKG	+=tpa*tph*vertex[i].kg;
+	}
+
+	current_energy=kin+pot;
+	kin/=total_area;
+	pot/=total_area;
+	phisq/=total_area;
+	c0/=total_area;
+	phiH2/=total_area;
+	phiKG/=total_area;
+
+	printf("\n");
+	printf("\tNumber of domains %d\n",num_of_domains);
+	if(method<=3){printf("\tTime step %g\n",DT);};
+	printf("\tCPU Time %ld:%ld:%ld:%ld\n",
 	 cpu_time.d,cpu_time.h,
 	 cpu_time.m,cpu_time.s);
+  	printf("\n");
+	
+	f_ou = fopen("final.dat","w");	
+	fprintf(f_ou,"%.10f\t%.10f\t%.10f\t%.10f\t%.10f\t%.10f\t%.10f\t%.10f\t%d\n",
+	current_time,
+	kin,
+	pot,
+	kin+pot,
+	phisq-c0*c0,
+	phiH2-c0*willmore_energy/total_area,
+	phiKG-c0*2*PI*euler_chi/total_area,
+	lagrange,
+	num_of_domains);
 	fclose(f_ou);
 
 }
