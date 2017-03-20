@@ -778,6 +778,10 @@ void get_geometry()
 	fclose(f_ou);
 	*/
 
+	if(epsilon==0){
+		epsilon=1.1*l_max/sqrt(2);
+		printf("No epsilon specified, setting automatically to %f\n",epsilon);
+	}
 	DTauto=.1*l_min*l_min/2;
 	printf("\n");
 	printf("\tVertices %ld\n",num_of_meshpoint);
@@ -960,12 +964,6 @@ void run()
 	if(o_flag>=1)f_hi = fopen("histo.dat","w");	
 
 	current_time=0;
-
-	if(epsilon==0){
-		epsilon=1.5*l_avg/sqrt(2);
-		printf("No epsilon specified, setting automatically to %f\n",epsilon);
-	}
-
 
 	if(method>=4){
 		DT=DTauto;
