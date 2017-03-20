@@ -27,6 +27,8 @@ c0_c=0
 g_c=0
 rpp_c=0
 
+njob=0
+
 while [ $g_c -le $n_g ];
 	do
 	g=$(echo "scale=3; -$g_i+$g_c/$n_g*2*$g_i" |bc)
@@ -38,11 +40,12 @@ while [ $g_c -le $n_g ];
 
 		mkdir -p temp_${g}_${c0}_${rpp_c}
 		cd temp_${g}_${c0}_${rpp_c}
-		sbatch --array=1-20 job.sbatch $c0 $g $rpp_c 
+		sbatch  job.sbatch $c0 $g $rpp_c 
 		echo "Parameters at" $c0 $g $rpp_c 
 
 		cd ..
 		let rpp_c=rpp_c+1
+		let njob=njob+1
 		done 
 	rpp_c=0
 	let c0_c=c0_c+1 
@@ -51,9 +54,13 @@ while [ $g_c -le $n_g ];
 let g_c=g_c+1
 done
 
-while ! test -f "temp_${g}_${c0}_${rpp_c}/last.dat"; do
-	sleep 10
-	echo -ne "Waiting for the job to finish..."\\r
+nnow=0
+
+while [ $nnow -lt $njob ]; 
+	do
+	sleep 10 
+	nnow=`ls -R | grep last.dat | wc -l`
+	echo -ne "Waiting for the job to finish ($nnow out of $njob)..."\\r
 done
 
 echo "Finished running. Now collecting data together."
