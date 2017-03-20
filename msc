@@ -7,4 +7,4 @@ rm -f *.m
 rm -f *.mkv
 make
 
-./membrane -e .08 -m mesh/cube1.msh -t 30 -I 5 -r $RANDOM .5 -C 0 0 .5 -L 3 -P 0 0 0 -T 1E-6 -x 50
+./membrane -m mesh/spherocylinder.msh -t 130 -I 5 -r $RANDOM .5 -C 0 20 0 -L 3 -P 0 0 0 -T 1E-7 -x 50 -A 1 0 0

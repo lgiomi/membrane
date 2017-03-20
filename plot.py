@@ -16,16 +16,6 @@ try:
 except:
     sys.exit("Error: input file does not exist")
 
-rgmap=[]
-
-for i in range(256):
-	rgmap.append([255-i,i,0,255])
-
-#from mayavi import mlab
-#s = mlab.triangular_mesh(coord3D[0],coord3D[1],coord3D[2],triangles,scalars = (phi[0]+1)/2)
-#s.module_manager.scalar_lut_manager.lut.table = rgmap
-
-#mlab.show()
 
 cdict = {'red': ((0.0, 0.0, 0.0),(1.0, 1.0, 1.0)),'green':((0.0, 1.0, 1.0),(1.0, 0.0, 0.0)),'blue':((0.0, 0.0, 0.0),(1.0, 0.0, 0.0))}
 

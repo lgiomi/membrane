@@ -25,14 +25,16 @@ long method;
 long export;
 
 int num_of_domains;
-double l_min,l_max,h2_min,h2_max,kg_min,kg_max;
+long num_of_edges=0;
+double l_min,l_max,h2_min,h2_max,kg_min,kg_max,l_avg;
 double c_x,c_y,c_z;
+double a_x,a_y,a_z;
 int c_flag=0,o_flag=1,i_flag=0;
 double current_time;
 
 double total_area;
 double willmore_energy,euler_chi;
-double sigma=1,c_0,epsilon,DTauto;
+double c_0,epsilon,DTauto;
 double DT,run_time;
 double gamma_h,gamma_h2,gamma_kg;
 double lagrange;
@@ -103,6 +105,10 @@ void init(int argc, char *argv[])
 	method=0;
 	seed=0;
 	tol=0;
+	a_x=0;
+	a_y=0;
+	a_z=1;
+
 	
 	for( n = 1; n < argc; n++ ){         /* Scan through args. */
 		switch((int)argv[n][0]){     /* Check for option character "-" */
@@ -158,7 +164,18 @@ void init(int argc, char *argv[])
 								c_x=atof(argv[n+1]);
 								c_y=atof(argv[n+2]);
 								c_z=atof(argv[n+3]);
-								printf( "Center of stereographic projection (%lg,%lg,%lg)\n",c_x,c_y,c_z);
+								printf( "Center of sphere\t: (%lg,%lg,%lg)\n",c_x,c_y,c_z);
+								c_flag=1;
+								n+=3;
+								break;
+						case 'A':
+								a_x=atof(argv[n+1]);
+								a_y=atof(argv[n+2]);
+								a_z=atof(argv[n+3]);
+								a_x/=sqrt(a_x*a_x+a_y*a_y+a_z*a_z);
+								a_y/=sqrt(a_x*a_x+a_y*a_y+a_z*a_z);
+								a_z/=sqrt(a_x*a_x+a_y*a_y+a_z*a_z);
+								printf( "North pole direction\t: (%lg,%lg,%lg)\n",a_x,a_y,a_z);
 								c_flag=1;
 								n+=3;
 								break;
@@ -212,7 +229,7 @@ void init(int argc, char *argv[])
 			}	
 		}
 		DT = run_time/num_of_iteration;
-		if( run_time==0 ||  method == 0 || (num_of_iteration == 1 && method < 4) || epsilon == 0 || i_flag <1){
+		if( run_time==0 ||  method == 0 || (num_of_iteration == 1 && method < 4) || i_flag <1){
 				printf( "\nError: not enough arguments given or wrong parameter values. Write input in the following format:\n"); 
 				print_cmd_line();
 				printf( "Type ./membrane -h for help\n"); 
@@ -229,7 +246,6 @@ void init(int argc, char *argv[])
   	printf("Input iterations ");	if(scanf("%ld",&num_of_iteration)==1){};
 	DT = run_time/num_of_iteration;
 	printf("Choose integration method\n\n\t1. Euler\n\t2. Runge-Kutta (2 steps)\n\t3. Runge-Kutta (4 steps)\n\t4. Adaptive Heun-Euler\n\t5. RKF45\n\n"); if(scanf("%ld",&method)==1){};
-	printf("Input sigma "); if(scanf("%lg",&sigma)==1){};
 	printf("Input epsilon "); if(scanf("%lg",&epsilon)==1){};
 	printf("Input area percentage "); if(scanf("%lg",&c_0)){};
 	printf("Input random seed "); if(scanf("%ld",&seed)){};
@@ -253,7 +269,7 @@ void init(int argc, char *argv[])
 
 void print_cmd_line()
 {
-	printf("./membrane -m MESH_FILE -t RUN_TIME -I METHOD -e EPSILON  (-r SEED MEAN_CONCENTRATION | -R START_FILE ) [-T TOL] [-L LEVEL] [-x STEPS] [-i TOTAL_ITERATIONS] [-C GAMMA_H GAMMA_H^2 GAMMA_KG] [-P CX CY CZ]\n\n");
+	printf("./membrane -m MESH_FILE -t RUN_TIME -I METHOD (-r SEED MEAN_CONCENTRATION | -R START_FILE ) [-e EPSILON] [-T TOL] [-L LEVEL] [-x STEPS] [-i TOTAL_ITERATIONS] [-C GAMMA_H GAMMA_H^2 GAMMA_KG] [-P CX CY CZ] [-A NX NY NZ]\n\n");
 }
 
 /*******************************************************************/
@@ -266,15 +282,16 @@ void help()
 	printf("\t -m MESH_FILE\t: import mesh from file (works only with standard gmsh mesh format .msh)\n");
 	printf("\t -t RUN_TIME\t: total simulation time. For adaptive stepsize is an (obligatory) upper bound\n");
 	printf("\t -I METHOD\t: choose integration method\n\t\t\t\t1: Euler\n\t\t\t\t2: RK2\n\t\t\t\t3: RK4\n\t\t\t\t4: RK2-Euler with adaptive step-size [NOT FULLY WORKING]\n\t\t\t\t5: RKF45 with adaptive stepsize\n");
-	printf("\t -e EPSILON\t: set the value of epsilon (i.e. diffusion constant and interface thickness)\n");
 	printf("\t -r $1 $2\t: random intial condition with seed $1 and mean concentration $2\n");
 	printf("\t -R FILE\t: import initial configuration from file (does not work with -r)\n");
+	printf("\t -e EPSILON\t: set the value of epsilon (i.e. diffusion constant and interface thickness). If not set is computed automatically from average edge length\n");
 	printf("\t -T TOL\t\t: set the tolerance for adaptive step-size integration methods\n");
-	printf("\t -L LEVEL\t: choose which output files will be printed\n\t\t\t\t0: 'last.dat', 'final.dat'\n\t\t\t\t1: previous +  'histo.dat', 'geometry.dat','last.m','triangles.dat' + 'gc_#.dat' if -x is set [DEFAULT]\n\t\t\t\t2: previous + 'mean_curvature.m','gaussian_curvature.m' + 'gc_#.m' if -x is set\n\t\t\t\t3: as in '1' + debug files\n");
+	printf("\t -L LEVEL\t: choose which output files will be printed\n\t\t\t\t0: 'last.dat', 'final.dat'\n\t\t\t\t1: previous +  'histo.dat', 'geometry.dat', 'last.m', 'triangles.dat' + 'gc_#.dat' if -x is set [DEFAULT]\n\t\t\t\t2: previous + 'mean_curvature.m', 'gaussian_curvature.m' + 'gc_#.m' if -x is set\n\t\t\t\t3: as in '1' + debug files\n");
 	printf("\t -x STEPS\t: if specified and nonzero, decides the frequency with which to export field configurations \n");
 	printf("\t -i ITERATIONS\t: total number of iterations (-I 4 and -I 5 do not use this parameter)\n");
 	printf("\t -C $1 $2 $3\t: specifies the values of the three cubic couplings with H, H^2 and K_G\n");
 	printf("\t -P $1 $2 $3\t: specifies the (x,y,z) coordinates of the center for projection of the surface onto a unit sphere\n");
+	printf("\t -A $1 $2 $3\t: if -P has been given, specifies the north pole direction w.r.t coordinate axis [DEFAULT (0,0,1)]\n");
 
 	printf("\n");
 	exit(1);
@@ -284,7 +301,7 @@ void help()
 
 void import_mesh(char *f_name)
 {
-	long i, v1, v2, v3, chi, triangle_test, dummy, num_of_edges=0;
+	long i, v1, v2, v3, chi, triangle_test, dummy;
 
 	if( access( f_name, F_OK ) == -1 ) {
 		printf("\nError: file %s does not exist\n",f_name);
@@ -477,10 +494,11 @@ void get_geometry()
 	double theta_a,theta_b,theta_c;
 	double sp,area_t;
 	int this;
-	double dx, dy, dz,norm, base, x[3];
+	double dx, dy, dz, base, x[3],y[3],z[3],rm[3];
 
 	l_min=1E10;
 	l_max=0;
+	l_avg=0;
 
 	h2_min=1E10;
 	h2_max=-1E10;
@@ -511,8 +529,6 @@ void get_geometry()
 
 	// Loop through triangles computing vertices weights, mean and gaussian curvatures and areas
 
-
-
 	for (i=0; i<num_of_triangles; i++){
 
 		a=triangle[i].v1;
@@ -522,6 +538,8 @@ void get_geometry()
 		lab=sqrt(pow((vertex[a].x-vertex[b].x),2.)+pow((vertex[a].y-vertex[b].y),2.)+pow((vertex[a].z-vertex[b].z),2.));
 		lbc=sqrt(pow((vertex[b].x-vertex[c].x),2.)+pow((vertex[b].y-vertex[c].y),2.)+pow((vertex[b].z-vertex[c].z),2.));
 		lca=sqrt(pow((vertex[c].x-vertex[a].x),2.)+pow((vertex[c].y-vertex[a].y),2.)+pow((vertex[c].z-vertex[a].z),2.));
+
+		l_avg+=.5*(lab+lbc+lca);
 
 		sp=.5*(lab+lbc+lca);
 		area_t=sqrt(sp*(sp-lab)*(sp-lbc)*(sp-lca));
@@ -592,6 +610,8 @@ void get_geometry()
 
 	}
 
+	l_avg*=2./num_of_edges;
+
 	if(o_flag>=1){
 		f_ou = fopen("triangles.dat","w");
 		for (i=0; i<num_of_triangles; i++){
@@ -602,6 +622,35 @@ void get_geometry()
 		}
 		fclose(f_ou);
 	}
+
+
+
+	if(a_x*a_x<1.){
+
+		x[0]=0;
+		x[1]=-a_z/sqrt(a_z*a_z+a_y*a_y);
+		x[2]=a_y/sqrt(a_z*a_z+a_y*a_y);
+
+		z[0]=x[1]*a_z-x[2]*a_y;
+		z[1]=x[2]*a_x-x[0]*a_z;
+		z[2]=x[0]*a_y-x[1]*a_x;
+
+		z[0]/=sqrt(z[0]*z[0]+z[1]*z[1]+z[2]*z[2]);
+		z[1]/=sqrt(z[0]*z[0]+z[1]*z[1]+z[2]*z[2]);
+		z[2]/=sqrt(z[0]*z[0]+z[1]*z[1]+z[2]*z[2]);
+	}else{
+
+		x[0]=0;
+		x[1]=-1;
+		x[2]=0;
+
+		z[0]=0;
+		z[1]=0;
+		z[2]=1;
+
+	};
+
+	//printf("Chosen basis: n=(%lg,%lg,%lg), m=(%lg,%lg,%lg), o=(%lg,%lg,%lg)\n",a_x,a_y,a_z,x[0],x[1],x[2],z[0],z[1],z[2]);
 
 	// One further loop through vertices to normalize things
 
@@ -622,12 +671,24 @@ void get_geometry()
 		// Compute projective angles
 
 		if(c_flag==1){
+
 			dx = vertex[i].x-c_x;
 			dy = vertex[i].y-c_y;
 			dz = vertex[i].z-c_z;
-			norm=sqrt(dx*dx+dy*dy+dz*dz);
-			vertex[i].gridx=atan2(dy,dx);
-			vertex[i].gridy=atan2(dz,sqrt(dx*dx+dy*dy));
+
+			dx/=sqrt(dx*dx+dy*dy+dz*dz);
+			dy/=sqrt(dx*dx+dy*dy+dz*dz);
+			dz/=sqrt(dx*dx+dy*dy+dz*dz);
+
+			base=dx*a_x+dy*a_y+dz*a_z;
+
+			rm[0]=dx-base*a_x;
+			rm[1]=dy-base*a_y;
+			rm[2]=dz-base*a_z;
+
+			vertex[i].gridx=atan2(rm[0]*x[0]+rm[1]*x[1]+rm[2]*x[2],rm[0]*z[0]+rm[1]*z[1]+rm[2]*z[2]);
+			vertex[i].gridy=atan2(base,sqrt(rm[0]*rm[0]+rm[1]*rm[1]+rm[2]*rm[2]));
+
 		}
 
 		total_area+=vertex[i].area;
@@ -717,7 +778,7 @@ void get_geometry()
 	fclose(f_ou);
 	*/
 
-	DTauto=.1/sigma*l_min*l_min/2;
+	DTauto=.1*l_min*l_min/2;
 	printf("\n");
 	printf("\tVertices %ld\n",num_of_meshpoint);
 	printf("\tTriangles %ld\n",num_of_triangles);
@@ -725,10 +786,12 @@ void get_geometry()
 	printf("\tTotal surface area %lg\n",total_area);
 	printf("\tWillmore energy %lg (asphericity %lg)\n",willmore_energy,willmore_energy/4/PI-1);
 	printf("\tEuler characteristic %lg\n",euler_chi);
-	printf("\tMin/max length (%lg,%lg)\n",l_min,l_max);
-	printf("\tMin/max H2 (%lg,%lg)\n",h2_min,h2_max);
-	printf("\tMin/max KG (%lg,%lg)\n",kg_min,kg_max);
-	printf("\tProposed initial time-step %lg\n",DTauto); // For diffusion processes on flat space, explicit discretization schemes (as ours) are stable only for sigma*DT/DX^2 < 1/2.
+	printf("\tMin/max/avg edge length (%lg,%lg,%lg)\n",l_min,l_max,l_avg);
+	printf("\tMin/max squared mean curvature (%lg,%lg)\n",h2_min,h2_max);
+	printf("\tMin/max Gaussian curvature (%lg,%lg)\n",kg_min,kg_max);
+	printf("\tExpected interface thickness %lg (%2.1f%% of surface typical length)\n",6*sqrt(2)*epsilon,6*sqrt(2)*epsilon/sqrt(total_area)*100.);
+	printf("\tProposed epsilon: %lg (maximal) or %lg (average)\n",l_max/sqrt(2),l_avg/sqrt(2)); // A good numerical approximation requires that the interface profile anywhere on the surface should countain at least six grid points
+	printf("\tProposed initial time-step %lg\n",DTauto);  // For diffusion processes on flat space, explicit discretization schemes (as ours) are stable only for DT/DX^2 < 1/2.
 	printf("\n");
 
 	/*f_ou = fopen("negative_kg_debug.m","w");
@@ -832,7 +895,7 @@ void get_rhs(double *rhs)
 
 	for (i=0; i<num_of_meshpoint; i++){
 
-		lagrange += vertex[i].area*(sigma*laplace(i)-dV(i)/(epsilon*epsilon));		
+		lagrange += vertex[i].area*(laplace(i)-dV(i)/(epsilon*epsilon));		
 	}		
 	
 	lagrange /= total_area;
@@ -841,7 +904,7 @@ void get_rhs(double *rhs)
 	
 	for (i=0; i<num_of_meshpoint; i++){
 		
-		rhs[i] = sigma*laplace(i)-dV(i)/(epsilon*epsilon)-lagrange;
+		rhs[i] = laplace(i)-dV(i)/(epsilon*epsilon)-lagrange;
 	}
 }
 
@@ -897,6 +960,12 @@ void run()
 	if(o_flag>=1)f_hi = fopen("histo.dat","w");	
 
 	current_time=0;
+
+	if(epsilon==0){
+		epsilon=1.5*l_avg/sqrt(2);
+		printf("No epsilon specified, setting automatically to %f\n",epsilon);
+	}
+
 
 	if(method>=4){
 		DT=DTauto;
@@ -1423,7 +1492,7 @@ void end()
 
 		phisq 	+=tpa*tph*tph;
 		c0 	+=tpa*tph;
-		kin	-=tpa*sigma*.5*tph*laplace(i);
+		kin	-=tpa*.5*tph*laplace(i);
 		pot	+=tpa*V(i)/(epsilon*epsilon);
 		phiH2	+=tpa*tph*vertex[i].h2;
 		phiKG	+=tpa*tph*vertex[i].kg;
@@ -1476,7 +1545,7 @@ void write_hi(FILE *f_ou, long t)
 
 		phisq 	+=tpa*tph*tph;
 		c0 	+=tpa*tph;
-		kin	-=tpa*sigma*.5*tph*laplace(i);
+		kin	-=tpa*.5*tph*laplace(i);
 		pot	+=tpa*V(i)/(epsilon*epsilon);
 		phiH2	+=tpa*tph*vertex[i].h2;
 		phiKG	+=tpa*tph*vertex[i].kg;
