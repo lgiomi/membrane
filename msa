@@ -39,7 +39,6 @@ while [ $g_c -le $n_g ];
 		mkdir -p temp_${g}_${c0}_${rpp_c}
 		cd temp_${g}_${c0}_${rpp_c}
 
-		sleep .5
 		membrane -e .08 -m ../mesh/cube.msh -t 30 -I 5 -r $RANDOM $c0 -C 0 $g 0 -L 0 -P 0 0 0 -T 1E-6
 		echo "Parameters at" $c0 $g $rpp_c 
 

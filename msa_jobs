@@ -38,7 +38,7 @@ while [ $g_c -le $n_g ];
 
 		mkdir -p temp_${g}_${c0}_${rpp_c}
 		cd temp_${g}_${c0}_${rpp_c}
-		sbatch job.sbatch $c0 $g
+		sbatch --array=1-20 job.sbatch $c0 $g $rpp_c 
 		echo "Parameters at" $c0 $g $rpp_c 
 
 		cd ..
@@ -49,6 +49,11 @@ while [ $g_c -le $n_g ];
 	done
 	c0_c=0
 let g_c=g_c+1
+done
+
+while ! test -f "temp_${g}_${c0}_${rpp_c}/last.dat"; do
+	sleep 10
+	echo -ne "Waiting for the job to finish..."\\r
 done
 
 echo "Finished running. Now collecting data together."
