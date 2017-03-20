@@ -26,7 +26,7 @@ long export;
 
 int num_of_domains;
 double l_min,l_max,h2_min,h2_max,kg_min,kg_max;
-double c_x,c_y,c_z,rp;
+double c_x,c_y,c_z;
 int c_flag=0,o_flag=1,i_flag=0;
 double current_time;
 
@@ -158,10 +158,9 @@ void init(int argc, char *argv[])
 								c_x=atof(argv[n+1]);
 								c_y=atof(argv[n+2]);
 								c_z=atof(argv[n+3]);
-								rp=atof(argv[n+4]);
-								printf( "Center of stereographic projection (%lg,%lg,%lg) with radius %g\n",c_x,c_y,c_z,rp);
+								printf( "Center of stereographic projection (%lg,%lg,%lg)\n",c_x,c_y,c_z);
 								c_flag=1;
-								n+=4;
+								n+=3;
 								break;
 						case 'I':
 								switch((int)argv[n+1][0]){
@@ -254,7 +253,7 @@ void init(int argc, char *argv[])
 
 void print_cmd_line()
 {
-	printf("./membrane -m MESH_FILE -t RUN_TIME -I METHOD -e EPSILON  (-r SEED MEAN_CONCENTRATION | -R START_FILE ) [-T TOL] [-L LEVEL] [-x STEPS] [-i TOTAL_ITERATIONS] [-C GAMMA_H GAMMA_H^2 GAMMA_KG] [-P CX CY CZ R]\n\n");
+	printf("./membrane -m MESH_FILE -t RUN_TIME -I METHOD -e EPSILON  (-r SEED MEAN_CONCENTRATION | -R START_FILE ) [-T TOL] [-L LEVEL] [-x STEPS] [-i TOTAL_ITERATIONS] [-C GAMMA_H GAMMA_H^2 GAMMA_KG] [-P CX CY CZ]\n\n");
 }
 
 /*******************************************************************/
@@ -275,7 +274,7 @@ void help()
 	printf("\t -x STEPS\t: if specified and nonzero, decides the frequency with which to export field configurations \n");
 	printf("\t -i ITERATIONS\t: total number of iterations (-I 4 and -I 5 do not use this parameter)\n");
 	printf("\t -C $1 $2 $3\t: specifies the values of the three cubic couplings with H, H^2 and K_G\n");
-	printf("\t -P $1 $2 $3 $4\t: specifies the (x,y,z) coordinates and radius R of the center for two-dimensional stereographic projection of the surface\n");
+	printf("\t -P $1 $2 $3\t: specifies the (x,y,z) coordinates of the center for projection of the surface onto a unit sphere\n");
 
 	printf("\n");
 	exit(1);
