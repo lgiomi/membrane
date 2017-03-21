@@ -778,11 +778,15 @@ void get_geometry()
 	fclose(f_ou);
 	*/
 
+	DTauto=.1*l_min*l_min/2;
 	if(epsilon==0){
 		epsilon=1.1*l_max/sqrt(2);
 		printf("No epsilon specified, setting automatically to %f\n",epsilon);
 	}
-	DTauto=.1*l_min*l_min/2;
+	if(method>=4){
+		DT=DTauto;
+		printf("Setting initial time step automatically to %f\n",DT);
+	}
 	printf("\n");
 	printf("\tVertices %ld\n",num_of_meshpoint);
 	printf("\tTriangles %ld\n",num_of_triangles);
@@ -965,11 +969,6 @@ void run()
 
 	current_time=0;
 
-	if(method>=4){
-		DT=DTauto;
-		printf("Setting initial time step automatically to %f\n",DT);
-	}
-	
 	if(export>0 && c_flag==0 && o_flag!=2){
 		printf("You chose to export configurations every %ld time steps, but did not specify a sterographic center nor chose -O 2. Assuming -C 0 0 0.\n",export);
 		c_flag=1;
@@ -1252,8 +1251,8 @@ void rkf45()
 		vertex[i].phi = rhs0[i]+DT*(16./135.*rhs1[i]+6656./12825.*rhs3[i]+28561./56430.*rhs4[i]-9./50.*rhs5[i]+2./55.*rhs6[i]); // This one instead at order 5
 		Q[i] = (1/360.*rhs1[i]-128./4275.*rhs3[i]-2197./75240.*rhs4[i]+1/50.*rhs5[i]+2./55.*rhs6[i]); 				// And this is their difference, which serves as an estimate to the (local) error
 		if(Q[i]<0)Q[i]*=-1;
-		Q_average+=vertex[i].area*Q[i]/total_area; 			// We integrate abs(Q) over the surface
-		rhs_average+=vertex[i].area*sqrt(rhs5[i]*rhs5[i])/total_area;	// And integrate the square of the evolution equation as an estimate of the distance from equilibrium
+		Q_average+=vertex[i].area*Q[i]/total_area; 				// We integrate abs(Q) over the surface
+		rhs_average+=vertex[i].area*pow(rhs6[i]*rhs6[i],.55)/total_area;		// And integrate the square of the evolution equation as an estimate of the distance from equilibrium. [THIS IS MAGIC]
 	}
 
 	if(rhs_average<tol)halt_now=1;
@@ -1261,13 +1260,11 @@ void rkf45()
 	delta=pow(tol/Q_average/2.,.25);
 
 	if(delta<.1){DT*=.1;}
-	else if(delta>4.){DT*=4.;}
+	else if(delta>2){DT*=2;}
 	else {DT*=delta;};
 
 	if(DT<DTmin)DT=DTmin;
 	if(DT>DTmax)DT=DTmax;
-
-	//printf("Qua stamo a %.8E\t %.8E\t %.8E\t %.8E\t %.8E\n",current_time,Q_average,delta,DT,rhs_average);
 
 	if(o_flag>=3){
 		f_ou = fopen("Q_avg_debug.dat","a");
