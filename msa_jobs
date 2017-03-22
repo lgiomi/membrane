@@ -6,32 +6,30 @@ rm -f *.png
 rm -f *.m
 rm -f *.mkv
 rm -fR finalconfigurations
-make
+make > /dev/null
 
 # Save current dir in the PATH environment
 DIR=`pwd`
 export PATH=${DIR}:$PATH
-
 # Total number of steps in the concentration, going from 0 to 1 (both values included, so the total number is acutally c0steps+1). 
-n_c0=3
+n_c0=10
 
-# Coupling counter (from -g_i to g_i with n_g steps)
-n_g=2
-g_i=.1
+# Coupling counter (from 0 to g_i with n_g steps)
+n_g=25
+g_i=2.5
 
 # Number of runs per phase diagram point
-rpp=2
+rpp=3
 
 # Initialising counters
 c0_c=0
 g_c=0
 rpp_c=0
-
-njob=0
+nnow=0
 
 while [ $g_c -le $n_g ];
 	do
-	g=$(echo "scale=3; -$g_i+$g_c/$n_g*2*$g_i" |bc)
+	g=$(echo "scale=3; $g_c/$n_g*$g_i" |bc)
 	while [  $c0_c -le $n_c0 ]; 
 	do
 		while [  $rpp_c -lt $rpp ]; 
@@ -40,7 +38,17 @@ while [ $g_c -le $n_g ];
 
 		mkdir -p temp_${g}_${c0}_${rpp_c}
 		cd temp_${g}_${c0}_${rpp_c}
-		sbatch  job.sbatch $c0 $g $rpp_c 
+
+		while [ $nnow -gt 80 ]; 
+        	do
+        		sleep 5
+       		 	nnow=`squeue | grep fonda | wc -l`
+        		echo -ne "Waiting for some job to finish before launching new ($nnow)..."\\n
+		done
+
+                nnow=`squeue | grep fonda | wc -l`
+
+		sbatch  job.sbatch $c0 $g $rpp_c > /dev/null 
 		echo "Parameters at" $c0 $g $rpp_c 
 
 		cd ..
@@ -74,7 +82,7 @@ rpp_c=0
 
 while [ $g_c -le $n_g ];
 	do
-	g=$(echo "scale=3; -$g_i+$g_c/$n_g*2*$g_i" |bc)
+        g=$(echo "scale=3; $g_c/$n_g*$g_i" |bc)
 	while [  $c0_c -le $n_c0 ]; 
 	do
 		while [  $rpp_c -lt $rpp ]; 
