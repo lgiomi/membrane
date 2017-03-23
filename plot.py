@@ -17,7 +17,7 @@ except:
     sys.exit("Error: input file does not exist")
 
 
-cdict = {'red': ((0.0, 0.0, 0.0),(1.0, 1.0, 1.0)),'green':((0.0, 1.0, 1.0),(1.0, 0.0, 0.0)),'blue':((0.0, 0.0, 0.0),(1.0, 0.0, 0.0))}
+cdict = {'red': ((0.0, 1.0, 1.0),(1.0, 0.0, 0.0)),'green':((0.0, 0.0, 0.0),(1.0, 1.0, 1.0)),'blue':((0.0, 0.0, 0.0),(1.0, 0.0, 0.0))}
 
 red_to_green = LinearSegmentedColormap('BlueRed1', cdict)
 
