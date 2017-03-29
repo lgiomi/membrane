@@ -1000,7 +1000,7 @@ void run()
 				};
 			}
 			t++;
-			if(t%100==0){printf("Step: %ld\t\t\t Current time:%.6g\r",t,current_time);}
+			if(t%100==0){printf("Step: %ld\t\t Current time:%.6g\r",t,current_time);}
 			one_step();
 		}
 		printf("Total time steps: %ld\nSimulation time: %g\n",t,current_time);
@@ -1247,12 +1247,13 @@ void rkf45()
 	get_rhs(rhs6);
 
 	for (i=0; i<num_of_meshpoint; i++){
-		//vertex[i].phi = rhs0[i]+DT*(25./216.*rhs1[i]+1408./2565.*rhs3[i]+2197./4104.*rhs4[i]-1./5.*rhs5[i]); 			// This is  the correct integration step at order 4
-		vertex[i].phi = rhs0[i]+DT*(16./135.*rhs1[i]+6656./12825.*rhs3[i]+28561./56430.*rhs4[i]-9./50.*rhs5[i]+2./55.*rhs6[i]); // This one instead at order 5
-		Q[i] = (1/360.*rhs1[i]-128./4275.*rhs3[i]-2197./75240.*rhs4[i]+1/50.*rhs5[i]+2./55.*rhs6[i]); 				// And this is their difference, which serves as an estimate to the (local) error
+		//vertex[i].phi = rhs0[i]+DT*(25./216.*rhs1[i]+1408./2565.*rhs3[i]+2197./4104.*rhs4[i]-1./5.*rhs5[i]); 			// This is the correct integration step at order 4
+		vertex[i].phi = rhs0[i]+DT*(16./135.*rhs1[i]+6656./12825.*rhs3[i]+28561./56430.*rhs4[i]-9./50.*rhs5[i]+2./55.*rhs6[i]); // This is the correct integration step at order 5, instead
+		Q[i] = (1/360.*rhs1[i]-128./4275.*rhs3[i]-2197./75240.*rhs4[i]+1/50.*rhs5[i]+2./55.*rhs6[i]); 				// This is their difference, which serves as an estimate to the (local) error
 		if(Q[i]<0)Q[i]*=-1;
-		Q_average+=vertex[i].area*Q[i]/total_area; 				// We integrate abs(Q) over the surface
-		rhs_average+=vertex[i].area*pow(rhs6[i]*rhs6[i],.55)/total_area;		// And integrate the square of the evolution equation as an estimate of the distance from equilibrium. [THIS IS MAGIC]
+		Q_average+=vertex[i].area*Q[i]/total_area; 										// We use <abs(Q)>_\Sigma as a global estimate 
+		//rhs_average+=vertex[i].area*pow(rhs6[i]*rhs6[i],.5)/total_area;							// Estimate of the distance from equilibrium. [THIS IS MAGIC]
+		rhs_average+=vertex[i].area*rhs6[i]*rhs6[i]/total_area;									// Estimate of the distance from equilibrium. [THIS IS STRUCTURE FACTOR]
 	}
 
 	if(rhs_average<tol)halt_now=1;
@@ -1260,7 +1261,7 @@ void rkf45()
 	delta=pow(tol/Q_average/2.,.25);
 
 	if(delta<.1){DT*=.1;}
-	else if(delta>2){DT*=2;}
+	else if(delta>1.5){DT*=1.5;}
 	else {DT*=delta;};
 
 	if(DT<DTmin)DT=DTmin;

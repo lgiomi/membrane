@@ -11,6 +11,11 @@ cat geometry.dat |  awk -F " " {'printf "%g\t%g\t%g\n", $2, $3, $4'} > tmp1.dat
 
 n=1
 
+echo -e \\n"Building 3D images..."
+xvfb-run --server-args="-screen 0 1024x768x24" python movie_3D.py 
+
+
+echo -e \\n"Building 2D images and worldlines..."
 for f in $file; do
 
 gc_i=`echo ${f:3:-4} | sed 's/^0*//'`
@@ -27,19 +32,19 @@ paste tmp1.dat $f > temp1.dat
 cat temp.dat | awk -v var="$gc_i" -F"\t" '$3 > -.05 && $3 <.05 {print $1 "\t" $2 "\t" var }' >> worldline_2D.dat
 cat temp1.dat | awk -v var="$gc_i" -F"\t" '$4 > -.05 && $4 <.05 {print $1 "\t" $2 "\t" $3 "\t" var }' >> worldline_3D.dat
 
-python plot.py $f $namegc_f
+python plot.py $f $namegc_f > /dev/null
 
 n=$((n+1))
 
 done
 
-echo -e \\n"Building movie files..."
+echo -e \\n"Building movies..."
 
-ffmpeg -framerate 10 -pattern_type glob -i "0*.png" 2d_field.mkv > /dev/null
-#ffmpeg -framerate 10 -pattern_type glob -i "b*.png" binary_2d_field.mkv > /dev/null
+ffmpeg -framerate 10 -pattern_type glob -i "0*.png" 2d_field.mkv > /dev/null 2>&1
+ffmpeg -framerate 10 -pattern_type glob -i "t*.png" 3d_field.mkv > /dev/null 2>&1
 
-rm -f b0*.png
 rm 0*.png
 rm gc_*.dat
+rm t*.png
 rm -f temp*.dat
 rm -f tmp*.dat

@@ -7,4 +7,4 @@ rm -f *.m
 rm -f *.mkv
 make
 
-./membrane -m mesh/dumbbell_1.msh -e .08 -t 5 -I 5 -r $RANDOM .22 -C 0 0 0 -L 3 -P 0 0 0 -T 1E-6 -x 200 -A 1 0 0
+./membrane -m mesh/dumbbell_2.msh -t 15 -I 5 -r $RANDOM .42 -C 0 0 0 -L 3 -P 0 0 0 -x 200 -A 1 0 0 

@@ -48,4 +48,4 @@ for f in listconf:
 	counter=counter+1
 
 
-print "\nThere are %g coupling points and %g concentration points and %g series" % len(listg),len(listc),len(listn)
+print "\nThere are",len(listg),"couplings,",len(listc),"concentrations and",len(listn),"series"

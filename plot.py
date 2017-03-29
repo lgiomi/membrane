@@ -22,7 +22,7 @@ cdict = {'red': ((0.0, 1.0, 1.0),(1.0, 0.0, 0.0)),'green':((0.0, 0.0, 0.0),(1.0,
 red_to_green = LinearSegmentedColormap('BlueRed1', cdict)
 
 fig, ax = plt.subplots()
-ax.scatter(coord2D[0], coord2D[1], c=(phi[0]+1)/2, s=30, cmap=red_to_green, edgecolor='')
+ax.scatter(coord2D[0], coord2D[1], c=(phi[0]+1)/2, s=30, cmap=red_to_green, vmin=0,vmax=1,edgecolor='')
 
 plt.xlim([-3.141592,3.141592])
 plt.ylim([-3.141592/2,3.141592/2])
