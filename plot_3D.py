@@ -26,5 +26,5 @@ s.module_manager.scalar_lut_manager.lut.table = rgmap
 mlab.view(90, 90)
 mlab.savefig(sys.argv[2],size=(1920, 1080))
 
-#mlab.show()
+mlab.show()
 

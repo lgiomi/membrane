@@ -18,31 +18,27 @@ time_t t1, t2;
 Triangle triangle[MAX_SIZE];
 Vertex vertex[MAX_SIZE];
 
-long num_of_meshpoint;
-long num_of_triangles;
-long num_of_iteration;
-long method;
-long export;
+long num_of_meshpoint,num_of_triangles,num_of_iteration,num_of_edges=0;
 
-int num_of_domains;
-long num_of_edges=0;
-double l_min,l_max,h2_min,h2_max,kg_min,kg_max,l_avg;
 double c_x,c_y,c_z;
 double a_x,a_y,a_z;
+long method;
+long export;
 int c_flag=0,o_flag=1,i_flag=0;
-double current_time;
-
-double total_area;
-double willmore_energy,euler_chi;
-double c_0,epsilon,DTauto;
-double DT,run_time;
-double gamma_h,gamma_h2,gamma_kg;
-double lagrange;
-double current_energy;
 double tol;
+double DT,DTauto,run_time;
+double c_0,epsilon;
+double gamma_h,gamma_h2,gamma_kg;
+double k_barrier=1.;
+
+double total_area,willmore_energy,euler_chi;
+double l_min,l_max,l_avg,h2_min,h2_max,kg_min,kg_max;
+
+double lagrange;
+double current_time;
+int num_of_domains;
 
 long seed;
-
 int halt_now=0;
 
 void euler();
@@ -50,7 +46,6 @@ void rk2();
 void rk4();
 void heun_euler();
 void rkf45();
-
 
 void run();
 void end();
@@ -130,6 +125,11 @@ void init(int argc, char *argv[])
 						case 't':
 								run_time=atof(argv[n+1]);
 								printf( "Run time\t\t: %lg\n",run_time);
+								n++;
+								break;
+						case 'k':
+								k_barrier=atof(argv[n+1]);
+								printf( "Potential barrier\t\t: %lg\n",k_barrier);
 								n++;
 								break;
 						case 'e':
@@ -223,7 +223,7 @@ void init(int argc, char *argv[])
 			default:  
 				printf( "\nError: give input in the following format:\n"); 
 				print_cmd_line();
-				printf( "\nType ./membrane -h for help\n"); 
+				printf( "Type ./membrane -h for help\n"); 
 				exit(0);
                  		break;
 			}	
@@ -232,7 +232,7 @@ void init(int argc, char *argv[])
 		if( run_time==0 ||  method == 0 || (num_of_iteration == 1 && method < 4) || i_flag <1){
 				printf( "\nError: not enough arguments given or wrong parameter values. Write input in the following format:\n"); 
 				print_cmd_line();
-				printf( "Type ./membrane -h for help\n"); 
+				printf("Type ./membrane -h for help\n"); 
 				exit(0);
 		}
 		if(export == 0){
@@ -240,16 +240,10 @@ void init(int argc, char *argv[])
 		}
 	}
 	else{
-	printf("You did not specify arguments to parse, assume input is from stdin\n");
-	printf("Input mesh file ");	if(scanf("%s",f_name)==1){};
-	printf("Input run time ");	if(scanf("%lg",&run_time)==1){};
-  	printf("Input iterations ");	if(scanf("%ld",&num_of_iteration)==1){};
-	DT = run_time/num_of_iteration;
-	printf("Choose integration method\n\n\t1. Euler\n\t2. Runge-Kutta (2 steps)\n\t3. Runge-Kutta (4 steps)\n\t4. Adaptive Heun-Euler\n\t5. RKF45\n\n"); if(scanf("%ld",&method)==1){};
-	printf("Input epsilon "); if(scanf("%lg",&epsilon)==1){};
-	printf("Input area percentage "); if(scanf("%lg",&c_0)){};
-	printf("Input random seed "); if(scanf("%ld",&seed)){};
-	i_flag=2;
+		printf("\nYou did not specify enough arguments to parse. Please give input in the following format:\n\n"); 
+		print_cmd_line();
+		printf("Type ./membrane -h for help\n"); 
+		exit(0);
 	}
 	import_mesh(f_name);
 	get_geometry();
@@ -269,14 +263,14 @@ void init(int argc, char *argv[])
 
 void print_cmd_line()
 {
-	printf("./membrane -m MESH_FILE -t RUN_TIME -I METHOD (-r SEED MEAN_CONCENTRATION | -R START_FILE ) [-e EPSILON] [-T TOL] [-L LEVEL] [-x STEPS] [-i TOTAL_ITERATIONS] [-C GAMMA_H GAMMA_H^2 GAMMA_KG] [-P CX CY CZ] [-A NX NY NZ]\n\n");
+	printf("./membrane -m MESH_FILE -t RUN_TIME -I METHOD (-r SEED MEAN_CONCENTRATION | -R START_FILE ) [-e EPSILON] [-T TOL] [-L LEVEL] [-x STEPS] [-i TOTAL_ITERATIONS] [-C GAMMA_H GAMMA_H^2 GAMMA_KG] [-P CX CY CZ] [-A NX NY NZ] [-k BARRIER]\n\n");
 }
 
 /*******************************************************************/
 
 void help()
 {
-	printf("\nThis program takes input from either in-line commands or from stdin [deprecated]. In the former case the syntax is\n\n");	
+	printf("\nThis program takes input from in-line commands. The syntax is\n\n");	
 	print_cmd_line();
 	printf("Where:\n");
 	printf("\t -m MESH_FILE\t: import mesh from file (works only with standard gmsh mesh format .msh)\n");
@@ -284,14 +278,15 @@ void help()
 	printf("\t -I METHOD\t: choose integration method\n\t\t\t\t1: Euler\n\t\t\t\t2: RK2\n\t\t\t\t3: RK4\n\t\t\t\t4: RK2-Euler with adaptive step-size [NOT FULLY WORKING]\n\t\t\t\t5: RKF45 with adaptive stepsize\n");
 	printf("\t -r $1 $2\t: random intial condition with seed $1 and mean concentration $2\n");
 	printf("\t -R FILE\t: import initial configuration from file (does not work with -r)\n");
-	printf("\t -e EPSILON\t: set the value of epsilon (i.e. diffusion constant and interface thickness). If not set is computed automatically from average edge length\n");
+	printf("\t -e EPSILON\t: set the value of epsilon. If not set is computed automatically from average edge length\n");
 	printf("\t -T TOL\t\t: set the tolerance for adaptive step-size integration methods\n");
 	printf("\t -L LEVEL\t: choose which output files will be printed\n\t\t\t\t0: 'last.dat', 'final.dat'\n\t\t\t\t1: previous +  'histo.dat', 'geometry.dat', 'last.m', 'triangles.dat' + 'gc_#.dat' if -x is set [DEFAULT]\n\t\t\t\t2: previous + 'mean_curvature.m', 'gaussian_curvature.m' + 'gc_#.m' if -x is set\n\t\t\t\t3: as in '1' + debug files\n");
 	printf("\t -x STEPS\t: if specified and nonzero, decides the frequency with which to export field configurations \n");
 	printf("\t -i ITERATIONS\t: total number of iterations (-I 4 and -I 5 do not use this parameter)\n");
-	printf("\t -C $1 $2 $3\t: specifies the values of the three cubic couplings with H, H^2 and K_G\n");
+	printf("\t -C $1 $2 $3\t: specifies the values of the couplings with H, H^2 and K_G\n");
 	printf("\t -P $1 $2 $3\t: specifies the (x,y,z) coordinates of the center for projection of the surface onto a unit sphere\n");
 	printf("\t -A $1 $2 $3\t: if -P has been given, specifies the north pole direction w.r.t coordinate axis [DEFAULT (0,0,1)]\n");
+	printf("\t -k BARRIER\t: set the height of the potential barrier\n");
 
 	printf("\n");
 	exit(1);
@@ -650,7 +645,7 @@ void get_geometry()
 
 	};
 
-	//printf("Chosen basis: n=(%lg,%lg,%lg), m=(%lg,%lg,%lg), o=(%lg,%lg,%lg)\n",a_x,a_y,a_z,x[0],x[1],x[2],z[0],z[1],z[2]);
+	//printf("Orthonomal basis for spherical projection: n=(%lg,%lg,%lg), m=(%lg,%lg,%lg), o=(%lg,%lg,%lg)\n",a_x,a_y,a_z,x[0],x[1],x[2],z[0],z[1],z[2]);
 
 	// One further loop through vertices to normalize things
 
@@ -795,11 +790,12 @@ void get_geometry()
 	printf("\tWillmore energy %lg (asphericity %lg)\n",willmore_energy,willmore_energy/4/PI-1);
 	printf("\tEuler characteristic %lg\n",euler_chi);
 	printf("\tMin/max/avg edge length (%lg,%lg,%lg)\n",l_min,l_max,l_avg);
-	printf("\tMin/max squared mean curvature (%lg,%lg)\n",h2_min,h2_max);
-	printf("\tMin/max Gaussian curvature (%lg,%lg)\n",kg_min,kg_max);
-	printf("\tExpected interface thickness %lg (%2.1f%% of surface typical length)\n",6*sqrt(2)*epsilon,6*sqrt(2)*epsilon/sqrt(total_area)*100.);
-	printf("\tProposed epsilon: %lg (maximal) or %lg (average)\n",l_max/sqrt(2),l_avg/sqrt(2)); // A good numerical approximation requires that the interface profile anywhere on the surface should countain at least six grid points
-	printf("\tProposed initial time-step %lg\n",DTauto);  // For diffusion processes on flat space, explicit discretization schemes (as ours) are stable only for DT/DX^2 < 1/2.
+	printf("\tMin/max/avg squared mean curvature (%lg,%lg,%lg)\n",h2_min,h2_max,willmore_energy/total_area);
+	printf("\tMin/max/avg Gaussian curvature (%lg,%lg,%lg)\n",kg_min,kg_max,2*PI*euler_chi/total_area);
+	printf("\tExpected interface thickness %lg (%2.1f%% of surface typical length)\n",3*sqrt(2)*epsilon,3*sqrt(2)*epsilon/sqrt(total_area)*100.);
+	printf("\tProposed epsilon: %lg (maximal) or %lg (average)\n",l_max/sqrt(2),l_avg/sqrt(2)); 	// The interface profile anywhere on the surface should countain at least six grid points
+	printf("\tProposed initial time-step %lg\n",DTauto);  						// For diffusion processes are stable only for DT/DX^2 \simeq 1/2.
+	printf("\tAllowed coupling ranges: |Leibler|<%lg, |Delta k|<%lg, |Delta k_b|<%lg\n",4./3.*k_barrier/epsilon/sqrt(h2_max),4./3.*k_barrier/epsilon/h2_max,4./3.*k_barrier/epsilon/max(kg_max,sqrt(kg_min*kg_min)));  
 	printf("\n");
 
 	/*f_ou = fopen("negative_kg_debug.m","w");
@@ -932,29 +928,30 @@ double laplace(long i)
 
 /*******************************************************************/
 
-// Define the potential and its functional derivative [CHECK THESE ARE CORRECT]
-
-double dV(long i)
-{
-	double dV_0,dV_int;
-
-	dV_0 = vertex[i].phi*(vertex[i].phi*vertex[i].phi-1);
-
-	dV_int = 3./4.*(1-vertex[i].phi*vertex[i].phi)*epsilon;
-	
-	return dV_0+dV_int*(gamma_h2*vertex[i].h2+gamma_kg*vertex[i].kg+gamma_h*sqrt(vertex[i].h2));
-}
+// Define the potential and its functional derivative 
 
 double V(long i)
 {
 	double V_0,V_int;
 
-	V_0 = .25*pow(pow(vertex[i].phi,2.)-1,2.);
+	V_0 = k_barrier*.25*pow(pow(vertex[i].phi,2.)-1,2.);
 
-	V_int = epsilon*pow((vertex[i].phi+1),2.)*(2-vertex[i].phi)/4.;
+	V_int = .25*pow((vertex[i].phi+1),2.)*(2-vertex[i].phi)*epsilon;
 	
 	return V_0+V_int*(gamma_h2*vertex[i].h2+gamma_kg*vertex[i].kg+gamma_h*sqrt(vertex[i].h2));
 }
+
+double dV(long i)
+{
+	double dV_0,dV_int;
+
+	dV_0 = k_barrier*vertex[i].phi*(vertex[i].phi*vertex[i].phi-1);
+
+	dV_int = .75*(1-vertex[i].phi*vertex[i].phi)*epsilon;
+	
+	return dV_0+dV_int*(gamma_h2*vertex[i].h2+gamma_kg*vertex[i].kg+gamma_h*sqrt(vertex[i].h2));
+}
+
 
 /*******************************************************************/
 
@@ -1248,12 +1245,12 @@ void rkf45()
 
 	for (i=0; i<num_of_meshpoint; i++){
 		//vertex[i].phi = rhs0[i]+DT*(25./216.*rhs1[i]+1408./2565.*rhs3[i]+2197./4104.*rhs4[i]-1./5.*rhs5[i]); 			// This is the correct integration step at order 4
-		vertex[i].phi = rhs0[i]+DT*(16./135.*rhs1[i]+6656./12825.*rhs3[i]+28561./56430.*rhs4[i]-9./50.*rhs5[i]+2./55.*rhs6[i]); // This is the correct integration step at order 5, instead
+		vertex[i].phi = rhs0[i]+DT*(16./135.*rhs1[i]+6656./12825.*rhs3[i]+28561./56430.*rhs4[i]-9./50.*rhs5[i]+2./55.*rhs6[i]); // This is the correct integration step at order 5
 		Q[i] = (1/360.*rhs1[i]-128./4275.*rhs3[i]-2197./75240.*rhs4[i]+1/50.*rhs5[i]+2./55.*rhs6[i]); 				// This is their difference, which serves as an estimate to the (local) error
 		if(Q[i]<0)Q[i]*=-1;
-		Q_average+=vertex[i].area*Q[i]/total_area; 										// We use <abs(Q)>_\Sigma as a global estimate 
-		//rhs_average+=vertex[i].area*pow(rhs6[i]*rhs6[i],.5)/total_area;							// Estimate of the distance from equilibrium. [THIS IS MAGIC]
-		rhs_average+=vertex[i].area*rhs6[i]*rhs6[i]/total_area;									// Estimate of the distance from equilibrium. [THIS IS STRUCTURE FACTOR]
+		Q_average+=vertex[i].area*Q[i]/total_area; 										// We use <abs(Q)>_\Sigma as a global error estimate 
+		//rhs_average+=vertex[i].area*pow(rhs6[i]*rhs6[i],.5)/total_area;							// Estimate of the distance from equilibrium with arbitrary power. 
+		rhs_average+=vertex[i].area*rhs6[i]*rhs6[i]/total_area;									// Estimate of the distance from equilibrium as <rhs^2>_\Sigma
 	}
 
 	if(rhs_average<tol)halt_now=1;
@@ -1494,7 +1491,6 @@ void end()
 		phiKG	+=tpa*tph*vertex[i].kg;
 	}
 
-	current_energy=kin+pot;
 	kin/=total_area;
 	pot/=total_area;
 	phisq/=total_area;
@@ -1547,7 +1543,6 @@ void write_hi(FILE *f_ou, long t)
 		phiKG	+=tpa*tph*vertex[i].kg;
 	}
 
-	current_energy=kin+pot;
 	kin/=total_area;
 	pot/=total_area;
 	phisq/=total_area;
