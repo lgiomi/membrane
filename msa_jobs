@@ -39,11 +39,11 @@ while [ $g_c -le $n_g ];
 		mkdir -p temp_${g}_${c0}_${rpp_c}
 		cd temp_${g}_${c0}_${rpp_c}
 
-		while [ $nnow -gt 80 ]; 
+		while [ $nnow -gt 100 ]; 
         	do
-        		sleep 5
+        		sleep 10
        		 	nnow=`squeue | grep fonda | wc -l`
-        		echo -ne "Waiting for some job to finish before launching new ($nnow)..."\\n
+        		echo -ne "Waiting for some job to finish before launching new ($nnow)..."\\r
 		done
 
                 nnow=`squeue | grep fonda | wc -l`

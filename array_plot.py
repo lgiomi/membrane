@@ -3,7 +3,7 @@ import matplotlib.pyplot as plt
 import glob
 from matplotlib.colors import LinearSegmentedColormap
 
-listconf = glob.glob("testconf/*last.dat")
+listconf = glob.glob("finalconfigurations/*last.dat")
 
 listg = list(set([i.split("_")[1] for i in listconf]))
 listg = sorted([float(i) for i in listg])
@@ -41,7 +41,7 @@ for f in listconf:
 
 	ax.scatter(coord2D[0], coord2D[1], c=(phi[0]+1)/2, s=30, cmap=red_to_green, vmin=0,vmax=1,edgecolor='')
 
-	fig.savefig("testconf/"+"f_"+str(listg.index(float(n[1])))+"_"+str(listc.index(float(n[2])))+"_"+str(listn.index(int(n[3])))+".png",pad_inches=0,dpi=200)
+	fig.savefig("finalconfigurations/"+"f_"+str(listg.index(float(n[1])))+"_"+str(listc.index(float(n[2])))+"_"+str(listn.index(int(n[3])))+".png",pad_inches=0,dpi=200)
 
         plt.cla()
 

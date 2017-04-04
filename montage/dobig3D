@@ -11,14 +11,14 @@ xmax=$4
 
 convert -size 1920x1080 xc:white blank.png
 
-while [ $g_in -lt $g_fin ];  do
+while [ $g_in -le $g_fin ];  do
 
 	while [ $ncount -le $n ];  do
 
 		while [ $xcount -le $xmax ];  do
 
-			if [ -e ../testconf/t_${g_in}_${xcount}_${ncount}.png ]; then
-				cp ../testconf/t_${g_in}_${xcount}_${ncount}.png .
+			if [ -e ../finalconfigurations/t_${g_in}_${xcount}_${ncount}.png ]; then
+				cp ../finalconfigurations/t_${g_in}_${xcount}_${ncount}.png .
 
 			else
 				cp blank.png t_${g_in}_${xcount}_${ncount}.png
