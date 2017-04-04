@@ -30,6 +30,7 @@ double DT,DTauto,run_time;
 double c_0,epsilon;
 double gamma_h,gamma_h2,gamma_kg;
 double k_barrier=1.;
+double conserved=1;
 
 double total_area,willmore_energy,euler_chi;
 double l_min,l_max,l_avg,h2_min,h2_max,kg_min,kg_max;
@@ -84,7 +85,7 @@ main(int argc, char *argv[])
 
 void init(int argc, char *argv[])
 {
-	double box_size;
+	double box_size,norm;
 	char f_name[32];
 	char import_name[32];
 	int n;                           
@@ -111,7 +112,7 @@ void init(int argc, char *argv[])
 					switch((int)argv[n][1]){
 						case 'm':
 								snprintf(f_name, sizeof(f_name), "%s", argv[n+1]);
-								printf( "Mesh file\t\t: %s\n",f_name);
+								printf("Mesh file\t\t: %s\n",f_name);
 								n++;
 								break;
 						case 'h':
@@ -119,52 +120,56 @@ void init(int argc, char *argv[])
 								break;
 						case 'L':
 								o_flag=atol(argv[n+1]);
-								printf( "Output level\t\t: %d\n",o_flag);
+								printf("Output level\t\t: %d\n",o_flag);
 								n++;
 								break;
 						case 't':
 								run_time=atof(argv[n+1]);
-								printf( "Run time\t\t: %lg\n",run_time);
+								printf("Run time\t\t: %lg\n",run_time);
 								n++;
 								break;
 						case 'k':
 								k_barrier=atof(argv[n+1]);
-								printf( "Potential barrier\t\t: %lg\n",k_barrier);
+								printf("Potential barrier\t\t: %lg\n",k_barrier);
 								n++;
 								break;
 						case 'e':
 								epsilon=atof(argv[n+1]);
-								printf( "Epsilon\t\t\t: %lg\n",epsilon);
+								printf("Epsilon\t\t\t: %lg\n",epsilon);
 								n++;
 								break;
 						case 'i':
 								num_of_iteration=atol(argv[n+1]);
 								if(num_of_iteration==-1){printf("Will compute time step automatically\n");}
-								else{printf( "Total number of iterations: %ld\n",num_of_iteration);};
+								else{printf("Total number of iterations: %ld\n",num_of_iteration);};
 								n++;
 								break;
 						case 'x':
 								export=atol(argv[n+1]);
-								printf( "Export field configuration every %ld steps\n",export);
+								printf("Export field configuration every %ld steps\n",export);
 								n++;
 								break;
 						case 'T':
 								tol=atof(argv[n+1]);
-								printf( "Tolerance set to\t: %g\n",tol);
+								printf("Tolerance set to\t: %g\n",tol);
 								n++;
+								break;
+						case 'l':
+								conserved=0;
+								printf("Order parameter will not be conserved\n");
 								break;
 						case 'C':
 								gamma_h=atof(argv[n+1]);
 								gamma_h2=atof(argv[n+2]);
 								gamma_kg=atof(argv[n+3]);
-								printf( "Couplings\t\t: (%lg H, %lg H^2, %lg KG )\n",gamma_h,gamma_h2,gamma_kg);
+								printf("Couplings\t\t: (%lg H, %lg H^2, %lg KG )\n",gamma_h,gamma_h2,gamma_kg);
 								n+=3;
 								break;
 						case 'P':
 								c_x=atof(argv[n+1]);
 								c_y=atof(argv[n+2]);
 								c_z=atof(argv[n+3]);
-								printf( "Center of sphere\t: (%lg,%lg,%lg)\n",c_x,c_y,c_z);
+								printf("Center of sphere\t: (%lg,%lg,%lg)\n",c_x,c_y,c_z);
 								c_flag=1;
 								n+=3;
 								break;
@@ -172,10 +177,11 @@ void init(int argc, char *argv[])
 								a_x=atof(argv[n+1]);
 								a_y=atof(argv[n+2]);
 								a_z=atof(argv[n+3]);
-								a_x/=sqrt(a_x*a_x+a_y*a_y+a_z*a_z);
-								a_y/=sqrt(a_x*a_x+a_y*a_y+a_z*a_z);
-								a_z/=sqrt(a_x*a_x+a_y*a_y+a_z*a_z);
-								printf( "North pole direction\t: (%lg,%lg,%lg)\n",a_x,a_y,a_z);
+								norm=sqrt(a_x*a_x+a_y*a_y+a_z*a_z);
+								a_x/=norm;
+								a_y/=norm;
+								a_z/=norm;
+								printf("North pole direction\t: (%lg,%lg,%lg)\n",a_x,a_y,a_z);
 								c_flag=1;
 								n+=3;
 								break;
@@ -186,57 +192,57 @@ void init(int argc, char *argv[])
 									case '3': method=3;break;
 									case '4': method=4;break;
 									case '5': method=5;break;
-									default:printf( "Illegal integration method  %c\n",(int)argv[n+1][0]);
-										printf( "\nType ./membrane -h for help\n"); 
+									default:printf("Illegal integration method  %c\n",(int)argv[n+1][0]);
+										printf("\nType ./membrane -h for help\n"); 
 										exit(0);
 										break;
 								}
-								printf( "Integration method\t: %ld\n",method);		
+								printf("Integration method\t: %ld\n",method);		
 								n++;
 								break;
 						case 'r':
 								seed=atol(argv[n+1]);
 								c_0=atof(argv[n+2]);
 								if(c_0>=0&&c_0<=1){
-									printf( "Random initial data with seed %ld and total concentration %lg\n",seed,c_0);
+									printf("Random initial data with seed %ld and total concentration %lg\n",seed,c_0);
 									i_flag+=2;
 									n+=2;
 								}else{
-									printf( "Error, total relative concentration has to be between 0 and 1 (you passed %lg) \n",c_0);
-									printf( "\nType ./membrane -h for help\n"); 
+									printf("Error, total relative concentration has to be between 0 and 1 (you passed %lg) \n",c_0);
+									printf("\nType ./membrane -h for help\n"); 
 									exit(0);
 								};
 								break;
 						case 'R':
 								snprintf(import_name, sizeof(import_name), "%s", argv[n+1]);
-								printf( "Initial configuration\t: %s\n",import_name);
+								printf("Initial configuration\t: %s\n",import_name);
 								i_flag+=1;
 								n++;
 								break;             
 						default:  
-							printf( "Illegal option code \"-%c\"\n",(int)argv[n][1]);
-							printf( "\nType ./membrane -h for help\n"); 
+							printf("Illegal option code \"-%c\"\n",(int)argv[n][1]);
+							printf("\nType ./membrane -h for help\n"); 
 							exit(0);
 							break;
 					}
                  			break;
 			default:  
-				printf( "\nError: give input in the following format:\n"); 
+				printf("\nError: give input in the following format:\n"); 
 				print_cmd_line();
-				printf( "Type ./membrane -h for help\n"); 
+				printf("Type ./membrane -h for help\n"); 
 				exit(0);
                  		break;
 			}	
 		}
 		DT = run_time/num_of_iteration;
 		if( run_time==0 ||  method == 0 || (num_of_iteration == 1 && method < 4) || i_flag <1){
-				printf( "\nError: not enough arguments given or wrong parameter values. Write input in the following format:\n"); 
+				printf("\nError: not enough arguments given or wrong parameter values. Write input in the following format:\n"); 
 				print_cmd_line();
 				printf("Type ./membrane -h for help\n"); 
 				exit(0);
 		}
 		if(export == 0){
-			printf( "No -x option given, assuming no intermediate output.\n"); 
+			printf("No -x option given, assuming no intermediate output.\n"); 
 		}
 	}
 	else{
@@ -263,14 +269,14 @@ void init(int argc, char *argv[])
 
 void print_cmd_line()
 {
-	printf("./membrane -m MESH_FILE -t RUN_TIME -I METHOD (-r SEED MEAN_CONCENTRATION | -R START_FILE ) [-e EPSILON] [-T TOL] [-L LEVEL] [-x STEPS] [-i TOTAL_ITERATIONS] [-C GAMMA_H GAMMA_H^2 GAMMA_KG] [-P CX CY CZ] [-A NX NY NZ] [-k BARRIER]\n\n");
+	printf("./membrane -m MESH_FILE -t RUN_TIME -I METHOD (-r SEED MEAN_CONCENTRATION | -R START_FILE ) [-e EPSILON] [-T TOL] [-L LEVEL] [-x STEPS] [-i TOTAL_ITERATIONS] [-C GAMMA_H GAMMA_H^2 GAMMA_KG] [-P CX CY CZ] [-A NX NY NZ] [-k BARRIER] [-l]\n\n");
 }
 
 /*******************************************************************/
 
 void help()
 {
-	printf("\nThis program takes input from in-line commands. The syntax is\n\n");	
+	printf("\nThis program takes input from in-line commands. The syntax is (commands delimited by [] are optional):\n\n");	
 	print_cmd_line();
 	printf("Where:\n");
 	printf("\t -m MESH_FILE\t: import mesh from file (works only with standard gmsh mesh format .msh)\n");
@@ -287,6 +293,7 @@ void help()
 	printf("\t -P $1 $2 $3\t: specifies the (x,y,z) coordinates of the center for projection of the surface onto a unit sphere\n");
 	printf("\t -A $1 $2 $3\t: if -P has been given, specifies the north pole direction w.r.t coordinate axis [DEFAULT (0,0,1)]\n");
 	printf("\t -k BARRIER\t: set the height of the potential barrier\n");
+	printf("\t -l \t\t: switch off the conservation of order parameter\n");
 
 	printf("\n");
 	exit(1);
@@ -908,7 +915,7 @@ void get_rhs(double *rhs)
 	
 	for (i=0; i<num_of_meshpoint; i++){
 		
-		rhs[i] = laplace(i)-dV(i)/(epsilon*epsilon)-lagrange;
+		rhs[i] = laplace(i)-dV(i)/(epsilon*epsilon)-conserved*lagrange;
 	}
 }
 
