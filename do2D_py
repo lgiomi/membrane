@@ -15,7 +15,12 @@ echo -e \\n"Building 3D images..."
 xvfb-run --server-args="-screen 0 1024x768x24" python movie_3D.py 
 
 
-echo -e \\n"Building 2D images and worldlines..."
+echo -e \\n"Building 2D images..."
+python movie_2D.py 
+
+echo -e \\n"Building worldlines..."
+
+
 for f in $file; do
 
 gc_i=`echo ${f:3:-4} | sed 's/^0*//'`
@@ -32,7 +37,6 @@ paste tmp1.dat $f > temp1.dat
 cat temp.dat | awk -v var="$gc_i" -F"\t" '$3 > -.05 && $3 <.05 {print $1 "\t" $2 "\t" var }' >> worldline_2D.dat
 cat temp1.dat | awk -v var="$gc_i" -F"\t" '$4 > -.05 && $4 <.05 {print $1 "\t" $2 "\t" $3 "\t" var }' >> worldline_3D.dat
 
-python plot.py $f $namegc_f > /dev/null
 
 n=$((n+1))
 

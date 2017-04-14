@@ -1,7 +1,7 @@
 import numpy as np,sys
 import matplotlib.pyplot as plt
+from matplotlib.colors import LinearSegmentedColormap
 import glob
-from mayavi import mlab
 
 listconf = sorted(glob.glob("gc*.dat"))
 
@@ -10,24 +10,23 @@ coord2D = np.transpose(np.loadtxt("geometry.dat",usecols=(7,8),delimiter='\t'))
 
 triangles = np.loadtxt("triangles.dat")
 
-rgmap=[]
-
-for i in range(256):
-	rgmap.append([255-i,i,0,255])
+cdict = {'red': ((0.0, 1.0, 1.0),(1.0, 0.0, 0.0)),'green':((0.0, 0.0, 0.0),(1.0, 1.0, 1.0)),'blue':((0.0, 0.0, 0.0),(1.0, 0.0, 0.0))}
+red_to_green = LinearSegmentedColormap('BlueRed1', cdict)
 
 f=listconf[0]
 phi = np.transpose(np.loadtxt(f))
-s = mlab.triangular_mesh(coord3D[0],coord3D[1],coord3D[2],triangles,scalars = (phi[0]+1)/2,vmax=1,vmin=0)
-s.module_manager.scalar_lut_manager.lut.table = rgmap
-mlab.view(90, 60, 30)
+fig, ax = plt.subplots()
+ax.scatter(coord2D[0], coord2D[1], c=(phi[0]+1)/2, s=30, cmap=red_to_green, vmin=0,vmax=1,edgecolor='')
+
+plt.xlim([-3.141592,3.141592])
+plt.ylim([-3.141592/2,3.141592/2])
+
 n=f.split("_")[1]
 n=n.split(".")[0]
-mlab.savefig("t_"+n+".png",size=(1920, 1080))
+
+plt.savefig(n+".png",bbox_inches='tight',dpi=200)
 
 counter=1
-
-s.scene.anti_aliasing_frames = 0
-s.scene.disable_render = True
 
 print ""
 
@@ -40,9 +39,8 @@ for f in listconf:
 	print "\033[F"+"Processing file "+f+" ("+str(counter+1)+" of "+str(len(listconf))+")"
 
 	phi = np.transpose(np.loadtxt(f))
-	s.mlab_source.scalars = (phi[0]+1)/2
-	mlab.savefig("t_"+n+".png",size=(1920, 1080))
+	ax.scatter(coord2D[0], coord2D[1], c=(phi[0]+1)/2, s=30, cmap=red_to_green, vmin=0,vmax=1,edgecolor='')
+	plt.savefig(n+".png",bbox_inches='tight',dpi=200)
 
 	counter=counter+1
 
-mlab.close()

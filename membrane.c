@@ -800,8 +800,8 @@ void get_geometry()
 	printf("\tMin/max/avg squared mean curvature (%lg,%lg,%lg)\n",h2_min,h2_max,willmore_energy/total_area);
 	printf("\tMin/max/avg Gaussian curvature (%lg,%lg,%lg)\n",kg_min,kg_max,2*PI*euler_chi/total_area);
 	printf("\tExpected interface thickness %lg (%2.1f%% of surface typical length)\n",3*sqrt(2)*epsilon,3*sqrt(2)*epsilon/sqrt(total_area)*100.);
-	printf("\tProposed epsilon: %lg (maximal) or %lg (average)\n",l_max/sqrt(2),l_avg/sqrt(2)); 	// The interface profile anywhere on the surface should countain at least six grid points
-	printf("\tProposed initial time-step %lg\n",DTauto);  						// For diffusion processes are stable only for DT/DX^2 \simeq 1/2.
+	printf("\tEstimated epsilon: %lg (minimal), %lg (averaged) or %lg (conservative)\n",l_max/sqrt(2),l_avg/sqrt(2),1.1*l_max/sqrt(2)); 	// The interface profile anywhere on the surface should countain at least six grid points
+	printf("\tProposed initial time-step %lg\n",DTauto);  											// For diffusion processes are stable only for DT/DX^2 \simeq 1/2.
 	printf("\tAllowed coupling ranges: |Leibler|<%lg, |Delta k|<%lg, |Delta k_b|<%lg\n",4./3.*k_barrier/epsilon/sqrt(h2_max),4./3.*k_barrier/epsilon/h2_max,4./3.*k_barrier/epsilon/max(kg_max,sqrt(kg_min*kg_min)));  
 	printf("\n");
 
@@ -888,6 +888,7 @@ void import_initial(char *import_name)
 		printf("Error, number of lines of %s does not match mesh size\n",import_name);
 		exit(0);
 	};
+	c_0/=total_area;
 	c_0=.5+c_0/2.;
 	printf("Imported initial configuration from %s with mean concentration %g\n",import_name,c_0);
 }

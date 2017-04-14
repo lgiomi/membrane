@@ -21,7 +21,11 @@ red_to_green = LinearSegmentedColormap('BlueRed1', cdict)
 fig, ax = plt.subplots(frameon=False)
 
 print "\n"
-counter=0
+
+phi = np.transpose(np.loadtxt(listconf[0]))
+
+counter=1
+
 
 for f in listconf:
 
