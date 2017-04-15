@@ -7,4 +7,4 @@ rm -f *.m
 rm -f *.mkv
 make
 
-./membrane -m mesh/spherocylinder.msh -t 120 -I 5 -R ../last.dat -C 0 0.05 0 -L 3 -P 0 0 0 -x 100 -T 1E-6 -l
+./membrane -m mesh/spherocylinder_1.msh -t 120 -I 5 -r $RANDOM .4 -C 0 -0.1 0 -L 3 -P 0 0 0 -x 100 -T 1E-6 

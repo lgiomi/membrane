@@ -39,8 +39,11 @@ for f in listconf:
 	print "\033[F"+"Processing file "+f+" ("+str(counter+1)+" of "+str(len(listconf))+")"
 
 	phi = np.transpose(np.loadtxt(f))
+
 	ax.scatter(coord2D[0], coord2D[1], c=(phi[0]+1)/2, s=30, cmap=red_to_green, vmin=0,vmax=1,edgecolor='')
-	plt.savefig(n+".png",bbox_inches='tight',dpi=200)
+	plt.savefig(n+".png",bbox_inches='tight',dpi=120)
+
+	plt.cla()
 
 	counter=counter+1
 
