@@ -789,6 +789,7 @@ void get_geometry()
 		DT=DTauto;
 		printf("Setting initial time step automatically to %f\n",DT);
 	}
+
 	printf("\n");
 	printf("\tVertices %ld\n",num_of_meshpoint);
 	printf("\tTriangles %ld\n",num_of_triangles);
@@ -975,7 +976,7 @@ void run()
 	current_time=0;
 
 	if(export>0 && c_flag==0 && o_flag!=2){
-		printf("You chose to export configurations every %ld time steps, but did not specify a sterographic center nor chose -O 2. Assuming -C 0 0 0.\n",export);
+		printf("You chose to export configurations every %ld time steps, but did not specify a center nor chose -O 2. Assuming -C 0 0 0.\n",export);
 		c_flag=1;
 		c_x=0;
 		c_y=0;
