@@ -47,11 +47,13 @@ typedef struct {
 
 	double h2;
 
-	double h2_nn;
-	
 	double kg;
 
 	double phi;
+
+	double nx;
+	double ny;
+	double nz;
 	
 	double area;
 	double weight[MAX_NEIGHBORS];

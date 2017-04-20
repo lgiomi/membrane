@@ -25,14 +25,16 @@ double a_x,a_y,a_z;
 long method;
 long export;
 int c_flag=0,o_flag=1,i_flag=0;
+double a_flag=0,v_flag=0;
 double tol;
 double DT,DTauto,run_time;
 double c_0,epsilon;
 double gamma_h,gamma_h2,gamma_kg;
 double k_barrier=1.;
 double conserved=1;
+double scale=1;
 
-double total_area,willmore_energy,euler_chi;
+double total_area,willmore_energy,euler_chi,total_volume;
 double l_min,l_max,l_avg,h2_min,h2_max,kg_min,kg_max;
 
 double lagrange;
@@ -128,6 +130,16 @@ void init(int argc, char *argv[])
 								printf("Run time\t\t: %lg\n",run_time);
 								n++;
 								break;
+						case 'v':
+								v_flag=atof(argv[n+1]);
+								printf("Rescale total volume to\t\t: %lg\n",v_flag);
+								n++;
+								break;
+						case 'a':
+								a_flag=atof(argv[n+1]);
+								printf("Rescale total area to\t\t: %lg\n",a_flag);
+								n++;
+								break;
 						case 'k':
 								k_barrier=atof(argv[n+1]);
 								printf("Potential barrier\t\t: %lg\n",k_barrier);
@@ -214,7 +226,7 @@ void init(int argc, char *argv[])
 								};
 								break;
 						case 'R':
-								snprintf(import_name, sizeof(import_name), "%s", argv[n+1]);
+								printf(import_name, sizeof(import_name), "%s", argv[n+1]);
 								printf("Initial configuration\t: %s\n",import_name);
 								i_flag+=1;
 								n++;
@@ -235,7 +247,7 @@ void init(int argc, char *argv[])
 			}	
 		}
 		DT = run_time/num_of_iteration;
-		if( run_time==0 ||  method == 0 || (num_of_iteration == 1 && method < 4) || i_flag <1){
+		if( run_time==0 ||  method == 0 || (num_of_iteration == 1 && method < 4) || i_flag <1 || a_flag*v_flag>0 || a_flag < 0 || v_flag <0){
 				printf("\nError: not enough arguments given or wrong parameter values. Write input in the following format:\n"); 
 				print_cmd_line();
 				printf("Type ./membrane -h for help\n"); 
@@ -269,7 +281,7 @@ void init(int argc, char *argv[])
 
 void print_cmd_line()
 {
-	printf("./membrane -m MESH_FILE -t RUN_TIME -I METHOD (-r SEED MEAN_CONCENTRATION | -R START_FILE ) [-e EPSILON] [-T TOL] [-L LEVEL] [-x STEPS] [-i TOTAL_ITERATIONS] [-C GAMMA_H GAMMA_H^2 GAMMA_KG] [-P CX CY CZ] [-A NX NY NZ] [-k BARRIER] [-l]\n\n");
+	printf("./membrane -m MESH_FILE -t RUN_TIME -I METHOD (-r SEED MEAN_CONCENTRATION | -R START_FILE ) [-e EPSILON] [-T TOL] [-L LEVEL] [-x STEPS] [-i TOTAL_ITERATIONS] [-C GAMMA_H GAMMA_H^2 GAMMA_KG] [-P CX CY CZ] [-A NX NY NZ] [-k BARRIER] [-l] [-a AREA] [-v VOL]\n\n");
 }
 
 /*******************************************************************/
@@ -283,7 +295,7 @@ void help()
 	printf("\t -t RUN_TIME\t: total simulation time. For adaptive stepsize is an (obligatory) upper bound\n");
 	printf("\t -I METHOD\t: choose integration method\n\t\t\t\t1: Euler\n\t\t\t\t2: RK2\n\t\t\t\t3: RK4\n\t\t\t\t4: RK2-Euler with adaptive step-size [NOT FULLY WORKING]\n\t\t\t\t5: RKF45 with adaptive stepsize\n");
 	printf("\t -r $1 $2\t: random intial condition with seed $1 and mean concentration $2\n");
-	printf("\t -R FILE\t: import initial configuration from file (does not work with -r)\n");
+	printf("\t -R FILE\t: import initial configuration from file\n");
 	printf("\t -e EPSILON\t: set the value of epsilon. If not set is computed automatically from average edge length\n");
 	printf("\t -T TOL\t\t: set the tolerance for adaptive step-size integration methods\n");
 	printf("\t -L LEVEL\t: choose which output files will be printed\n\t\t\t\t0: 'last.dat', 'final.dat'\n\t\t\t\t1: previous +  'histo.dat', 'geometry.dat', 'last.m', 'triangles.dat' + 'gc_#.dat' if -x is set [DEFAULT]\n\t\t\t\t2: previous + 'mean_curvature.m', 'gaussian_curvature.m' + 'gc_#.m' if -x is set\n\t\t\t\t3: as in '1' + debug files\n");
@@ -294,6 +306,8 @@ void help()
 	printf("\t -A $1 $2 $3\t: if -P has been given, specifies the north pole direction w.r.t coordinate axis [DEFAULT (0,0,1)]\n");
 	printf("\t -k BARRIER\t: set the height of the potential barrier\n");
 	printf("\t -l \t\t: switch off the conservation of order parameter\n");
+	printf("\t -a AREA\t: rescale the mesh so that the total area is AREA\n");
+	printf("\t -v VOL\t\t: rescale the mesh to that the total volume is VOL\n");
 
 	printf("\n");
 	exit(1);
@@ -511,6 +525,7 @@ void get_geometry()
 	long i, j, obtuse[MAX_SIZE], num_of_obtuse=0;
 	
 	total_area = 0;	
+	total_volume = 0;
 	willmore_energy = 0;	
 	euler_chi= 0;	
 
@@ -658,6 +673,18 @@ void get_geometry()
 
 	for (i=0; i<num_of_meshpoint; i++){
 
+		vertex[i].nx = -vertex[i].hx;
+		vertex[i].ny = -vertex[i].hy;
+		vertex[i].nz = -vertex[i].hz;
+
+		base = sqrt(vertex[i].nx*vertex[i].nx+vertex[i].ny*vertex[i].ny+vertex[i].nz*vertex[i].nz);
+
+		if(base>0){
+		vertex[i].nx /= base;	
+		vertex[i].ny /= base;
+		vertex[i].nz /= base;
+		};
+
 		vertex[i].hx /= vertex[i].area;
 		vertex[i].hy /= vertex[i].area;
 		vertex[i].hz /= vertex[i].area;
@@ -698,22 +725,83 @@ void get_geometry()
 		euler_chi += .5/PI*vertex[i].kg*vertex[i].area;
 
 	}
+
+	// Try to coordinate norma vectors directions  
+	// This does only one full loop
+	// It is not safe to assume that after just this iteration any mesh will be nicely oriented. 
+	// However, it has been working so far, but remember, the general solution is more complicated
+
+	for (i=0; i<num_of_meshpoint; i++){
+		for (j=0; j<vertex[i].num_of_neighbors; j++){
+			a=vertex[i].neighbor[j];
+			base=vertex[i].nx*vertex[a].nx+vertex[i].ny*vertex[a].ny+vertex[i].nz*vertex[a].nz;
+			if(base<0){vertex[a].nx*=-1;vertex[a].ny*=-1;vertex[a].nz*=-1;};
+		}
+	}
+
+	// Compute the total volume
+
+	for (i=0; i<num_of_meshpoint; i++){
+		total_volume+=1./3.*vertex[i].area*(vertex[i].nx*vertex[i].x+vertex[i].ny*vertex[i].y+vertex[i].nz*vertex[i].z);
+	}
+
+	// If rescaling was chosen, rescale all Vertex attributes accordingly, rescale mesh details and recompute area and volume
+	if(a_flag>0 || v_flag>0){
+
+		if(a_flag>0)scale=pow(a_flag/total_area,1./2.);
+		if(v_flag>0)scale=pow(v_flag/total_volume,1./3.);
+
+		total_area=0;
+		total_volume=0;
+		
+		for (i=0; i<num_of_meshpoint; i++){
+
+			vertex[i].x*=scale;
+			vertex[i].y*=scale;
+			vertex[i].z*=scale;
+
+			vertex[i].hx/=scale;
+			vertex[i].hy/=scale;
+			vertex[i].hz/=scale;
+
+			vertex[i].h2/=pow(scale,2.);
+			vertex[i].kg/=pow(scale,2.);
+
+			vertex[i].area*=pow(scale,2.);
+
+			for (j=0; j<vertex[i].num_of_neighbors; j++){
+				vertex[i].weight[j]/=pow(scale,2.);
+			}
+
+			total_volume+=1./3.*vertex[i].area*(vertex[i].nx*vertex[i].x+vertex[i].ny*vertex[i].y+vertex[i].nz*vertex[i].z);
+			total_area+=vertex[i].area;
+		}
+	
+		l_avg*=scale;
+
+	};
 	
 	if(o_flag>=1)f_ou = fopen("geometry.dat","w");
+
+	// If -O 1 or higher, save geometry.dat
+	// Moreover, compute min/max lengths and curvatures
 
 	for (i=0; i<num_of_meshpoint; i++){
 
 		if(o_flag>=1){if(c_flag==0){
-			fprintf(f_ou,"%ld\t%.10f\t%.10f\t%.10f\t%.10f\t%.10f\t%.10lg\t",
+			fprintf(f_ou,"%ld\t%.10f\t%.10f\t%.10f\t%.10f\t%.10f\t%.10lg\t%.10lg\t%.10lg\t%.10lg\t",
 				i,
 				vertex[i].x,
 				vertex[i].y,
 				vertex[i].z,
 				vertex[i].area,
 				vertex[i].h2,
-				vertex[i].kg);
+				vertex[i].kg,
+				vertex[i].nx,
+				vertex[i].ny,
+				vertex[i].nz);
 		}else if(c_flag==1){
-			fprintf(f_ou,"%ld\t%.10f\t%.10f\t%.10f\t%.10f\t%.10f\t%.10lg\t%.10lg\t%.10lg\t",
+			fprintf(f_ou,"%ld\t%.10f\t%.10f\t%.10f\t%.10f\t%.10f\t%.10lg\t%.10lg\t%.10lg\t%.10lg\t%.10lg\t%.10lg\t",
 				i,
 				vertex[i].x,
 				vertex[i].y,
@@ -722,7 +810,10 @@ void get_geometry()
 				vertex[i].h2,
 				vertex[i].kg,
 				vertex[i].gridx,
-				vertex[i].gridy);
+				vertex[i].gridy,
+				vertex[i].nx,
+				vertex[i].ny,
+				vertex[i].nz);
 		};}
 			
 		for (j=0; j<vertex[i].num_of_neighbors; j++){
@@ -760,29 +851,10 @@ void get_geometry()
 		fclose(f_ou);
 	}
 
-	/*
-	f_ou = fopen("obtuse_debug.dat","w");
-	
-	for (i=0; i<num_of_obtuse; i++){
-		fprintf(f_ou,"%ld {%lg,%lg,%lg} {%lg,%lg,%lg} {%lg,%lg,%lg}\n",
-		obtuse[i],
-		vertex[triangle[obtuse[i]].v1].x,
-		vertex[triangle[obtuse[i]].v1].y,
-		vertex[triangle[obtuse[i]].v1].z,
-		vertex[triangle[obtuse[i]].v2].x,
-		vertex[triangle[obtuse[i]].v2].y,
-		vertex[triangle[obtuse[i]].v2].z,
-		vertex[triangle[obtuse[i]].v3].x,
-		vertex[triangle[obtuse[i]].v3].y,
-		vertex[triangle[obtuse[i]].v3].z);
-	}
-	
-	fclose(f_ou);
-	*/
 
 	DTauto=.1*l_min*l_min/2;
 	if(epsilon==0){
-		epsilon=1.1*l_max/sqrt(2);
+		epsilon=1.1*l_max*sqrt(k_barrier/2);
 		printf("No epsilon specified, setting automatically to %f\n",epsilon);
 	}
 	if(method>=4){
@@ -790,51 +862,40 @@ void get_geometry()
 		printf("Setting initial time step automatically to %f\n",DT);
 	}
 
+	// Print summary of mesh computations
 	printf("\n");
 	printf("\tVertices %ld\n",num_of_meshpoint);
 	printf("\tTriangles %ld\n",num_of_triangles);
 	printf("\tObtuse triangles %ld (%.1ld%% of total)\n",num_of_obtuse/2,100*num_of_obtuse/2/num_of_triangles);
-	printf("\tTotal surface area %lg\n",total_area);
+
+	printf("\tTotal surface area %lg (associated length %lg)\n",total_area,sqrt(total_area));
+	printf("\tTotal enclosed volume %lg (associatd length %lg)\n",total_volume,pow(total_volume,1./3.));
 	printf("\tWillmore energy %lg (asphericity %lg)\n",willmore_energy,willmore_energy/4/PI-1);
 	printf("\tEuler characteristic %lg\n",euler_chi);
+
 	printf("\tMin/max/avg edge length (%lg,%lg,%lg)\n",l_min,l_max,l_avg);
 	printf("\tMin/max/avg squared mean curvature (%lg,%lg,%lg)\n",h2_min,h2_max,willmore_energy/total_area);
 	printf("\tMin/max/avg Gaussian curvature (%lg,%lg,%lg)\n",kg_min,kg_max,2*PI*euler_chi/total_area);
-	printf("\tExpected interface thickness %lg (%2.1f%% of surface typical length)\n",3*sqrt(2)*epsilon,3*sqrt(2)*epsilon/sqrt(total_area)*100.);
-	printf("\tEstimated epsilon: %lg (minimal), %lg (averaged) or %lg (conservative)\n",l_max/sqrt(2),l_avg/sqrt(2),1.1*l_max/sqrt(2)); 	// The interface profile anywhere on the surface should countain at least six grid points
-	printf("\tProposed initial time-step %lg\n",DTauto);  											// For diffusion processes are stable only for DT/DX^2 \simeq 1/2.
-	printf("\tAllowed coupling ranges: |Leibler|<%lg, |Delta k|<%lg, |Delta k_b|<%lg\n",4./3.*k_barrier/epsilon/sqrt(h2_max),4./3.*k_barrier/epsilon/h2_max,4./3.*k_barrier/epsilon/max(kg_max,sqrt(kg_min*kg_min)));  
+
+	// Interface thickness 
+	printf("\tExpected interface thickness: %lg (%2.1f%% of surface typical length)\n",3*sqrt(2)*epsilon/sqrt(k_barrier),3*sqrt(2)*epsilon/sqrt(k_barrier)/sqrt(total_area)*100.);
+
+	// Line tension
+	printf("\tExpected line tension: %lg\n",2./3.*sqrt(2*k_barrier)*epsilon);
+
+	// The interface profile anywhere on the surface should countain at least six grid points:
+	printf("\tProposed epsilon: %lg (minimal), %lg (averaged) or %lg (conservative)\n",l_max*sqrt(k_barrier/2),l_avg*sqrt(k_barrier/2),1.1*l_max*sqrt(k_barrier/2));
+
+	// For diffusion processes are stable only for DT/DX^2 \simeq 1/2:
+	printf("\tProposed initial time-step %lg\n",DTauto);  
+								
+	// The couplings in the \epsilont \to 0 limit could take any value. 
+	// However, since numerically epsilon is finite, this sets a bound on the magnitude of the curvature couplings in order to preserve the double-well structure of the potential			
+	printf("\tNumerically allowed coupling ranges: |Leibler|<%lg, |Delta k|<%lg, |Delta k_b|<%lg\n",4./3.*k_barrier/epsilon/sqrt(h2_max),4./3.*k_barrier/epsilon/h2_max,4./3.*k_barrier/epsilon/max(kg_max,sqrt(kg_min*kg_min)));  
 	printf("\n");
-
-	/*f_ou = fopen("negative_kg_debug.m","w");
-
-	fprintf(f_ou,"{");
-	for (i=0; i<num_of_meshpoint; i++){
-		if(vertex[i].kg<-1){
-			fprintf(f_ou,"{{");
-			for (j=0; j<vertex[i].num_of_neighbors; j++){
-				if(j >0)fprintf(f_ou,",");
-				fprintf(f_ou,"Line[{{%2.3f10,%2.3f,%2.3f},{%2.3f,%2.3f,%2.3f}}]",
-					vertex[i].x,
-					vertex[i].y,
-					vertex[i].z,
-					vertex[vertex[i].neighbor[j]].x,
-					vertex[vertex[i].neighbor[j]].y,
-					vertex[vertex[i].neighbor[j]].z
-				);
-			}
-			fprintf(f_ou,"},");
-			fprintf(f_ou,"%2.5f,%2.5f,%2.5f},",vertex[i].area,vertex[i].h2*vertex[i].area,vertex[i].kg*vertex[i].area);
-		};
-	}
-	fseek(f_ou,-1, SEEK_CUR);
-	fprintf(f_ou,"}\n");
-
-	fclose(f_ou);*/
 
 	//exit(1);
 	
-
 }
 
 
@@ -1494,8 +1555,8 @@ void end()
 
 		phisq 	+=tpa*tph*tph;
 		c0 	+=tpa*tph;
-		kin	-=tpa*.5*tph*laplace(i);
-		pot	+=tpa*V(i)/(epsilon*epsilon);
+		kin	-=tpa*.5*tph*laplace(i)*epsilon;
+		pot	+=tpa*V(i)/epsilon;
 		phiH2	+=tpa*tph*vertex[i].h2;
 		phiKG	+=tpa*tph*vertex[i].kg;
 	}
@@ -1546,8 +1607,8 @@ void write_hi(FILE *f_ou, long t)
 
 		phisq 	+=tpa*tph*tph;
 		c0 	+=tpa*tph;
-		kin	-=tpa*.5*tph*laplace(i);
-		pot	+=tpa*V(i)/(epsilon*epsilon);
+		kin	-=tpa*.5*tph*laplace(i)*epsilon;
+		pot	+=tpa*V(i)/epsilon;
 		phiH2	+=tpa*tph*vertex[i].h2;
 		phiKG	+=tpa*tph*vertex[i].kg;
 	}
