@@ -132,17 +132,17 @@ void init(int argc, char *argv[])
 								break;
 						case 'v':
 								v_flag=atof(argv[n+1]);
-								printf("Rescale total volume to\t\t: %lg\n",v_flag);
+								printf("Rescale total volume to\t: %lg\n",v_flag);
 								n++;
 								break;
 						case 'a':
 								a_flag=atof(argv[n+1]);
-								printf("Rescale total area to\t\t: %lg\n",a_flag);
+								printf("Rescale total area to\t: %lg\n",a_flag);
 								n++;
 								break;
 						case 'k':
 								k_barrier=atof(argv[n+1]);
-								printf("Potential barrier\t\t: %lg\n",k_barrier);
+								printf("Potential barrier\t: %lg\n",k_barrier);
 								n++;
 								break;
 						case 'e':
@@ -158,7 +158,7 @@ void init(int argc, char *argv[])
 								break;
 						case 'x':
 								export=atol(argv[n+1]);
-								printf("Export field configuration every %ld steps\n",export);
+								printf("Export configurations\t: every %ld steps\n",export);
 								n++;
 								break;
 						case 'T':
@@ -216,7 +216,7 @@ void init(int argc, char *argv[])
 								seed=atol(argv[n+1]);
 								c_0=atof(argv[n+2]);
 								if(c_0>=0&&c_0<=1){
-									printf("Random initial data with seed %ld and total concentration %lg\n",seed,c_0);
+									printf("Random initial data\t: (seed %ld, total concentration %lg)\n",seed,c_0);
 									i_flag+=2;
 									n+=2;
 								}else{
@@ -281,7 +281,7 @@ void init(int argc, char *argv[])
 
 void print_cmd_line()
 {
-	printf("./membrane -m MESH_FILE -t RUN_TIME -I METHOD (-r SEED MEAN_CONCENTRATION | -R START_FILE ) [-e EPSILON] [-T TOL] [-L LEVEL] [-x STEPS] [-i TOTAL_ITERATIONS] [-C GAMMA_H GAMMA_H^2 GAMMA_KG] [-P CX CY CZ] [-A NX NY NZ] [-k BARRIER] [-l] [-a AREA] [-v VOL]\n\n");
+	printf("\t./membrane -m MESH_FILE -t RUN_TIME -I METHOD (-r SEED MEAN_CONCENTRATION | -R START_FILE ) [-e EPSILON] [-T TOL] [-L LEVEL] [-x STEPS] [-i TOTAL_ITERATIONS] [-C GAMMA_H GAMMA_H^2 GAMMA_KG] [-P CX CY CZ] [-A NX NY NZ] [-k BARRIER] [-l] [-a AREA] [-v VOL]\n\n");
 }
 
 /*******************************************************************/
@@ -304,7 +304,7 @@ void help()
 	printf("\t -C $1 $2 $3\t: specifies the values of the couplings with H, H^2 and K_G\n");
 	printf("\t -P $1 $2 $3\t: specifies the (x,y,z) coordinates of the center for projection of the surface onto a unit sphere\n");
 	printf("\t -A $1 $2 $3\t: if -P has been given, specifies the north pole direction w.r.t coordinate axis [DEFAULT (0,0,1)]\n");
-	printf("\t -k BARRIER\t: set the height of the potential barrier\n");
+	printf("\t -k BARRIER\t: set the height of the potential barrier (default is 1)\n");
 	printf("\t -l \t\t: switch off the conservation of order parameter\n");
 	printf("\t -a AREA\t: rescale the mesh so that the total area is AREA\n");
 	printf("\t -v VOL\t\t: rescale the mesh to that the total volume is VOL\n");
@@ -640,8 +640,6 @@ void get_geometry()
 		fclose(f_ou);
 	}
 
-
-
 	if(a_x*a_x<1.){
 
 		x[0]=0;
@@ -726,8 +724,7 @@ void get_geometry()
 
 	}
 
-	// Try to coordinate norma vectors directions  
-	// This does only one full loop
+	// Try to point all normal vectors outwards: this does only one full loop through vertices
 	// It is not safe to assume that after just this iteration any mesh will be nicely oriented. 
 	// However, it has been working so far, but remember, the general solution is more complicated
 
@@ -851,47 +848,55 @@ void get_geometry()
 		fclose(f_ou);
 	}
 
-
-	DTauto=.1*l_min*l_min/2;
-	if(epsilon==0){
-		epsilon=1.1*l_max*sqrt(k_barrier/2);
-		printf("No epsilon specified, setting automatically to %f\n",epsilon);
-	}
-	if(method>=4){
-		DT=DTauto;
-		printf("Setting initial time step automatically to %f\n",DT);
-	}
-
 	// Print summary of mesh computations
 	printf("\n");
-	printf("\tVertices %ld\n",num_of_meshpoint);
-	printf("\tTriangles %ld\n",num_of_triangles);
-	printf("\tObtuse triangles %ld (%.1ld%% of total)\n",num_of_obtuse/2,100*num_of_obtuse/2/num_of_triangles);
+	printf("\tVertices\t\t\t: %ld\n",num_of_meshpoint);
+	printf("\tTriangles\t\t\t: %ld\n",num_of_triangles);
+	printf("\tObtuse triangles\t\t: %ld (%.1ld%% of total)\n",num_of_obtuse/2,100*num_of_obtuse/2/num_of_triangles);
 
-	printf("\tTotal surface area %lg (associated length %lg)\n",total_area,sqrt(total_area));
-	printf("\tTotal enclosed volume %lg (associatd length %lg)\n",total_volume,pow(total_volume,1./3.));
-	printf("\tWillmore energy %lg (asphericity %lg)\n",willmore_energy,willmore_energy/4/PI-1);
-	printf("\tEuler characteristic %lg\n",euler_chi);
+	printf("\tTotal surface area\t\t: %lg (typical length %lg)\n",total_area,sqrt(total_area));
+	printf("\tTotal enclosed volume\t\t: %lg (typical length %lg)\n",total_volume,pow(total_volume,1./3.));
+	printf("\tWillmore energy\t\t\t: %lg (asphericity %lg)\n",willmore_energy,willmore_energy/4/PI-1);
+	printf("\tEuler characteristic\t\t: %lg\n",euler_chi);
 
-	printf("\tMin/max/avg edge length (%lg,%lg,%lg)\n",l_min,l_max,l_avg);
-	printf("\tMin/max/avg squared mean curvature (%lg,%lg,%lg)\n",h2_min,h2_max,willmore_energy/total_area);
-	printf("\tMin/max/avg Gaussian curvature (%lg,%lg,%lg)\n",kg_min,kg_max,2*PI*euler_chi/total_area);
-
-	// Interface thickness 
-	printf("\tExpected interface thickness: %lg (%2.1f%% of surface typical length)\n",3*sqrt(2)*epsilon/sqrt(k_barrier),3*sqrt(2)*epsilon/sqrt(k_barrier)/sqrt(total_area)*100.);
-
-	// Line tension
-	printf("\tExpected line tension: %lg\n",2./3.*sqrt(2*k_barrier)*epsilon);
+	printf("\tMin/max/avg edge length \t: (%lg,%lg,%lg)\n",l_min,l_max,l_avg);
+	printf("\tMin/max/avg H2 \t\t\t: (%lg,%lg,%lg)\n",h2_min,h2_max,willmore_energy/total_area);
+	printf("\tMin/max/avg KG \t\t\t: (%lg,%lg,%lg)\n",kg_min,kg_max,2*PI*euler_chi/total_area);
 
 	// The interface profile anywhere on the surface should countain at least six grid points:
-	printf("\tProposed epsilon: %lg (minimal), %lg (averaged) or %lg (conservative)\n",l_max*sqrt(k_barrier/2),l_avg*sqrt(k_barrier/2),1.1*l_max*sqrt(k_barrier/2));
+	if(epsilon==0){
+		epsilon=1.1*l_max*sqrt(k_barrier/2);
+		printf("\tSetting epsilon to\t\t: %f\n",epsilon);
+	}else{
+		printf("\tProposed epsilon\t\t: %lg (minimal), %lg (averaged) or %lg (conservative)\n",l_max*sqrt(k_barrier/2),l_avg*sqrt(k_barrier/2),1.1*l_max*sqrt(k_barrier/2));
+	}
 
-	// For diffusion processes are stable only for DT/DX^2 \simeq 1/2:
-	printf("\tProposed initial time-step %lg\n",DTauto);  
-								
+	// Interface thickness 
+	printf("\tInterface thickness\t\t: %lg (roughly %2.1f%% - %2.1f%% of membrane size)\n",3*sqrt(2)*epsilon/sqrt(k_barrier),3*sqrt(2)*epsilon/sqrt(k_barrier)/sqrt(total_area)*100.,3*sqrt(2)*epsilon/sqrt(k_barrier)/pow(total_volume,1./3.)*100.);
+
+	// Line tension
+	printf("\tExpected line tension\t\t: %lg\n",2./3.*sqrt(2*k_barrier)*epsilon);
+
+	// Real couplings are obtained from -C by multiplying back to real valu
+	gamma_h*=2./3.*sqrt(2*k_barrier*total_area);
+	gamma_h2*=2./3.*sqrt(2*k_barrier*total_area);
+	gamma_kg*=2./3.*sqrt(2*k_barrier*total_area);
+	printf("\tCouplings entering EOMs\t\t: (%lg H, %lg H^2, %lg KG)\n",gamma_h,gamma_h2,gamma_kg);
+
 	// The couplings in the \epsilont \to 0 limit could take any value. 
 	// However, since numerically epsilon is finite, this sets a bound on the magnitude of the curvature couplings in order to preserve the double-well structure of the potential			
-	printf("\tNumerically allowed coupling ranges: |Leibler|<%lg, |Delta k|<%lg, |Delta k_b|<%lg\n",4./3.*k_barrier/epsilon/sqrt(h2_max),4./3.*k_barrier/epsilon/h2_max,4./3.*k_barrier/epsilon/max(kg_max,sqrt(kg_min*kg_min)));  
+	printf("\tAllowed coupling ranges\t\t: |Leibler|<%lg, |Delta k|<%lg, |Delta k_b|<%lg\n",4./3.*k_barrier/epsilon/sqrt(h2_max),4./3.*k_barrier/epsilon/h2_max,4./3.*k_barrier/epsilon/max(kg_max,sqrt(kg_min*kg_min)));  
+
+	// For diffusion processes are stable only for DT/DX^2 \simeq 1/2:
+	DTauto=.1*l_min*l_min/2;
+
+	if(method>=4){
+		DT=DTauto;
+		printf("\tSetting initial time-step to\t: %lg\n",DT);
+	}else{
+		printf("\tProposed initial time-step\t: %lg\n",DTauto);  
+	}
+
 	printf("\n");
 
 	//exit(1);
