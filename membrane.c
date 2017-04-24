@@ -413,7 +413,7 @@ void import_mesh(char *f_name)
 	chi = num_of_meshpoint-num_of_edges/2+num_of_triangles;
 	
 	if (chi!=2){
-		printf("Error: bad triangulation or not a g=0 surface, chi = %ld\n",chi);
+		printf("Warning: bad triangulation or not a g=0 surface, chi = %ld\n",chi);
 		//exit(0);
 	} 
 }	
