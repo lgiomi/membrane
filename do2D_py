@@ -14,9 +14,8 @@ n=1
 echo -e \\n"Building 3D images..."
 xvfb-run --server-args="-screen 0 1024x768x24" python movie_3D.py 
 
-
-echo -e \\n"Building 2D images..."
-python movie_2D.py 
+#echo -e \\n"Building 2D images..."
+#python movie_2D.py 
 
 echo -e \\n"Building worldlines..."
 
@@ -44,11 +43,11 @@ done
 
 echo -e \\n"Building movies..."
 
-ffmpeg -framerate 20 -pattern_type glob -i "0*.png" 2d_field.mkv > /dev/null 2>&1
+#ffmpeg -framerate 20 -pattern_type glob -i "0*.png" 2d_field.mkv > /dev/null 2>&1
 ffmpeg -framerate 20 -pattern_type glob -i "t*.png" 3d_field.mkv > /dev/null 2>&1
 
-rm 0*.png
-rm gc_*.dat
-rm t*.png
+rm -f 0*.png
+rm -f gc_*.dat
+rm -f t*.png
 rm -f temp*.dat
 rm -f tmp*.dat
