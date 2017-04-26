@@ -12,14 +12,14 @@ make > /dev/null
 DIR=`pwd`
 export PATH=${DIR}:$PATH
 # Total number of steps in the concentration, going from 0 to 1 (both values included, so the total number is acutally c0steps+1). 
-n_c0=10
+n_c0=40
 
 # Coupling counter (from 0 to g_i with n_g steps)
-n_g=25
-g_i=2.5
+n_g=100
+g_i=1
 
 # Number of runs per phase diagram point
-rpp=3
+rpp=4
 
 # Initialising counters
 c0_c=0
@@ -39,7 +39,7 @@ while [ $g_c -le $n_g ];
 		mkdir -p temp_${g}_${c0}_${rpp_c}
 		cd temp_${g}_${c0}_${rpp_c}
 
-		while [ $nnow -gt 100 ]; 
+		while [ $nnow -gt 140 ]; 
         	do
         		sleep 10
        		 	nnow=`squeue | grep fonda | wc -l`
