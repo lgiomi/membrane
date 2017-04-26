@@ -43,8 +43,8 @@ done
 
 echo -e \\n"Building movies..."
 
-#ffmpeg -framerate 20 -pattern_type glob -i "0*.png" 2d_field.mkv > /dev/null 2>&1
-ffmpeg -framerate 20 -pattern_type glob -i "t*.png" 3d_field.mkv > /dev/null 2>&1
+#ffmpeg -framerate 24 -pattern_type glob -i "0*.png" 2d_field.mkv > /dev/null 2>&1
+ffmpeg -framerate 24 -pattern_type glob -i "t*.png" 3d_field.mkv > /dev/null 2>&1
 
 rm -f 0*.png
 rm -f gc_*.dat

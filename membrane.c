@@ -325,40 +325,17 @@ void import_mesh(char *f_name)
 	};
 
 	FILE *f_in = fopen(f_name,"r");
+	
+	char line[LINESIZE],dest[LINESIZE];
 
-	/*
-	fscanf(f_in,"%ld",&num_of_meshpoint);
-	fscanf(f_in,"%ld",&num_of_triangles);
-	
-	vertex = malloc(num_of_meshpoint*sizeof(Vertex));
-	triangle = malloc(num_of_triangles*sizeof(Triangle));
-	
-	for (i=0; i<num_of_meshpoint; i++){
-		vertex[i].num_of_neighbors = 0;
-		fscanf(f_in,"%lg%lg%lg",
-		&vertex[i].x,
-		&vertex[i].y,
-		&vertex[i].z);
-	}
-	
-	for (i=0; i<num_of_triangles; i++){
-		fscanf(f_in,"%ld%ld%ld",&v1,&v2,&v3);
-		triangle[i].v1 = v1-1;
-		triangle[i].v2 = v2-1;
-		triangle[i].v3 = v3-1;
-	}
-	*/
-	
-	char line[LINESIZE];
-	
-	for (i=0; i<8; i++){
-	if(fgets(line,LINESIZE-1,f_in)){};
+	while(strcmp("$Nodes",strncpy(dest,line,6))!=0){
+		if(fgets(line,LINESIZE-1,f_in)){};
 	}
 	
 	if(fscanf(f_in,"%ld",&num_of_meshpoint)){};
 
 	if (num_of_meshpoint>MAX_SIZE){
-		printf("Error: the number of vertices (%ld) exceeds MAX_SIZE (%d)\n",num_of_meshpoint,MAX_SIZE);
+		printf("ERROR: number of vertices (%ld) exceeds MAX_SIZE (%d)\n",num_of_meshpoint,MAX_SIZE);
 		exit(0);
 	}
 		
@@ -369,15 +346,15 @@ void import_mesh(char *f_name)
 		&vertex[i].y,
 		&vertex[i].z)){}else{printf("Failed to read mesh point.");};
 	}
-	
-	for (i=0; i<3; i++){
-	if(fgets(line,LINESIZE-1,f_in)){};
+
+	while(strcmp("$Elements",strncpy(dest,line,9))!=0){
+		if(fgets(line,LINESIZE-1,f_in)){};
 	}
 	
 	if(fscanf(f_in,"%ld",&num_of_triangles)){};
 		
 	if (num_of_triangles>MAX_SIZE){
-		printf("Error: the number of triangles (%ld) exceeds MAX_SIZE (%d)\n",num_of_triangles,MAX_SIZE);
+		printf("ERROR: number of triangles (%ld) exceeds MAX_SIZE (%d)\n",num_of_triangles,MAX_SIZE);
 		exit(0);
 	}	
 		
@@ -404,18 +381,20 @@ void import_mesh(char *f_name)
 	for (i=0; i<num_of_meshpoint; i++){
 		num_of_edges += vertex[i].num_of_neighbors;
 	}
-	
+
+	// If there are 2 surface 	
 	if (!num_of_edges%2){
-		printf("Error: bad triangulation, 2E = %ld\n",num_of_edges);
+		printf("ERROR: bad triangulation, 2E = %ld\n",num_of_edges);
 		exit(0);
 	}
 
 	chi = num_of_meshpoint-num_of_edges/2+num_of_triangles;
 	
 	if (chi!=2){
-		printf("Warning: bad triangulation or not a g=0 surface, chi = %ld\n",chi);
+		printf("WARNING: apparently not a genus zero surface, Euler characteristic is %ld\n",chi);
 		//exit(0);
 	} 
+
 }	
 
 /*******************************************************************/
