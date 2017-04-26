@@ -43,13 +43,13 @@ while [ $g_c -le $n_g ];
         	do
         		sleep 10
        		 	nnow=`squeue | grep fonda | wc -l`
-        		echo -ne "Waiting for some job to finish before launching new ($nnow)..."\\r
+        		echo -ne "Waiting for some job to finish before launching new ($nnow)...           "\\r
 		done
 
                 nnow=`squeue | grep fonda | wc -l`
 
 		sbatch  job.sbatch $c0 $g $rpp_c > /dev/null 
-		echo "Parameters at" $c0 $g $rpp_c 
+		echo -ne "Parameters at $c0 $g $rpp_c                                           "  \\r
 
 		cd ..
 		let rpp_c=rpp_c+1
@@ -79,6 +79,8 @@ mkdir -p finalconfigurations
 c0_c=0
 g_c=0
 rpp_c=0
+n=0
+fn=0
 
 while [ $g_c -le $n_g ];
 	do
@@ -88,11 +90,23 @@ while [ $g_c -le $n_g ];
 		while [  $rpp_c -lt $rpp ]; 
 		do
 		c0=$(echo "scale=3; $c0_c/$n_c0" |bc)
-
-		mv temp_${g}_${c0}_${rpp_c}/last.dat finalconfigurations/${g}_${c0}_${rpp_c}_last.dat
-		cat temp_${g}_${c0}_${rpp_c}/final.dat | awk -v var1="$g" -v var2="$c0"  -F"\t" '{print var1,"\t", var2,"\t", $2,"\t", $3,"\t", $4,"\t", $5,"\t", $6,"\t", $7,"\t", $8,"\t",$9}'  >> finalconfigurations/final.dat
+		let n=n+1
+		echo -ne "Processing $g $c0 $rpp_c (found $fn out of $n )"\\r
+		DIR=temp_${g}_${c0}_${rpp_c}
+		if [ -d "$DIR" ]; then
+			if [ -e "$DIR/last.dat" ]; then
+				let fn=fn+1
+				cp $DIR/last.dat finalconfigurations/conf_${g}_${c0}_${rpp_c}_last.dat
+				cat $DIR/final.dat | awk -v var1="$g" -v var2="$c0"  -F"\t" '{print var1,"\t", var2,"\t", $2,"\t", $3,"\t", $4,"\t", $5,"\t", $6,"\t", $7,"\t", $8,"\t", $9,"\t", $1}'  >> finalconfigurations/final.dat
+			else
+				break
+			fi
+		else
+			break
+		fi
 
 		let rpp_c=rpp_c+1
+		
 		done 
 	rpp_c=0
 	let c0_c=c0_c+1 
@@ -100,5 +114,7 @@ while [ $g_c -le $n_g ];
 	c0_c=0
 let g_c=g_c+1
 done
+echo " "
+echo "Found $fn (of $n) directories  with useful data"
 
-rm -R temp_*
+#rm -R temp_*

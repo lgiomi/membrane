@@ -382,7 +382,7 @@ void import_mesh(char *f_name)
 		num_of_edges += vertex[i].num_of_neighbors;
 	}
 
-	// If there are 2 surface 	
+	// If each edge is not counted twice we might have a problem	
 	if (!num_of_edges%2){
 		printf("ERROR: bad triangulation, 2E = %ld\n",num_of_edges);
 		exit(0);
