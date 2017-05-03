@@ -17,8 +17,8 @@ while [ $g_in -le $g_fin ];  do
 
 		while [ $xcount -le $xmax ];  do
 
-			if [ -e ../finalconfigurations/f_${g_in}_${xcount}_${ncount}.png ]; then
-				cp ../finalconfigurations/f_${g_in}_${xcount}_${ncount}.png .
+			if [ -e img_temp/f_${g_in}_${xcount}_${ncount}.png ]; then
+				cp img_temp/f_${g_in}_${xcount}_${ncount}.png .
 
 			else
 				cp blank.png f_${g_in}_${xcount}_${ncount}.png

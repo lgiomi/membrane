@@ -17,8 +17,8 @@ while [ $g_in -le $g_fin ];  do
 
 		while [ $xcount -le $xmax ];  do
 
-			if [ -e ../testconf/t_${g_in}_${xcount}_${ncount}.png ]; then
-				cp ../testconf/t_${g_in}_${xcount}_${ncount}.png .
+			if [ -e img_temp/t_${g_in}_${xcount}_${ncount}.png ]; then
+				cp img_temp/t_${g_in}_${xcount}_${ncount}.png .
 
 			else
 				cp blank.png t_${g_in}_${xcount}_${ncount}.png
@@ -31,7 +31,7 @@ while [ $g_in -le $g_fin ];  do
 
 		tot=`ls t_${g_in}_*_${ncount}.png | wc -w`
 
-		montage $(ls -1 t_${g_in}_*_${ncount}.png | sort -t _ -V)  -geometry +2+2 -tile 1x${tot} tcolumn_${g_in}_${ncount}.jpg
+		montage $(ls -1 t_${g_in}_*_${ncount}.png | sort -r -t _ -V)  -geometry +2+2 -tile 1x${tot} tcolumn_${g_in}_${ncount}.jpg
 
 		convert tcolumn_${g_in}_${ncount}.jpg -resize 400 smalltcolumn_${g_in}_${ncount}.jpg
 
