@@ -326,7 +326,7 @@ void import_mesh(char *f_name)
 
 	FILE *f_in = fopen(f_name,"r");
 	
-	char line[LINESIZE],dest[LINESIZE];
+	char line[LINESIZE],dest[9];
 
 	while(strcmp("$Nodes",strncpy(dest,line,6))!=0){
 		if(fgets(line,LINESIZE-1,f_in)){};
@@ -338,7 +338,7 @@ void import_mesh(char *f_name)
 		printf("ERROR: number of vertices (%ld) exceeds MAX_SIZE (%d)\n",num_of_meshpoint,MAX_SIZE);
 		exit(0);
 	}
-		
+
 	for (i=0; i<num_of_meshpoint; i++){
 		if(fscanf(f_in,"%ld%lg%lg%lg",
 		&dummy,
@@ -347,17 +347,21 @@ void import_mesh(char *f_name)
 		&vertex[i].z)){}else{printf("Failed to read mesh point.");};
 	}
 
-	while(strcmp("$Elements",strncpy(dest,line,9))!=0){
-		if(fgets(line,LINESIZE-1,f_in)){};
+
+	while(strcmp("$Elements",dest)!=0){
+		if(fgets(line,sizeof(line),f_in)){};
+		i=(int)strlen(dest); //This is magic
+		if(strcmp("l",&line[2]) && strlen(line)>4)strncpy(dest,line,9);
 	}
-	
+
 	if(fscanf(f_in,"%ld",&num_of_triangles)){};
-		
+
+
 	if (num_of_triangles>MAX_SIZE){
 		printf("ERROR: number of triangles (%ld) exceeds MAX_SIZE (%d)\n",num_of_triangles,MAX_SIZE);
 		exit(0);
 	}	
-		
+
 	for (i=0; i<num_of_triangles; i++){
 		if(fscanf(f_in,"%ld%ld%ld%ld%ld%ld%ld%ld",
 		&dummy,
@@ -373,7 +377,7 @@ void import_mesh(char *f_name)
 		triangle[i].v2 = v2-1;
 		triangle[i].v3 = v3-1;
 	}
-				
+
 	fclose(f_in);		
 				
 	find_neighbors();			
@@ -825,6 +829,7 @@ void get_geometry()
 		f_ou = fopen("gaussian_curvature.m","w");
 		export_graphic_complex(f_ou,3);
 		fclose(f_ou);
+
 	}
 
 	// Print summary of mesh computations
@@ -1523,6 +1528,10 @@ void end()
 		f_ou = fopen("last.m","w");
 		export_graphic_complex(f_ou,1);
 		fclose(f_ou);
+
+		f_ou = fopen("interface.m","w");
+		export_graphic_complex(f_ou,4);
+		fclose(f_ou);
 	}
 	
 	if(c_flag>=0){
@@ -1665,6 +1674,10 @@ void export_graphic_complex(FILE *f_ou, long l)
 			case 3: r = 0*(vertex[i].kg-kg_min)/(kg_max-kg_min);
 				b = (vertex[i].kg-kg_min)/(kg_max-kg_min);
 				g = 1-r-b;
+				break;
+			case 4: r = (vertex[i].phi<0.2 && vertex[i].phi>-0.2)?0:1;
+				b = (vertex[i].phi<0.2 && vertex[i].phi>-0.2)?0:1;
+				g = (vertex[i].phi<0.2 && vertex[i].phi>-0.2)?0:1;
 				break;
 			 }
 
