@@ -14,13 +14,15 @@ rgmap=[]
 
 for i in range(256):
 #	rgmap.append([255-i,i,0,255])
-	rgmap.append([255,i,0,255])
+#	rgmap.append([0,255-i,i,255])
+#	rgmap.append([255,i,0,255])
+	rgmap.append([i,255-i,44*(1-i/255)+i*128/255,255])
 
 f=listconf[0]
 phi = np.transpose(np.loadtxt(f))
 s = mlab.triangular_mesh(coord3D[0],coord3D[1],coord3D[2],triangles,scalars = (phi[0]+1)/2,vmax=1,vmin=0)
 s.module_manager.scalar_lut_manager.lut.table = rgmap
-mlab.view(1, 45,1.3)
+mlab.view(1, 135,2.5)
 n=f.split("_")[1]
 n=n.split(".")[0]
 mlab.savefig("t_"+n+".png",size=(1920, 1080))
@@ -42,7 +44,8 @@ for f in listconf:
 
 	phi = np.transpose(np.loadtxt(f))
 	s.mlab_source.scalars = (phi[0]+1)/2
-	mlab.view(counter, 45,1.3)
+	#mlab.view(counter, 45,1.3)
+	mlab.view(counter, 135,2.5)
 	mlab.savefig("t_"+n+".png",size=(1920, 1080))
 
 	counter=counter+1

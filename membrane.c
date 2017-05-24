@@ -298,7 +298,7 @@ void help()
 	printf("\t -R FILE\t: import initial configuration from file\n");
 	printf("\t -e EPSILON\t: set the value of epsilon. If not set is computed automatically from average edge length\n");
 	printf("\t -T TOL\t\t: set the tolerance for adaptive step-size integration methods\n");
-	printf("\t -L LEVEL\t: choose which output files will be printed\n\t\t\t\t0: 'last.dat', 'final.dat'\n\t\t\t\t1: previous +  'histo.dat', 'geometry.dat', 'last.m', 'triangles.dat' + 'gc_#.dat' if -x is set [DEFAULT]\n\t\t\t\t2: previous + 'mean_curvature.m', 'gaussian_curvature.m' + 'gc_#.m' if -x is set\n\t\t\t\t3: as in '1' + debug files\n");
+	printf("\t -L LEVEL\t: choose which output files will be printed\n\t\t\t\t0: 'last.dat', 'final.dat'\n\t\t\t\t1: previous +  'histo.dat', 'geometry.dat', 'last.m', 'interface.m', 'triangles.dat' + 'gc_#.dat' if -x is set [DEFAULT]\n\t\t\t\t2: previous + 'mean_curvature.m', 'gaussian_curvature.m' + 'gc_#.m' if -x is set\n\t\t\t\t3: as in '1' + debug files\n");
 	printf("\t -x STEPS\t: if specified and nonzero, decides the frequency with which to export field configurations \n");
 	printf("\t -i ITERATIONS\t: total number of iterations (-I 4 and -I 5 do not use this parameter)\n");
 	printf("\t -C $1 $2 $3\t: specifies the values of the couplings with H, H^2 and K_G\n");
@@ -1675,9 +1675,9 @@ void export_graphic_complex(FILE *f_ou, long l)
 				b = (vertex[i].kg-kg_min)/(kg_max-kg_min);
 				g = 1-r-b;
 				break;
-			case 4: r = (vertex[i].phi<0.2 && vertex[i].phi>-0.2)?0:1;
-				b = (vertex[i].phi<0.2 && vertex[i].phi>-0.2)?0:1;
-				g = (vertex[i].phi<0.2 && vertex[i].phi>-0.2)?0:1;
+			case 4: r = (vertex[i].phi<0.5 && vertex[i].phi>-0.5)?0:1;
+				b = (vertex[i].phi<0.5 && vertex[i].phi>-0.5)?0:1;
+				g = (vertex[i].phi<0.5 && vertex[i].phi>-0.5)?0:1;
 				break;
 			 }
 
