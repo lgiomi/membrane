@@ -33,7 +33,8 @@ triangles = np.loadtxt("../triangles.dat")
 rgmap=[]
 
 for i in range(256):
-	rgmap.append([255-i,i,0,255])
+#	rgmap.append([255-i,i,0,255])
+	rgmap.append([i,255-i,44*(1-i/255)+i*128/255,255])
 
 f=listconf[0]
 phi = np.transpose(np.loadtxt(f))

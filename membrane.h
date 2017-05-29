@@ -46,8 +46,10 @@ typedef struct {
 	double hz;
 
 	double h2;
-
 	double kg;
+
+	double h2_avg;
+	double kg_avg;
 
 	double phi;
 

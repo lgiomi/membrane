@@ -2,7 +2,7 @@
 **                                                               **
 **                           MEMBRANE                            **
 **                                                               **
-**			      V 2.3                              **
+**			      V 3.0                              **
 **                                                               **
 *******************************************************************/
 
@@ -347,7 +347,6 @@ void import_mesh(char *f_name)
 		&vertex[i].z)){}else{printf("Failed to read mesh point.");};
 	}
 
-
 	while(strcmp("$Elements",dest)!=0){
 		if(fgets(line,sizeof(line),f_in)){};
 		i=(int)strlen(dest); //This is magic
@@ -355,7 +354,6 @@ void import_mesh(char *f_name)
 	}
 
 	if(fscanf(f_in,"%ld",&num_of_triangles)){};
-
 
 	if (num_of_triangles>MAX_SIZE){
 		printf("ERROR: number of triangles (%ld) exceeds MAX_SIZE (%d)\n",num_of_triangles,MAX_SIZE);
@@ -674,6 +672,9 @@ void get_geometry()
 
 		vertex[i].kg /= vertex[i].area;
 
+		vertex[i].h2_avg = vertex[i].h2/(vertex[i].num_of_neighbors+1);
+		vertex[i].kg_avg = vertex[i].kg/(vertex[i].num_of_neighbors+1);
+
 		for (j=0; j<vertex[i].num_of_neighbors; j++){
 			vertex[i].weight[j] /= vertex[i].area;	
 		}
@@ -710,12 +711,20 @@ void get_geometry()
 	// Try to point all normal vectors outwards: this does only one full loop through vertices
 	// It is not safe to assume that after just this iteration any mesh will be nicely oriented. 
 	// However, it has been working so far, but remember, the general solution is more complicated
+	// Moreover, use this loop to compute averaged values of H2 and KG
 
 	for (i=0; i<num_of_meshpoint; i++){
 		for (j=0; j<vertex[i].num_of_neighbors; j++){
-			a=vertex[i].neighbor[j];
-			base=vertex[i].nx*vertex[a].nx+vertex[i].ny*vertex[a].ny+vertex[i].nz*vertex[a].nz;
+
+			a = vertex[i].neighbor[j];
+
+			base = vertex[i].nx*vertex[a].nx+vertex[i].ny*vertex[a].ny+vertex[i].nz*vertex[a].nz;
+
 			if(base<0){vertex[a].nx*=-1;vertex[a].ny*=-1;vertex[a].nz*=-1;};
+
+			vertex[i].h2_avg+=vertex[a].h2/(vertex[i].num_of_neighbors+1);
+			vertex[i].kg_avg+=vertex[a].kg/(vertex[i].num_of_neighbors+1);
+
 		}
 	}
 
@@ -747,6 +756,9 @@ void get_geometry()
 			vertex[i].h2/=pow(scale,2.);
 			vertex[i].kg/=pow(scale,2.);
 
+			vertex[i].h2_avg/=pow(scale,2.);
+			vertex[i].kg_avg/=pow(scale,2.);
+
 			vertex[i].area*=pow(scale,2.);
 
 			for (j=0; j<vertex[i].num_of_neighbors; j++){
@@ -769,7 +781,7 @@ void get_geometry()
 	for (i=0; i<num_of_meshpoint; i++){
 
 		if(o_flag>=1){if(c_flag==0){
-			fprintf(f_ou,"%ld\t%.10f\t%.10f\t%.10f\t%.10f\t%.10f\t%.10lg\t%.10lg\t%.10lg\t%.10lg\t",
+			fprintf(f_ou,"%ld\t%.10f\t%.10f\t%.10f\t%.10f\t%.10f\t%.10f\t%.10f\t%.10lg\t%.10lg\t%.10lg\t%.10lg\t",
 				i,
 				vertex[i].x,
 				vertex[i].y,
@@ -777,11 +789,13 @@ void get_geometry()
 				vertex[i].area,
 				vertex[i].h2,
 				vertex[i].kg,
+				vertex[i].h2_avg,
+				vertex[i].kg_avg,
 				vertex[i].nx,
 				vertex[i].ny,
 				vertex[i].nz);
 		}else if(c_flag==1){
-			fprintf(f_ou,"%ld\t%.10f\t%.10f\t%.10f\t%.10f\t%.10f\t%.10lg\t%.10lg\t%.10lg\t%.10lg\t%.10lg\t%.10lg\t",
+			fprintf(f_ou,"%ld\t%.10f\t%.10f\t%.10f\t%.10f\t%.10f\t%.10f\t%.10f\t%.10lg\t%.10lg\t%.10lg\t%.10lg\t%.10lg\t%.10lg\t",
 				i,
 				vertex[i].x,
 				vertex[i].y,
@@ -789,6 +803,8 @@ void get_geometry()
 				vertex[i].area,
 				vertex[i].h2,
 				vertex[i].kg,
+				vertex[i].h2_avg,
+				vertex[i].kg_avg,
 				vertex[i].gridx,
 				vertex[i].gridy,
 				vertex[i].nx,
@@ -840,6 +856,7 @@ void get_geometry()
 
 	printf("\tTotal surface area\t\t: %lg (typical length %lg)\n",total_area,sqrt(total_area));
 	printf("\tTotal enclosed volume\t\t: %lg (typical length %lg)\n",total_volume,pow(total_volume,1./3.));
+
 	printf("\tWillmore energy\t\t\t: %lg (asphericity %lg)\n",willmore_energy,willmore_energy/4/PI-1);
 	printf("\tEuler characteristic\t\t: %lg\n",euler_chi);
 
@@ -861,13 +878,13 @@ void get_geometry()
 	// Line tension
 	printf("\tExpected line tension\t\t: %lg\n",2./3.*sqrt(2*k_barrier)*epsilon);
 
-	// Real couplings are obtained from -C by multiplying back to real valu
+	// Real couplings are obtained from -C by multiplying back to real values
 	gamma_h*=2./3.*sqrt(2*k_barrier*total_area);
 	gamma_h2*=2./3.*sqrt(2*k_barrier*total_area);
 	gamma_kg*=2./3.*sqrt(2*k_barrier*total_area);
 	printf("\tCouplings entering EOMs\t\t: (%lg H, %lg H^2, %lg KG)\n",gamma_h,gamma_h2,gamma_kg);
 
-	// The couplings in the \epsilont \to 0 limit could take any value. 
+	// The couplings in the \epsilon \to 0 limit could take any value. 
 	// However, since numerically epsilon is finite, this sets a bound on the magnitude of the curvature couplings in order to preserve the double-well structure of the potential			
 	printf("\tAllowed coupling ranges\t\t: |Leibler|<%lg, |Delta k|<%lg, |Delta k_b|<%lg\n",4./3.*k_barrier/epsilon/sqrt(h2_max),4./3.*k_barrier/epsilon/h2_max,4./3.*k_barrier/epsilon/max(kg_max,sqrt(kg_min*kg_min)));  
 

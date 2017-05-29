@@ -18,11 +18,12 @@ except:
 rgmap=[]
 
 for i in range(256):
-	rgmap.append([i,255-i,44*(1-i/255)+i*128/255,255])
+#	rgmap.append([i,255-i,44*(1-i/255)+i*128/255,255])
+	rgmap.append([255-i,i,0,255])
 
 from mayavi import mlab
-s = mlab.triangular_mesh(coord3D[0],coord3D[1],coord3D[2],triangles,scalars = (phi[0]+1)/2,vmax=1,vmin=0)
-s.module_manager.scalar_lut_manager.lut.table = rgmap
+s = mlab.triangular_mesh(coord3D[0],coord3D[1],coord3D[2],triangles,scalars = (phi[0]+1)/2,vmax=1,vmin=0,colormap='PiYG')
+#s.module_manager.scalar_lut_manager.lut.table = rgmap
 #mlab.view(90, 0)
 mlab.view(1, 135,2.1)
 mlab.savefig(sys.argv[2],size=(1920, 1080))
