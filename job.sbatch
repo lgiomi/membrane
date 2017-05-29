@@ -19,5 +19,5 @@ jindex=${SLURM_ARRAY_JOB_ID}
 
 echo "Launching task ${aindex} of job ${jindex} with arguments $1 and $2 (which is the $3 of the series)" >> ../run_stat.dat
 
-srun membrane -m ../mesh/cube_2.msh -t 120 -I 5 -r $RANDOM $1 -C 0 $2 0 -L 0 -a 1 -k 2 > /dev/null
+srun membrane -m ../mesh/dumbbell_6.msh -t 120 -I 5 -r $RANDOM $1 -C 0 0 $2 -L 0 -a 1 -k 2 > /dev/null
 
