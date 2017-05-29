@@ -326,9 +326,9 @@ void import_mesh(char *f_name)
 
 	FILE *f_in = fopen(f_name,"r");
 	
-	char line[LINESIZE],dest[LINESIZE];
+	char line[LINESIZE];
 
-	while(strcmp("$Nodes",strncpy(dest,line,6))!=0){
+	for (i=0; i<8; i++){
 		if(fgets(line,LINESIZE-1,f_in)){};
 	}
 	
@@ -347,7 +347,8 @@ void import_mesh(char *f_name)
 		&vertex[i].z)){}else{printf("Failed to read mesh point.");};
 	}
 
-	while(strcmp("$Eleme",strncpy(dest,line,6))!=0){
+
+	for (i=0; i<3; i++){
 		if(fgets(line,LINESIZE-1,f_in)){};
 	}
 
