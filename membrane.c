@@ -349,7 +349,6 @@ void import_mesh(char *f_name)
 
 	while(strcmp("$Elements",dest)!=0){
 		if(fgets(line,sizeof(line),f_in)){};
-		i=(int)strlen(dest); //This is magic
 		if(strcmp("l",&line[2]) && strlen(line)>4)strncpy(dest,line,9);
 	}
 
