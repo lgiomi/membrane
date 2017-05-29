@@ -326,7 +326,7 @@ void import_mesh(char *f_name)
 
 	FILE *f_in = fopen(f_name,"r");
 	
-	char line[LINESIZE],dest[9];
+	char line[LINESIZE],dest[LINESIZE];
 
 	while(strcmp("$Nodes",strncpy(dest,line,6))!=0){
 		if(fgets(line,LINESIZE-1,f_in)){};
@@ -350,11 +350,6 @@ void import_mesh(char *f_name)
 	while(strcmp("$Eleme",strncpy(dest,line,6))!=0){
 		if(fgets(line,LINESIZE-1,f_in)){};
 	}
-
-	/*while(strcmp("$Elements",dest)!=0){
-		if(fgets(line,sizeof(line),f_in)){};
-		if(strcmp("l",&line[2]) && strlen(line)>4)strncpy(dest,line,9);
-	}*/
 
 	if(fscanf(f_in,"%ld",&num_of_triangles)){};
 
