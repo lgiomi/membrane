@@ -48,7 +48,7 @@ while [ $g_c -le $n_g ];
 
                 nnow=`squeue | grep fonda | wc -l`
 
-		sbatch  job.sbatch $c0 $g $rpp_c > /dev/null 
+                sbatch  job.sbatch $c0 $g $rpp_c > /dev/null		
 		echo -ne "Parameters at $c0 $g $rpp_c                                           "  \\r
 
 		cd ..
