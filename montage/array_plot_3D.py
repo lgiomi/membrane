@@ -38,8 +38,8 @@ for i in range(256):
 
 f=listconf[0]
 phi = np.transpose(np.loadtxt(f))
-s = mlab.triangular_mesh(coord3D[0],coord3D[1],coord3D[2],triangles,scalars = (phi[0]+1)/2,vmax=1,vmin=0)
-s.module_manager.scalar_lut_manager.lut.table = rgmap
+s = mlab.triangular_mesh(coord3D[0],coord3D[1],coord3D[2],triangles,scalars = (phi[0]+1)/2,vmax=1,vmin=0,colormap='PiYG')
+#s.module_manager.scalar_lut_manager.lut.table = rgmap
 mlab.view(180, 0, 1.5)
 n=f.split("_")
 mlab.savefig("img_temp/t_"+str(listg.index(float(n[-4])))+"_"+str(listc.index(float(n[-3])))+"_"+str(listn.index(int(n[-2])))+".png",size=(1920, 1080))
@@ -56,15 +56,12 @@ for f in listconf:
 	n=f.split("_")
 	print "\033[F"+"                                                                                    "
 	print "\033[F"+"Processing file t_"+n[-4]+"_"+n[-3]+"_"+n[-2]+" ("+str(counter+1)+" of "+str(len(listconf))+")"
+	counter=counter+1
+	if os.path.isfile("img_temp/"+"t_"+str(listg.index(float(n[-4])))+"_"+str(listc.index(float(n[-3])))+"_"+str(listn.index(int(n[-2])))+".png"):
+		continue
 
 	phi = np.transpose(np.loadtxt(f))
-
 	s.mlab_source.scalars = (phi[0]+1)/2
 	mlab.savefig("img_temp/"+"t_"+str(listg.index(float(n[-4])))+"_"+str(listc.index(float(n[-3])))+"_"+str(listn.index(int(n[-2])))+".png",size=(1920, 1080))
-
-#        mlab.close()
-
-	counter=counter+1
-
 
 print "\nThere are",len(listg),"couplings,",len(listc),"concentrations and",len(listn),"series"

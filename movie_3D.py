@@ -22,7 +22,7 @@ f=listconf[0]
 phi = np.transpose(np.loadtxt(f))
 s = mlab.triangular_mesh(coord3D[0],coord3D[1],coord3D[2],triangles,scalars = (phi[0]+1)/2,vmax=1,vmin=0,colormap='PiYG')
 #s.module_manager.scalar_lut_manager.lut.table = rgmap
-mlab.view(1, 135,2.5)
+mlab.view(45, -45,2.1)
 n=f.split("_")[1]
 n=n.split(".")[0]
 mlab.savefig("t_"+n+".png",size=(1920, 1080))
@@ -45,7 +45,7 @@ for f in listconf:
 	phi = np.transpose(np.loadtxt(f))
 	s.mlab_source.scalars = (phi[0]+1)/2
 	#mlab.view(counter, 45,1.3)
-	mlab.view(counter, 135,2.5)
+	#mlab.view(counter, 135,2.5)
 	mlab.savefig("t_"+n+".png",size=(1920, 1080))
 
 	counter=counter+1
