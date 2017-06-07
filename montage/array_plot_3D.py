@@ -18,8 +18,10 @@ from mayavi import mlab
 
 listconf = sorted(glob.glob(sys.argv[1]+"/*last.dat"))
 
-listg = list(set([i.split("_")[-4] for i in listconf]))
-listg = sorted([float(i) for i in listg])
+listk = list(set([i.split("_")[-5] for i in listconf]))
+listk = sorted([float(i) for i in listg])
+listkb = list(set([i.split("_")[-4] for i in listconf]))
+listkb = sorted([float(i) for i in listg])
 listc = list(set([i.split("_")[-3] for i in listconf]))
 listc = sorted([float(i) for i in listc])
 listn = list(set([i.split("_")[-2] for i in listconf]))
@@ -42,7 +44,7 @@ s = mlab.triangular_mesh(coord3D[0],coord3D[1],coord3D[2],triangles,scalars = (p
 #s.module_manager.scalar_lut_manager.lut.table = rgmap
 mlab.view(180, 0, 1.5)
 n=f.split("_")
-mlab.savefig("img_temp/t_"+str(listg.index(float(n[-4])))+"_"+str(listc.index(float(n[-3])))+"_"+str(listn.index(int(n[-2])))+".png",size=(1920, 1080))
+mlab.savefig("img_temp/t_"+str(listk.index(float(n[-5])))+"_"+str(listkb.index(float(n[-4])))+"_"+str(listc.index(float(n[-3])))+"_"+str(listn.index(int(n[-2])))+".png",size=(1920, 1080))
 
 counter=1
 
@@ -55,13 +57,13 @@ for f in listconf:
 
 	n=f.split("_")
 	print "\033[F"+"                                                                                    "
-	print "\033[F"+"Processing file t_"+n[-4]+"_"+n[-3]+"_"+n[-2]+" ("+str(counter+1)+" of "+str(len(listconf))+")"
+	print "\033[F"+"Processing file t_"+n[-5]+"_"+n[-4]+"_"+n[-3]+"_"+n[-2]+" ("+str(counter+1)+" of "+str(len(listconf))+")"
 	counter=counter+1
-	if os.path.isfile("img_temp/"+"t_"+str(listg.index(float(n[-4])))+"_"+str(listc.index(float(n[-3])))+"_"+str(listn.index(int(n[-2])))+".png"):
+	if os.path.isfile("img_temp/"+"t_"+str(listk.index(float(n[-5])))+"_"+str(listkb.index(float(n[-4])))+"_"+str(listc.index(float(n[-3])))+"_"+str(listn.index(int(n[-2])))+".png"):
 		continue
 
 	phi = np.transpose(np.loadtxt(f))
 	s.mlab_source.scalars = (phi[0]+1)/2
-	mlab.savefig("img_temp/"+"t_"+str(listg.index(float(n[-4])))+"_"+str(listc.index(float(n[-3])))+"_"+str(listn.index(int(n[-2])))+".png",size=(1920, 1080))
+	mlab.savefig("img_temp/"+"t_"+str(listk.index(float(n[-5])))+"_"+str(listkb.index(float(n[-4])))+"_"+str(listc.index(float(n[-3])))+"_"+str(listn.index(int(n[-2])))+".png",size=(1920, 1080))
 
-print "\nThere are",len(listg),"couplings,",len(listc),"concentrations and",len(listn),"series"
+print "\nThere are (",len(listk),",",len(listkb),") couplings,",len(listc),"concentrations and",len(listn),"series"

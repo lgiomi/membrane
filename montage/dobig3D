@@ -1,5 +1,9 @@
 #!/bin/bash
 
+
+#REDOEVERYTHINGREDOEVERYTHING
+
+
 g_in=$1
 g_fin=$2
 

@@ -4,7 +4,7 @@
 # It consists of three lines where we specify first the start, end and the steps for the total concentration, with the format:
 # Concentration:
 # c0_i	c0_f	n_c0	rpp (runs per point)
-.5	.5	10	4
+.5	.5	0	4
 # Bending rigidtities:
 # k_i	k_f	n_k  
 0	.4	2

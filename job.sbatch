@@ -14,5 +14,7 @@
 export OMP_NUM_THREADS=1
 export MKL_NUM_THREADS=1
 
-srun membrane -m ../mesh/dumbbell_6.msh -t 120 -I 5 -r $RANDOM $1 -C 0 $2 $3 -L 0 -a 1 -k 2
+echo "Launching task with arguments ($1, $2, $3)" >> ../run_stat.dat
+
+srun membrane -m ../mesh/dumbbell_6.msh -t 120 -I 5 -r $RANDOM $1 -C 0 $2 $3 -L 0 -a 1 -k 2 
 
