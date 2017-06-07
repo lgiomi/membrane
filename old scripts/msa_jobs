@@ -1,0 +1,121 @@
+#!/bin/bash
+
+rm -f membrane
+rm -f *.dat
+rm -f *.png
+rm -f *.m
+rm -f *.mkv
+rm -fR finalconfigurations
+make > /dev/null
+
+# Save current dir in the PATH environment
+DIR=`pwd`
+export PATH=${DIR}:$PATH
+# Total number of steps in the concentration, going from 0 to 1 (both values included, so the total number is acutally c0steps+1). 
+n_c0=40
+
+# Coupling counter (from 0 to g_i with n_g steps)
+n_g=100
+g_i=1
+
+# Number of runs per phase diagram point
+rpp=4
+
+# Initialising counters
+c0_c=0
+g_c=0
+rpp_c=0
+nnow=0
+njob=0
+
+while [ $g_c -le $n_g ];
+	do
+	g=$(echo "scale=3; $g_c/$n_g*$g_i" |bc)
+	while [  $c0_c -le $n_c0 ]; 
+	do
+		while [  $rpp_c -lt $rpp ]; 
+		do
+		c0=$(echo "scale=3; $c0_c/$n_c0" |bc)
+
+		mkdir -p temp_${g}_${c0}_${rpp_c}
+		cd temp_${g}_${c0}_${rpp_c}
+
+		while [ $nnow -gt 140 ]; 
+        	do
+        		sleep 10
+       		 	nnow=`squeue | grep fonda | wc -l`
+        		echo -ne "Waiting for some job to finish before launching new ($nnow)...           "\\r
+		done
+
+                nnow=`squeue | grep fonda | wc -l`
+
+                sbatch  job.sbatch $c0 $g $rpp_c > /dev/null		
+		echo -ne "Parameters at $c0 $g $rpp_c                                           "  \\r
+
+		cd ..
+		let rpp_c=rpp_c+1
+		let njob=njob+1
+		done 
+	rpp_c=0
+	let c0_c=c0_c+1 
+	done
+	c0_c=0
+let g_c=g_c+1
+done
+
+nnow=0
+
+while [ $nnow -lt $njob ]; 
+	do
+	sleep 10 
+	nnow=`ls -R | grep last.dat | wc -l`
+	echo -ne "Waiting for the job to finish ($nnow out of $njob)..."\\r
+done
+
+echo "Finished running. Now collecting data together."
+
+mkdir -p finalconfigurations
+
+# Re-initialising counters
+c0_c=0
+g_c=0
+rpp_c=0
+n=0
+fn=0
+
+while [ $g_c -le $n_g ];
+	do
+        g=$(echo "scale=3; $g_c/$n_g*$g_i" |bc)
+	while [  $c0_c -le $n_c0 ]; 
+	do
+		while [  $rpp_c -lt $rpp ]; 
+		do
+		c0=$(echo "scale=3; $c0_c/$n_c0" |bc)
+		let n=n+1
+		echo -ne "Processing $g $c0 $rpp_c (found $fn out of $n )"\\r
+		DIR=temp_${g}_${c0}_${rpp_c}
+		if [ -d "$DIR" ]; then
+			if [ -e "$DIR/last.dat" ]; then
+				let fn=fn+1
+				cp $DIR/last.dat finalconfigurations/conf_${g}_${c0}_${rpp_c}_last.dat
+				cat $DIR/final.dat | awk -v var1="$g" -v var2="$c0"  -F"\t" '{print var1,"\t", var2,"\t", $2,"\t", $3,"\t", $4,"\t", $5,"\t", $6,"\t", $7,"\t", $8,"\t", $9,"\t", $1}'  >> finalconfigurations/final.dat
+			else
+				break
+			fi
+		else
+			break
+		fi
+
+		let rpp_c=rpp_c+1
+		
+		done 
+	rpp_c=0
+	let c0_c=c0_c+1 
+	done
+	c0_c=0
+let g_c=g_c+1
+done
+echo " "
+echo "Found $fn (of $n) directories  with useful data"
+
+#rm -R temp_*
