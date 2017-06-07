@@ -93,7 +93,6 @@ while [ $k_c -le $n_k ];
 
 				cd ..
 
-				sleep .02
 				let rpp_c=rpp_c+1
 				let njob=njob+1
 			done 
