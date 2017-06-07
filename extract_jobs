@@ -30,13 +30,19 @@ while read -r line ; do
 	esac
 	let i=i+1
 	if [ "$i" -gt 3 ]; then
-		if [ "$c0_f" -le "$c0_i" ]; then $n_c0=0 fi
-		if [ "$k_f" -le "$k_i" ]; then $n_k=0 fi
-		if [ "$kb_f" -le "$kb_i" ]; then $n_kb=0 fi
+		if (( $(echo "$c0_f <= $c0_i" | bc -l) )); then
+			$n_c0=0
+		fi
+		if (( $(echo "$k_f <= $k_i" | bc -l) )); then
+			$n_k=0
+		fi
+		if (( $(echo "$kb_f <= $kb_i" | bc -l) )); then
+			$n_kb=0
+		fi
 		echo "Succesfully read file: 	$filename"
 		echo "Concentration ($c0_i,$c0_f,$n_c0,$rpp); Bending ($k_i,$k_f,$n_k); Splay ($kb_i,$kb_f,$n_kb)"
 		let tot="($n_c0+1)*($n_k+1)*($n_kb+1)*$rpp"
-		echo "Total simulations to run: $tot"
+		echo "Total simulations: $tot"
 		break
 	fi
 done < "$filename"
