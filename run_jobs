@@ -8,6 +8,10 @@ fi
 filename="$1"
 i=1
 
+c0_flag=0
+k_flag=0
+kb_flag=0
+
 while read -r line ; do
 	[[ "$line" =~ ^#.*$ ]] && continue
 	name="$line"
@@ -31,17 +35,20 @@ while read -r line ; do
 	let i=i+1
 	if [ "$i" -gt 3 ]; then
 		if (( $(echo "$c0_f <= $c0_i" | bc -l) )); then
-			$n_c0=1
+			n_c0=1
+			c0_flag=1
 		fi
 		if (( $(echo "$k_f <= $k_i" | bc -l) )); then
-			$n_k=1
+			n_k=1
+			k_flag=1
 		fi
 		if (( $(echo "$kb_f <= $kb_i" | bc -l) )); then
-			$n_kb=1
+			n_kb=1
+			kb_flag=1
 		fi
 		echo "Succesfully read file: 	$filename"
 		echo "Concentration ($c0_i,$c0_f,$n_c0,$rpp); Bending ($k_i,$k_f,$n_k); Splay ($kb_i,$kb_f,$n_kb)"
-		let tot="($n_c0+1)*($n_k+1)*($n_kb+1)*$rpp"
+		let tot="($n_c0+1-$c0_flag)*($n_k+1-$k_flag)*($n_kb+1-$kb_flag)*$rpp"
 		echo "Total simulations to run: $tot"
 		break
 	fi
@@ -67,13 +74,13 @@ rpp_c=0
 njob=1
 nnow=0
 
-while [ $k_c -lt $n_k ];
+while [ $k_c -le $n_k ];
 	do
 	k=$(echo "scale=3; $k_i+$k_f*$k_c/$n_k-$k_i*$k_c/$n_k" | bc -l )
-	while [ $kb_c -lt $n_kb ];
+	while [ $kb_c -le $n_kb ];
 		do
 		kb=$(echo "scale=3; ($kb_i)+$kb_f*$kb_c/$n_kb-($kb_i)*$kb_c/$n_kb" | bc -l )
-		while [  $c0_c -lt $n_c0 ]; 
+		while [  $c0_c -le $n_c0 ]; 
 			do
 			while [  $rpp_c -lt $rpp ]; 
 				do
@@ -104,12 +111,21 @@ while [ $k_c -lt $n_k ];
 			done 
 			rpp_c=0
 			let c0_c=c0_c+1 
+			if [ "$c0_flag" -gt 0 ]; then
+				break
+			fi 
 		done
 		c0_c=0
 		let kb_c=kb_c+1
+		if [ "$kb_flag" -gt 0 ]; then
+			break
+		fi 
 	done
 	kb_c=0
 	let k_c=k_c+1
+	if [ "$k_flag" -gt 0 ]; then
+		break
+	fi 
 done
 
 echo ""
@@ -135,15 +151,15 @@ kb_c=0
 rpp_c=0
 njob=1
 
-while [ $k_c -lt $n_k ];
+while [ $k_c -le $n_k ];
 	do
 	k=$(echo "scale=3; $k_i+$k_f*$k_c/$n_k-$k_i*$k_c/$n_k" | bc -l )
-	while [ $kb_c -lt $n_kb ];
+	while [ $kb_c -le $n_kb ];
 		do
 		kb=$(echo "scale=3; ($kb_i)+$kb_f*$kb_c/$n_kb-($kb_i)*$kb_c/$n_kb" | bc -l )
-		while [  $c0_c -lt $n_c0 ]; 
+		while [  $c0_c -le $n_c0 ]; 
 			do
-			while [  $rpp_c -lt $rpp ]; 
+			while [  $rpp_c -le $rpp ]; 
 				do
 				c0=$(echo "scale=3; $c0_i+$c0_f*$c0_c/$n_c0-$c0_i*$c0_c/$n_c0" | bc -l )
 				jobp=$(echo "scale=2; 100*$njob/$tot" | bc -l )
@@ -163,12 +179,21 @@ while [ $k_c -lt $n_k ];
 			done 
 			rpp_c=0
 			let c0_c=c0_c+1 
+			if [ "$c0_flag" -gt 0 ]; then
+				break
+			fi 
 		done
 		c0_c=0
 		let kb_c=kb_c+1
+		if [ "$kb_flag" -gt 0 ]; then
+			break
+		fi 
 	done
 	kb_c=0
 	let k_c=k_c+1
+	if [ "$k_flag" -gt 0 ]; then
+		break
+	fi 
 done
 
 let njob=njob-1
