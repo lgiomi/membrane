@@ -46,7 +46,7 @@ while read -r line ; do
 			n_kb=1
 			kb_flag=1
 		fi
-		echo "Succesfully read file: 	$filename"
+		echo "Successfully read file: 	$filename"
 		echo "Concentration ($c0_i,$c0_f,$n_c0,$rpp); Bending ($k_i,$k_f,$n_k); Splay ($kb_i,$kb_f,$n_kb)"
 		let tot="($n_c0+1-$c0_flag)*($n_k+1-$k_flag)*($n_kb+1-$kb_flag)*$rpp"
 		echo "Total simulations to run: $tot"
@@ -195,8 +195,6 @@ while [ $k_c -le $n_k ];
 		break
 	fi 
 done
-
-let njob=njob-1
 
 echo ""
 echo "Found $njob (of $tot) directories  with useful data"
