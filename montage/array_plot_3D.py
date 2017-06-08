@@ -19,9 +19,9 @@ from mayavi import mlab
 listconf = sorted(glob.glob(sys.argv[1]+"/*last.dat"))
 
 listk = list(set([i.split("_")[-5] for i in listconf]))
-listk = sorted([float(i) for i in listg])
+listk = sorted([float(i) for i in listk])
 listkb = list(set([i.split("_")[-4] for i in listconf]))
-listkb = sorted([float(i) for i in listg])
+listkb = sorted([float(i) for i in listkb])
 listc = list(set([i.split("_")[-3] for i in listconf]))
 listc = sorted([float(i) for i in listc])
 listn = list(set([i.split("_")[-2] for i in listconf]))

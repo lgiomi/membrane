@@ -47,7 +47,7 @@ while read -r line ; do
 			kb_flag=1
 		fi
 		echo "Successfully read file: 	$filename"
-		echo "Concentration ($c0_i,$c0_f,$n_c0,$rpp); Bending ($k_i,$k_f,$n_k); Splay ($kb_i,$kb_f,$n_kb)"
+		echo "Concentration ($c0_i,$c0_f,$n_c0); Bending ($k_i,$k_f,$n_k); Splay ($kb_i,$kb_f,$n_kb); Run per point $rpp"
 		let tot="($n_c0+1-$c0_flag)*($n_k+1-$k_flag)*($n_kb+1-$kb_flag)*$rpp"
 		echo "Total simulations: $tot"
 		break

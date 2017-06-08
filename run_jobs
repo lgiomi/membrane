@@ -47,7 +47,7 @@ while read -r line ; do
 			kb_flag=1
 		fi
 		echo "Successfully read file: 	$filename"
-		echo "Concentration ($c0_i,$c0_f,$n_c0,$rpp); Bending ($k_i,$k_f,$n_k); Splay ($kb_i,$kb_f,$n_kb)"
+		echo "Concentration ($c0_i,$c0_f,$n_c0); Bending ($k_i,$k_f,$n_k); Splay ($kb_i,$kb_f,$n_kb); Run per point $rpp"
 		let tot="($n_c0+1-$c0_flag)*($n_k+1-$k_flag)*($n_kb+1-$kb_flag)*$rpp"
 		echo "Total simulations to run: $tot"
 		break
@@ -86,7 +86,7 @@ while [ $k_c -le $n_k ];
 				do
 				c0=$(echo "scale=3; $c0_i+$c0_f*$c0_c/$n_c0-$c0_i*$c0_c/$n_c0" | bc -l )
 				jobp=$(echo "scale=2; 100*$njob/$tot" | bc -l )
-				echo -ne "Parameters at ($k,$kb,$c0,$rpp_c) and $jobp% of jobs sent"  \\r
+				echo -ne "Parameters at ($k,$kb,$c0,$rpp_c) and $jobp% of jobs sent                                                                       "  \\r
 
 				DIR=temp_${k}_${kb}_${c0}_${rpp_c}
 
@@ -97,7 +97,7 @@ while [ $k_c -le $n_k ];
         				do
         				sleep 5
        		 			nnow=`squeue | grep fonda | wc -l`
-					echo -ne "Parameters at ($k,$kb,$c0,$rpp_c) and $jobp% of jobs sent (waiting some job to finish, $nnow running)"  \\r
+					echo -ne "Parameters at ($k,$kb,$c0,$rpp_c) and $jobp% of jobs sent (waiting some job to finish, $nnow running)                   "  \\r
 				done
 
              		   	nnow=`squeue | grep fonda | wc -l`
@@ -163,7 +163,7 @@ while [ $k_c -le $n_k ];
 				do
 				c0=$(echo "scale=3; $c0_i+$c0_f*$c0_c/$n_c0-$c0_i*$c0_c/$n_c0" | bc -l )
 				jobp=$(echo "scale=2; 100*$njob/$tot" | bc -l )
-				echo -ne "Processing ($k,$kb,$c0,$rpp_c) and found $njob/$tot ($jobp%)"  \\r
+				echo -ne "Processing ($k,$kb,$c0,$rpp_c) and found $njob/$tot ($jobp%)                                   "  \\r
 
 				DIR=temp_${k}_${kb}_${c0}_${rpp_c}
 

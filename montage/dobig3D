@@ -1,64 +1,68 @@
 #!/bin/bash
 
+if [ "$#" -lt 7 ]; then
+	echo "Syntax: ./dobig3D x_in x_fin y_in y_fin z_in n_in n_fin"
+	exit
+fi
 
-#REDOEVERYTHINGREDOEVERYTHING
+x_in=$1
+x_fin=$2
 
+y_in=$3
+y_fin=$4
 
-g_in=$1
-g_fin=$2
+z_in=$5
+#z_fin=$6
 
-n=$3
-ncount=0
-
-xcount=0
-xmax=$4
+n_in=$6
+n_fin=$7
 
 convert -size 1920x1080 xc:white blank.png
 
-while [ $g_in -le $g_fin ];  do
+while [ $y_in -le $y_fin ];  do
 
-	while [ $ncount -le $n ];  do
+	while [ $n_in -le $n_fin ];  do
 
-		while [ $xcount -le $xmax ];  do
+		while [ $x_in -le $x_fin ];  do
 
-			if [ -e img_temp/t_${g_in}_${xcount}_${ncount}.png ]; then
-				cp img_temp/t_${g_in}_${xcount}_${ncount}.png .
+			if [ -e img_temp/t_${x_in}_${y_in}_${z_in}_${n_in}.png ]; then
+				cp img_temp/t_${x_in}_${y_in}_${z_in}_${n_in}.png .
 
 			else
-				cp blank.png t_${g_in}_${xcount}_${ncount}.png
+				cp blank.png t_${x_in}_${y_in}_${z_in}_${n_in}.png
 			fi
-			let xcount+=1
+			let x_in+=1
 
 		done
 		
-		xcount=0
+		x_in=0
 
-		tot=`ls t_${g_in}_*_${ncount}.png | wc -w`
+		tot=`ls t_*_${y_in}_${z_in}_${n_in}.png | wc -w`
 
-		montage $(ls -1 t_${g_in}_*_${ncount}.png | sort -r -t _ -V)  -geometry +2+2 -tile 1x${tot} tcolumn_${g_in}_${ncount}.jpg
+		montage $(ls -1 t_*_${y_in}_${z_in}_${n_in}.png | sort -r -t _ -V)  -geometry +2+2 -tile 1x${tot} tcolumn_${y_in}_${z_in}_${n_in}.jpg
 
-		convert tcolumn_${g_in}_${ncount}.jpg -resize 400 smalltcolumn_${g_in}_${ncount}.jpg
+		convert tcolumn_${y_in}_${z_in}_${n_in}.jpg -resize 400 smalltcolumn_${y_in}_${z_in}_${n_in}.jpg
 
-		rm tcolumn_${g_in}_${ncount}.jpg
+		rm tcolumn_${y_in}_${z_in}_${n_in}.jpg
 
-		rm t_${g_in}_*_${ncount}.png
+		rm t_*_${y_in}_${z_in}_${n_in}.png
 
-		let ncount+=1
+		let n_in+=1
 
 	done
 
-	ncount=0
+	n_in=0
 
-	let g_in+=1
+	let y_in+=1
 
 done
 
-ncount=0
+n_in=0
 
-while [ $ncount -le $n ];  do
-	tot=`ls smalltcolumn_*_${ncount}.png | wc -w`
-	montage $(ls -1 smalltcolumn_*_${ncount}.jpg | sort -t _ -V)  -geometry +2+2 -tile ${tot}x1 tfinal_${ncount}.jpg
-	let ncount+=1
+while [ $n_in -le $n_fin ];  do
+	tot=`ls smalltcolumn_*_${z_in}_${n_in}.png | wc -w`
+	montage $(ls -1 smalltcolumn_*_${z_in}_${n_in}.jpg | sort -t _ -V)  -geometry +2+2 -tile ${tot}x1 tfinal_${z_in}_${n_in}.jpg
+	let n_in+=1
 done
 
 rm blank.png
