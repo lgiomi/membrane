@@ -77,7 +77,7 @@ while [ $k_c -le $n_k ];
 				do
 				c0=$(echo "scale=3; $c0_i+$c0_f*$c0_c/$n_c0-$c0_i*$c0_c/$n_c0" | bc -l )
 				jobp=$(echo "scale=2; 100*$njob/$tot" | bc -l )
-				echo -ne "Processing ($k,$kb,$c0,$rpp_c) and found $njob/$tot ($jobp%)"  \\r
+				echo -ne "Processing ($k,$kb,$c0,$rpp_c) and found $njob/$tot ($jobp%)                                   "  \\r
 
 				DIR=temp_${k}_${kb}_${c0}_${rpp_c}
 

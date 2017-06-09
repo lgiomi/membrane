@@ -22,6 +22,7 @@ for i in range(256):
 	rgmap.append([255-i,i,0,255])
 
 from mayavi import mlab
+mlab.figure(bgcolor=(0,0,0))
 s = mlab.triangular_mesh(coord3D[0],coord3D[1],coord3D[2],triangles,scalars = (phi[0]+1)/2,vmax=1,vmin=0,colormap='PiYG')
 #s.module_manager.scalar_lut_manager.lut.table = rgmap
 #mlab.view(90, 0)
