@@ -26,6 +26,7 @@ long method;
 long export;
 int c_flag=0,o_flag=1,i_flag=0;
 double a_flag=0,v_flag=0;
+double avg_flag=0;
 double tol;
 double DT,DTauto,run_time;
 double c_0,epsilon;
@@ -35,7 +36,9 @@ double conserved=1;
 double scale=1;
 
 double total_area,willmore_energy,euler_chi,total_volume;
-double l_min,l_max,l_avg,h2_min,h2_max,kg_min,kg_max;
+double l_min,l_max,l_avg;
+double h2_min,h2_max,kg_min,kg_max;
+double h2_avg_min,h2_avg_max,kg_avg_min,kg_avg_max;
 
 double lagrange;
 double current_time;
@@ -169,6 +172,10 @@ void init(int argc, char *argv[])
 						case 'l':
 								conserved=0;
 								printf("Order parameter will not be conserved\n");
+								break;
+						case 'M':
+								avg_flag=1;
+								printf("Will use NN averages for curvatures\n");
 								break;
 						case 'C':
 								gamma_h=atof(argv[n+1]);
@@ -502,6 +509,12 @@ void get_geometry()
 	kg_min=1E10;
 	kg_max=-1E10;
 
+	h2_avg_min=1E10;
+	h2_avg_max=-1E10;
+
+	kg_avg_min=1E10;
+	kg_avg_max=-1E10;
+
 	long i, j, obtuse[MAX_SIZE], num_of_obtuse=0;
 	
 	total_area = 0;	
@@ -829,6 +842,12 @@ void get_geometry()
 
 			if(kg_max<vertex[i].kg){kg_max=vertex[i].kg;};
 			if(kg_min>vertex[i].kg){kg_min=vertex[i].kg;};
+
+			if(h2_avg_max<vertex[i].h2_avg){h2_avg_max=vertex[i].h2_avg;};
+			if(h2_avg_min>vertex[i].h2_avg){h2_avg_min=vertex[i].h2_avg;};
+
+			if(kg_avg_max<vertex[i].kg_avg){kg_avg_max=vertex[i].kg_avg;};
+			if(kg_avg_min>vertex[i].kg_avg){kg_avg_min=vertex[i].kg_avg;};
 				
 		}	
 			
@@ -860,8 +879,12 @@ void get_geometry()
 	printf("\tEuler characteristic\t\t: %lg\n",euler_chi);
 
 	printf("\tMin/max/avg edge length \t: (%lg,%lg,%lg)\n",l_min,l_max,l_avg);
+
 	printf("\tMin/max/avg H2 \t\t\t: (%lg,%lg,%lg)\n",h2_min,h2_max,willmore_energy/total_area);
 	printf("\tMin/max/avg KG \t\t\t: (%lg,%lg,%lg)\n",kg_min,kg_max,2*PI*euler_chi/total_area);
+
+	printf("\tMin/max H2 (NN averaged)\t: (%lg,%lg)\n",h2_avg_min,h2_avg_max);
+	printf("\tMin/max KG (NN averaged)\t: (%lg,%lg)\n",kg_avg_min,kg_avg_max);
 
 	// The interface profile anywhere on the surface should countain at least six grid points:
 	if(epsilon==0){
@@ -884,8 +907,11 @@ void get_geometry()
 	printf("\tCouplings entering EOMs\t\t: (%lg H, %lg H^2, %lg KG)\n",gamma_h,gamma_h2,gamma_kg);
 
 	// The couplings in the \epsilon \to 0 limit could take any value. 
-	// However, since numerically epsilon is finite, this sets a bound on the magnitude of the curvature couplings in order to preserve the double-well structure of the potential			
+	// However, since numerically epsilon is finite, this sets a bound on the magnitude of the curvature couplings in order to preserve the double-well structure of the potential		
+	
 	printf("\tAllowed coupling ranges\t\t: |Leibler|<%lg, |Delta k|<%lg, |Delta k_b|<%lg\n",4./3.*k_barrier/epsilon/sqrt(h2_max),4./3.*k_barrier/epsilon/h2_max,4./3.*k_barrier/epsilon/max(kg_max,sqrt(kg_min*kg_min)));  
+
+	printf("\tAllowed coupling ranges (NN avg): |Leibler|<%lg, |Delta k|<%lg, |Delta k_b|<%lg\n",4./3.*k_barrier/epsilon/sqrt(h2_avg_max),4./3.*k_barrier/epsilon/h2_avg_max,4./3.*k_barrier/epsilon/max(kg_avg_max,sqrt(kg_avg_min*kg_avg_min)));  
 
 	// For diffusion processes are stable only for DT/DX^2 \simeq 1/2:
 	DTauto=.1*l_min*l_min/2;
@@ -1013,7 +1039,8 @@ double V(long i)
 
 	V_int = .25*pow((vertex[i].phi+1),2.)*(2-vertex[i].phi)*epsilon;
 	
-	return V_0+V_int*(gamma_h2*vertex[i].h2+gamma_kg*vertex[i].kg+gamma_h*sqrt(vertex[i].h2));
+	if(avg_flag==0)return V_0+V_int*(gamma_h2*vertex[i].h2+gamma_kg*vertex[i].kg+gamma_h*sqrt(vertex[i].h2));
+	if(avg_flag!=0)return V_0+V_int*(gamma_h2*vertex[i].h2_avg+gamma_kg*vertex[i].kg_avg+gamma_h*sqrt(vertex[i].h2_avg));
 }
 
 double dV(long i)
