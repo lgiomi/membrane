@@ -684,8 +684,8 @@ void get_geometry()
 
 		vertex[i].kg /= vertex[i].area;
 
-		vertex[i].h2_avg = vertex[i].h2/(vertex[i].num_of_neighbors+1);
-		vertex[i].kg_avg = vertex[i].kg/(vertex[i].num_of_neighbors+1);
+		vertex[i].h2_avg = vertex[i].h2*vertex[i].area;
+		vertex[i].kg_avg = vertex[i].kg*vertex[i].area;
 
 		for (j=0; j<vertex[i].num_of_neighbors; j++){
 			vertex[i].weight[j] /= vertex[i].area;	
@@ -726,6 +726,9 @@ void get_geometry()
 	// Moreover, use this loop to compute averaged values of H2 and KG
 
 	for (i=0; i<num_of_meshpoint; i++){
+
+		area_t = 0;
+
 		for (j=0; j<vertex[i].num_of_neighbors; j++){
 
 			a = vertex[i].neighbor[j];
@@ -734,10 +737,15 @@ void get_geometry()
 
 			if(base<0){vertex[a].nx*=-1;vertex[a].ny*=-1;vertex[a].nz*=-1;};
 
-			vertex[i].h2_avg+=vertex[a].h2/(vertex[i].num_of_neighbors+1);
-			vertex[i].kg_avg+=vertex[a].kg/(vertex[i].num_of_neighbors+1);
+			vertex[i].h2_avg+=vertex[a].h2*vertex[a].area;
+			vertex[i].kg_avg+=vertex[a].kg*vertex[a].area;
+			area_t+=vertex[a].area;
 
 		}
+
+		vertex[i].h2_avg/=area_t+vertex[i].area;
+		vertex[i].kg_avg/=area_t+vertex[i].area;
+		
 	}
 
 	// Compute the total volume
