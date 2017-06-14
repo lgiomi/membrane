@@ -288,7 +288,7 @@ void init(int argc, char *argv[])
 
 void print_cmd_line()
 {
-	printf("\t./membrane -m MESH_FILE -t RUN_TIME -I METHOD (-r SEED MEAN_CONCENTRATION | -R START_FILE ) [-e EPSILON] [-T TOL] [-L LEVEL] [-x STEPS] [-i TOTAL_ITERATIONS] [-C GAMMA_H GAMMA_H^2 GAMMA_KG] [-P CX CY CZ] [-A NX NY NZ] [-k BARRIER] [-l] [-a AREA] [-v VOL]\n\n");
+	printf("\t./membrane -m MESH_FILE -t RUN_TIME -I METHOD (-r SEED MEAN_CONCENTRATION | -R START_FILE ) [-e EPSILON] [-T TOL] [-L LEVEL] [-x STEPS] [-i TOTAL_ITERATIONS] [-C GAMMA_H GAMMA_H^2 GAMMA_KG] [-P CX CY CZ] [-A NX NY NZ] [-k BARRIER] [-l] [-M] [-a AREA] [-v VOL]\n\n");
 }
 
 /*******************************************************************/
@@ -313,6 +313,7 @@ void help()
 	printf("\t -A $1 $2 $3\t: if -P has been given, specifies the north pole direction w.r.t coordinate axis [DEFAULT (0,0,1)]\n");
 	printf("\t -k BARRIER\t: set the height of the potential barrier (default is 1)\n");
 	printf("\t -l \t\t: switch off the conservation of order parameter\n");
+	printf("\t -M \t\t: use values of curvatures averaged over nearest neighbours\n");
 	printf("\t -a AREA\t: rescale the mesh so that the total area is AREA\n");
 	printf("\t -v VOL\t\t: rescale the mesh to that the total volume is VOL\n");
 

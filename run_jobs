@@ -58,8 +58,9 @@ rm -f membrane
 rm -f *.dat
 rm -f *.png
 rm -f *.m
-rm -f *.mkv
 rm -fR finalconfigurations
+rm -fR temp_*
+rm -fR testconf*
 make > /dev/null
 
 # Save current dir in the PATH environment
