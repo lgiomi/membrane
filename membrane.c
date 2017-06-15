@@ -1665,7 +1665,7 @@ void write_hi(FILE *f_ou, long t)
 	phiH2/=total_area;
 	phiKG/=total_area;
 	
-	fprintf(f_ou,"%.10ld\t%.10f\t%.10f\t%.10f\t%.10f\t%.10f\t%.10f\t%.10f\t%.10f\t%.10f\t%d\n",
+	fprintf(f_ou,"%.10ld\t%.10f\t%.10f\t%.10f\t%.10f\t%.10f\t%.10f\t%.10f\t%.10f\t%.10f\t%d\t%.10f\n",
 	t,
 	DT,
 	current_time,
@@ -1676,7 +1676,8 @@ void write_hi(FILE *f_ou, long t)
 	phiH2-c0*willmore_energy/total_area,
 	phiKG-c0*2*PI*euler_chi/total_area,
 	lagrange,
-	num_of_domains);
+	num_of_domains,
+	c0);
 	
 }
 
