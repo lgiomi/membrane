@@ -94,7 +94,7 @@ while [ $k_c -le $n_k ];
 				mkdir -p $DIR
 				cd $DIR
 
-				while [ $nnow -gt 200 ]; 
+				while [ $nnow -gt 400 ]; 
         				do
         				sleep 5
        		 			nnow=`squeue | grep fonda | wc -l`

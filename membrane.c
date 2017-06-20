@@ -24,7 +24,7 @@ double c_x,c_y,c_z;
 double a_x,a_y,a_z;
 long method;
 long export;
-int c_flag=0,o_flag=1,i_flag=0;
+int c_flag=0,o_flag=1,i_flag=0,g_flag=0;
 double a_flag=0,v_flag=0;
 double avg_flag=0;
 double tol;
@@ -32,6 +32,7 @@ double DT,DTauto,run_time;
 double c_0,epsilon;
 double gamma_h,gamma_h2,gamma_kg;
 double k_barrier=1.;
+double g_sigma;
 double conserved=1;
 double scale=1;
 
@@ -70,6 +71,9 @@ void write_hi(FILE *, long);
 void get_time(time_t, CPU_Time *);
 void export_graphic_complex(FILE *, long);
 void export_dat(FILE *);
+
+double ran2(long *);
+double gauss_ran2(long *,double, double);
 
 void help();
 void print_cmd_line();
@@ -233,11 +237,17 @@ void init(int argc, char *argv[])
 								};
 								break;
 						case 'R':
-								printf(import_name, sizeof(import_name), "%s", argv[n+1]);
+								snprintf(import_name, sizeof(import_name), "%s", argv[n+1]);
 								printf("Initial configuration\t: %s\n",import_name);
 								i_flag+=1;
 								n++;
-								break;             
+								break;     
+						case 'g':
+								g_sigma=atof(argv[n+1]);
+								g_flag=1;
+								printf("Gaussian noise enabled (with dispersion %lg)\n",g_sigma);
+								n++;
+								break;        
 						default:  
 							printf("Illegal option code \"-%c\"\n",(int)argv[n][1]);
 							printf("\nType ./membrane -h for help\n"); 
@@ -288,7 +298,7 @@ void init(int argc, char *argv[])
 
 void print_cmd_line()
 {
-	printf("\t./membrane -m MESH_FILE -t RUN_TIME -I METHOD (-r SEED MEAN_CONCENTRATION | -R START_FILE ) [-e EPSILON] [-T TOL] [-L LEVEL] [-x STEPS] [-i TOTAL_ITERATIONS] [-C GAMMA_H GAMMA_H^2 GAMMA_KG] [-P CX CY CZ] [-A NX NY NZ] [-k BARRIER] [-l] [-M] [-a AREA] [-v VOL]\n\n");
+	printf("\t./membrane -m MESH_FILE -t RUN_TIME -I METHOD (-r SEED MEAN_CONCENTRATION | -R START_FILE ) [-e EPSILON] [-T TOL] [-L LEVEL] [-x STEPS] [-i TOTAL_ITERATIONS] [-C GAMMA_H GAMMA_H^2 GAMMA_KG] [-P CX CY CZ] [-A NX NY NZ] [-k BARRIER] [-g SIGMA] [-l] [-M] [-a AREA] [-v VOL]\n\n");
 }
 
 /*******************************************************************/
@@ -312,6 +322,7 @@ void help()
 	printf("\t -P $1 $2 $3\t: specifies the (x,y,z) coordinates of the center for projection of the surface onto a unit sphere\n");
 	printf("\t -A $1 $2 $3\t: if -P has been given, specifies the north pole direction w.r.t coordinate axis [DEFAULT (0,0,1)]\n");
 	printf("\t -k BARRIER\t: set the height of the potential barrier (default is 1)\n");
+	printf("\t -g SIGMA\t: add white Gaussian noise to the EOM with standard deviation SIGMA.\n");
 	printf("\t -l \t\t: switch off the conservation of order parameter\n");
 	printf("\t -M \t\t: use values of curvatures averaged over nearest neighbours\n");
 	printf("\t -a AREA\t: rescale the mesh so that the total area is AREA\n");
@@ -1001,7 +1012,7 @@ void get_rhs(double *rhs)
 {
 	double laplace(long);
 	double dV(long);
-	long i; 	
+	long i;
 	
 	// Calculate the Lagrange multiplier
 	
@@ -1017,8 +1028,11 @@ void get_rhs(double *rhs)
 	// Calculate the right-hand side of the Allen-Cahn equation
 	
 	for (i=0; i<num_of_meshpoint; i++){
-		
-		rhs[i] = laplace(i)-dV(i)/(epsilon*epsilon)-conserved*lagrange;
+		if(g_flag==0){
+			rhs[i] = laplace(i)-dV(i)/(epsilon*epsilon)-conserved*lagrange;
+		}else{
+			rhs[i] = laplace(i)-dV(i)/(epsilon*epsilon)-conserved*lagrange+gauss_ran2(&seed,0,g_sigma);
+		}
 	}
 }
 
@@ -1060,7 +1074,8 @@ double dV(long i)
 
 	dV_int = .75*(1-vertex[i].phi*vertex[i].phi)*epsilon;
 	
-	return dV_0+dV_int*(gamma_h2*vertex[i].h2+gamma_kg*vertex[i].kg+gamma_h*sqrt(vertex[i].h2));
+	if(avg_flag==0)return dV_0+dV_int*(gamma_h2*vertex[i].h2+gamma_kg*vertex[i].kg+gamma_h*sqrt(vertex[i].h2));
+	if(avg_flag!=0)return dV_0+dV_int*(gamma_h2*vertex[i].h2_avg+gamma_kg*vertex[i].kg_avg+gamma_h*sqrt(vertex[i].h2_avg));
 }
 
 
@@ -1772,6 +1787,14 @@ void get_time(time_t t, CPU_Time *cpu_time)
 }
 
 /*******************************************************************/
+//  Long period (>2 E18) random number generator of
+//  L'Ecuyer with Bays-Durham suffle and added
+//  safeguards. Returns a uniform random deviate between
+//  0.0 and 1.0 (exclusive of the endpoint values).
+//  Call with idum a negative integer to initialise;
+//  thereafter, do not alter idum between successive
+//  deviates in a sequence. RNMX should approximate the
+//  largest floating value that is less than 1.
 
 double ran2(long *idum)
 {
@@ -1807,3 +1830,43 @@ double ran2(long *idum)
   	if ((temp = AM*iy) > RNMX) return RNMX; 
   	else return temp;
 }
+
+/*******************************************************************/
+// Returns a normailly distributed deviate with zero mean and unit variance,
+// using ran2(idum) as the source of uniform random deviates.
+
+double gauss_ran2(long *idum, double mean, double stddev)
+{
+  static int iset = 0;
+  static double gset;
+  double fac,rsq,v1,v2, deviate;
+
+  if (*idum < 0) iset = 0; // Reinitialize
+  if (iset == 0) { 
+    // 
+    // We don't have an extra deviate handy, so pick two uniform numbers
+    // in the square extending from -1 to +1 in each direction, and
+    // see if they are in the unit circle
+    //
+    do {
+      v1 = 2.0 * ran2(idum) - 1.0; 
+      v2 = 2.0 * ran2(idum) - 1.0;
+      rsq = v1 * v1 + v2 * v2; 
+    } while (rsq >= 1.0 || rsq == 0.0); // and if they are not, try again.
+    fac = sqrt(-2.0 * log(rsq)/rsq);
+
+    //
+    // Now make the Box-Muller transformation to get two normal deviates.
+    // Return one and save the other for next time.
+    //
+    gset = v1*fac;
+    iset = 1;      // Set flag.
+    deviate = v2*fac;
+  }
+  else {       // We have an extra deviate handy,
+    iset = 0;      // so unset the flag,
+    deviate = gset; // and return it.
+  }
+
+  return deviate * stddev + mean;
+} 

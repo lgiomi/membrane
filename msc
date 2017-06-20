@@ -6,4 +6,4 @@ rm -f *.png
 rm -f *.m
 make
 
-./membrane -m mesh/dumbbell_6.msh -t 120 -I 5 -r $RANDOM .5 -C 0 0 -.01 -L 3 -a 1 -k 2 -x 50 -M
+./membrane -m mesh/dumbbell_7.msh -t 120 -I 5 -r $RANDOM .5 -C 0 .1 -.1 -L 3 -a 1 -k 2 -x 50 -M -g 1E-3

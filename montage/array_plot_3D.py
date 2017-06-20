@@ -1,7 +1,7 @@
 import numpy as np,sys
 
 if len(sys.argv)<2:
-    sys.exit("Syntax: python array_plot_3D.py input.dat")
+    sys.exit("Syntax: python array_plot_3D.py folder_path")
 
 import glob,os
 
@@ -57,7 +57,7 @@ print ""
 for f in listconf:
 
 	n=f.split("_")
-	print "\033[F"+"                                                                                    "
+	print "\033[F"+"                                                                                   				 "
 	print "\033[F"+"Processing file t_"+n[-5]+"_"+n[-4]+"_"+n[-3]+"_"+n[-2]+" ("+str(counter+1)+" of "+str(len(listconf))+")"
 	counter=counter+1
 	if os.path.isfile("img_temp/"+"t_"+str(listk.index(float(n[-5])))+"_"+str(listkb.index(float(n[-4])))+"_"+str(listc.index(float(n[-3])))+"_"+str(listn.index(int(n[-2])))+".png"):
