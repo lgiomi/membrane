@@ -1646,7 +1646,7 @@ void end()
 	phiH2-c0*willmore_energy/total_area,
 	phiKG-c0*2*PI*euler_chi/total_area,
 	lagrange,
-	num_of_domains.
+	num_of_domains,
 	c0);
 	fclose(f_ou);
 
