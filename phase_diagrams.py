@@ -61,7 +61,7 @@ X, Y = np.meshgrid(X, Y)
 #total_time		= mlab.griddata(sdata[:,1], sdata[:,0], sdata[:,11], X, Y, interp='linear')
 
 # Which then could have been used to plot contours as:
-# plt.pcolormesh(X, Y, phiH2, cmap = plt.get_cmap('viridis'))
+# plt.pcolormesh(X, Y, phiH2, cmap = plt.get_cmap(c_map))
 # contour_phiH2 = plt.contour(X, Y, phiH2, n_contours, inline=1, fontsize=font_contours, linewidths=lw, colors='k')
 # contour_N_domains = plt.contour(X, Y, N_domains, [1,2,3,4,5,6], inline=1, fontsize=font_contours, linewidths=lw, colors='k')
 # plt.clabel(contour_phiH2, inline=1, fmt='%2.2f',fontsize=font_contours)
@@ -90,24 +90,25 @@ font_contours=6
 font_axeslabel=12
 lw=.8
 n_contours=6
+c_map='jet'
 
 full_plot.add_subplot(221)
 
 plt.title(r"$\mathrm{Number\;of\;domains}$", fontsize=font_title, color='black')
 plt.xlabel(r"$\eta_{\bar{k}}$",fontsize=font_axeslabel)
 plt.ylabel(r"$\eta_k}$",fontsize=font_axeslabel)
-plt.imshow(N_domains, cmap='viridis', origin='lower', extent=[sdata[:,1].min(), sdata[:,1].max(), sdata[:,0].min(), sdata[:,0].max()])
+plt.imshow(N_domains, cmap=c_map, origin='lower', extent=[sdata[:,1].min(), sdata[:,1].max(), sdata[:,0].min(), sdata[:,0].max()], vmin=1, vmax=5)
 ax = plt.gca()
 divider = make_axes_locatable(ax)
 cax = divider.append_axes("right", size="5%", pad=0.05)
-plt.colorbar(cax=cax, ticks=[1,2,3,4])
+plt.colorbar(cax=cax, ticks=[1,2,3,4,5])
 
 full_plot.add_subplot(222)
 
 plt.title(r"$\mathrm{Interface\;length}$", fontsize=font_title, color='black')
 plt.xlabel(r"$\eta_{\bar{k}}$",fontsize=font_axeslabel)
 plt.ylabel(r"$\eta_k}$",fontsize=font_axeslabel)
-plt.imshow(kinetic_energy, cmap='viridis', origin='lower', extent=[sdata[:,1].min(), sdata[:,1].max(), sdata[:,0].min(), sdata[:,0].max()])
+plt.imshow(kinetic_energy, cmap=c_map, origin='lower', extent=[sdata[:,1].min(), sdata[:,1].max(), sdata[:,0].min(), sdata[:,0].max()])
 ax = plt.gca()
 divider = make_axes_locatable(ax)
 cax = divider.append_axes("right", size="5%", pad=0.05)
@@ -118,7 +119,7 @@ full_plot.add_subplot(223)
 plt.title(r"$\left<\phi H^2\right>_c$", fontsize=font_title, color='black')
 plt.xlabel(r"$\eta_{\bar{k}}$",fontsize=font_axeslabel)
 plt.ylabel(r"$\eta_k}$",fontsize=font_axeslabel)
-plt.imshow(phiH2, cmap='viridis', origin='lower', extent=[sdata[:,1].min(), sdata[:,1].max(), sdata[:,0].min(), sdata[:,0].max()])
+plt.imshow(phiH2, cmap=c_map, origin='lower', extent=[sdata[:,1].min(), sdata[:,1].max(), sdata[:,0].min(), sdata[:,0].max()])
 ax = plt.gca()
 divider = make_axes_locatable(ax)
 cax = divider.append_axes("right", size="5%", pad=0.05)
@@ -129,7 +130,7 @@ full_plot.add_subplot(224)
 plt.title(r"$\left<\phi K_G\right>_c$", fontsize=font_title, color='black')
 plt.xlabel(r"$\eta_{\bar{k}}$",fontsize=font_axeslabel)
 plt.ylabel(r"$\eta_k}$",fontsize=font_axeslabel)
-plt.imshow(phiKG, cmap='viridis', origin='lower', extent=[sdata[:,1].min(), sdata[:,1].max(), sdata[:,0].min(), sdata[:,0].max()])
+plt.imshow(phiKG, cmap=c_map, origin='lower', extent=[sdata[:,1].min(), sdata[:,1].max(), sdata[:,0].min(), sdata[:,0].max()])
 ax = plt.gca()
 divider = make_axes_locatable(ax)
 cax = divider.append_axes("right", size="5%", pad=0.05)
