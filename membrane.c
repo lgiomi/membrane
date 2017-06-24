@@ -1066,6 +1066,15 @@ double V(long i)
 	if(avg_flag!=0)return V_0+V_int*(gamma_h2*vertex[i].h2_avg+gamma_kg*vertex[i].kg_avg+gamma_h*sqrt(vertex[i].h2_avg));
 }
 
+double Vp(long i)
+{
+	double V_0;
+
+	V_0 = k_barrier*.25*pow(pow(vertex[i].phi,2.)-1,2.);
+
+	return V_0;
+}
+
 double dV(long i)
 {
 	double dV_0,dV_int;
@@ -1581,7 +1590,7 @@ void progress_bar(long t)
 void end()
 {	
 	CPU_Time cpu_time;
-	double c0=0,phisq=0,kin=0,pot=0,tph,tpa,phiH2=0,phiKG=0;
+	double c0=0,phisq=0,kin=0,pot=0,pot_p=0,tph,tpa,phiH2=0,phiKG=0;
 	int i;
 	
 	FILE *f_ou;
@@ -1617,12 +1626,20 @@ void end()
 		c0 	+=tpa*tph;
 		kin	-=tpa*.5*tph*laplace(i)*epsilon;
 		pot	+=tpa*V(i)/epsilon;
+		pot_p	+=tpa*Vp(i)/epsilon;
+		if(avg_flag==0){
 		phiH2	+=tpa*tph*vertex[i].h2;
 		phiKG	+=tpa*tph*vertex[i].kg;
+		}else
+		{
+		phiH2	+=tpa*tph*vertex[i].h2_avg;
+		phiKG	+=tpa*tph*vertex[i].kg_avg;
+		};
 	}
 
 	kin/=total_area;
 	pot/=total_area;
+	pot_p/=total_area;
 	phisq/=total_area;
 	c0/=total_area;
 	phiH2/=total_area;
@@ -1640,8 +1657,8 @@ void end()
 	fprintf(f_ou,"%.10f\t%.10f\t%.10f\t%.10f\t%.10f\t%.10f\t%.10f\t%.10f\t%d\t%.10f\n",
 	current_time,
 	kin,
+	pot_p,
 	pot,
-	kin+pot,
 	phisq-c0*c0,
 	phiH2-c0*willmore_energy/total_area,
 	phiKG-c0*2*PI*euler_chi/total_area,
@@ -1670,12 +1687,19 @@ void write_hi(FILE *f_ou, long t)
 		c0 	+=tpa*tph;
 		kin	-=tpa*.5*tph*laplace(i)*epsilon;
 		pot	+=tpa*V(i)/epsilon;
+		if(avg_flag==0){
 		phiH2	+=tpa*tph*vertex[i].h2;
 		phiKG	+=tpa*tph*vertex[i].kg;
+		}else
+		{
+		phiH2	+=tpa*tph*vertex[i].h2_avg;
+		phiKG	+=tpa*tph*vertex[i].kg_avg;
+		};
 	}
 
 	kin/=total_area;
 	pot/=total_area;
+	pot_p/=total_area;
 	phisq/=total_area;
 	c0/=total_area;
 	phiH2/=total_area;
@@ -1686,8 +1710,8 @@ void write_hi(FILE *f_ou, long t)
 	DT,
 	current_time,
 	kin,
+	pot_p,
 	pot,
-	kin+pot,
 	phisq-c0*c0,
 	phiH2-c0*willmore_energy/total_area,
 	phiKG-c0*2*PI*euler_chi/total_area,
