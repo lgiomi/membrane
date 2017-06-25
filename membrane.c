@@ -1676,7 +1676,7 @@ void write_hi(FILE *f_ou, long t)
 	long m, i, j;
 	double V(long);
 
-	double c0=0,phisq=0,kin=0,pot=0,tph,tpa,phiH2=0,phiKG=0;
+	double c0=0,phisq=0,kin=0,pot=0,pot_p=0,tph,tpa,phiH2=0,phiKG=0;
  	
 	for (i=0; i<num_of_meshpoint; i++){
 
@@ -1687,6 +1687,7 @@ void write_hi(FILE *f_ou, long t)
 		c0 	+=tpa*tph;
 		kin	-=tpa*.5*tph*laplace(i)*epsilon;
 		pot	+=tpa*V(i)/epsilon;
+		pot_p	+=tpa*Vp(i)/epsilon;
 		if(avg_flag==0){
 		phiH2	+=tpa*tph*vertex[i].h2;
 		phiKG	+=tpa*tph*vertex[i].kg;
