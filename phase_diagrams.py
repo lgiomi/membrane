@@ -24,7 +24,6 @@ def tuples(A):
 # eta_k	|eta_kb	|c0	|kinetic_energy	|phase_field_potential	|full_potential	|<phi^2>_c	|<phi H^2>_c	|<phi K_G>_c	|Lagrange	|N_domains	|total_time	|C0
 # (note that c0 is an input from run_jobs and ranges [0,1], while C0 is computed from an integral of phi and ranges [-1,1])
 
-
 #if not os.path.exists("pd_images"):
 #    os.makedirs("pd_images")
 
