@@ -35,6 +35,7 @@ double k_barrier=1.;
 double g_sigma;
 double conserved=1;
 double scale=1;
+double noise=.1;
 
 double total_area,willmore_energy,euler_chi,total_volume;
 double l_min,l_max,l_avg;
@@ -60,6 +61,8 @@ void init();
 
 void one_step();
 void init_random();
+void init_pm1_ordered();
+void init_pm1_random();
 void import_initial(char *);
 void get_geometry();
 void track_domains();
@@ -223,12 +226,18 @@ void init(int argc, char *argv[])
 								printf("Integration method\t: %ld\n",method);		
 								n++;
 								break;
+						case 'R':
+								snprintf(import_name, sizeof(import_name), "%s", argv[n+1]);
+								printf("Initial configuration\t: %s\n",import_name);
+								i_flag=1;
+								n++;
+								break;
 						case 'r':
 								seed=atol(argv[n+1]);
 								c_0=atof(argv[n+2]);
 								if(c_0>=0&&c_0<=1){
 									printf("Random initial data\t: (seed %ld, total concentration %lg)\n",seed,c_0);
-									i_flag+=2;
+									i_flag=2;
 									n+=2;
 								}else{
 									printf("Error, total relative concentration has to be between 0 and 1 (you passed %lg) \n",c_0);
@@ -236,11 +245,29 @@ void init(int argc, char *argv[])
 									exit(0);
 								};
 								break;
-						case 'R':
-								snprintf(import_name, sizeof(import_name), "%s", argv[n+1]);
-								printf("Initial configuration\t: %s\n",import_name);
-								i_flag+=1;
-								n++;
+						case 'o':
+								c_0=atof(argv[n+1]);
+								if(c_0>=0&&c_0<=1){
+									printf("Fill the mesh with ±1 following mesh, with total concentration %lg \n",c_0);
+									i_flag=3;
+									n++;
+								}else{
+									printf("Error, total relative concentration has to be between 0 and 1 (you passed %lg) \n",c_0);
+									printf("\nType ./membrane -h for help\n"); 
+									exit(0);
+								};
+								break;
+						case 'p':
+								c_0=atof(argv[n+1]);
+								if(c_0>=0&&c_0<=1){
+									printf("Fill the mesh with ±1 randomly, with total concentration %lg \n",c_0);
+									i_flag=4;
+									n++;
+								}else{
+									printf("Error, total relative concentration has to be between 0 and 1 (you passed %lg) \n",c_0);
+									printf("\nType ./membrane -h for help\n"); 
+									exit(0);
+								};
 								break;     
 						case 'g':
 								g_sigma=atof(argv[n+1]);
@@ -291,14 +318,21 @@ void init(int argc, char *argv[])
 	}
 	else if(i_flag==2){
 		init_random();
-	};
+	} 
+	else if(i_flag==3){
+		init_pm1_ordered();
+	} 
+	else if(i_flag==4){
+		init_pm1_random();
+	} 
+	;
 }
 
 /*******************************************************************/
 
 void print_cmd_line()
 {
-	printf("\t./membrane -m MESH_FILE -t RUN_TIME -I METHOD (-r SEED MEAN_CONCENTRATION | -R START_FILE ) [-e EPSILON] [-T TOL] [-L LEVEL] [-x STEPS] [-i TOTAL_ITERATIONS] [-C GAMMA_H GAMMA_H^2 GAMMA_KG] [-P CX CY CZ] [-A NX NY NZ] [-k BARRIER] [-g SIGMA] [-l] [-M] [-a AREA] [-v VOL]\n\n");
+	printf("\t./membrane -m MESH_FILE -t RUN_TIME -I METHOD (-r SEED C0 | -R START_FILE | -o C0 | -p C0) [-e EPSILON] [-T TOL] [-L LEVEL] [-x STEPS] [-i TOTAL_ITERATIONS] [-C GAMMA_H GAMMA_H^2 GAMMA_KG] [-P CX CY CZ] [-A NX NY NZ] [-k BARRIER] [-g SIGMA] [-l] [-M] [-a AREA] [-v VOL]\n\n");
 }
 
 /*******************************************************************/
@@ -310,9 +344,11 @@ void help()
 	printf("Where:\n");
 	printf("\t -m MESH_FILE\t: import mesh from file (works only with standard gmsh mesh format .msh)\n");
 	printf("\t -t RUN_TIME\t: total simulation time. For adaptive stepsize is an (obligatory) upper bound\n");
-	printf("\t -I METHOD\t: choose integration method\n\t\t\t\t1: Euler\n\t\t\t\t2: RK2\n\t\t\t\t3: RK4\n\t\t\t\t4: RK2-Euler with adaptive step-size [NOT FULLY WORKING]\n\t\t\t\t5: RKF45 with adaptive stepsize\n");
-	printf("\t -r $1 $2\t: random intial condition with seed $1 and mean concentration $2\n");
+	printf("\t -I METHOD\t: choose integration method\n\t\t\t\t1: Euler\n\t\t\t\t2: RK2\n\t\t\t\t3: RK4\n\t\t\t\t4: RK2-Euler with adaptive step-size\n\t\t\t\t5: RKF45 with adaptive stepsize\n");
+	printf("\t -r $1 $2\t: quasi-constant random initial configuration (seed $1) centered around mean value $2 and variance %g\n",noise);
 	printf("\t -R FILE\t: import initial configuration from file\n");
+	printf("\t -o $1\t\t: initial configuration is set for fields at ±1 ordered as in the mesh file, total concentration $1\n");
+	printf("\t -p $1\t\t: initial configuration is set for fields at ±1 at random, total concentration $1\n");
 	printf("\t -e EPSILON\t: set the value of epsilon. If not set is computed automatically from average edge length\n");
 	printf("\t -T TOL\t\t: set the tolerance for adaptive step-size integration methods\n");
 	printf("\t -L LEVEL\t: choose which output files will be printed\n\t\t\t\t0: 'last.dat', 'final.dat'\n\t\t\t\t1: previous +  'histo.dat', 'geometry.dat', 'last.m', 'interface.m', 'triangles.dat' + 'gc_#.dat' if -x is set [DEFAULT]\n\t\t\t\t2: previous + 'mean_curvature.m', 'gaussian_curvature.m' + 'gc_#.m' if -x is set\n\t\t\t\t3: as in '1' + debug files\n");
@@ -954,7 +990,7 @@ void get_geometry()
 
 void init_random()
 {
-	double  noise=0.1, ran2(long *);
+	double ran2(long *);
 	long i;
 		
 	for (i=0; i<num_of_meshpoint; i++){
@@ -1004,6 +1040,38 @@ void import_initial(char *import_name)
 	c_0/=total_area;
 	c_0=.5+c_0/2.;
 	printf("Imported initial configuration from %s with mean concentration %g\n",import_name,c_0);
+}
+
+/*******************************************************************/
+
+void init_pm1_ordered()
+{
+	long i,j;
+	
+	j=floor(c_0*num_of_meshpoint);
+
+	for (i=0; i<j; i++){
+		vertex[i].phi = +1;
+	}
+	for (i=j; i<num_of_meshpoint; i++){
+		vertex[i].phi = -1;
+	}
+}
+
+/*******************************************************************/
+
+void init_pm1_random()
+{
+	long i,j;
+	
+	j=floor(c_0*num_of_meshpoint);
+
+	for (i=0; i<j; i++){
+		vertex[i].phi = +1;
+	}
+	for (i=j; i<num_of_meshpoint; i++){
+		vertex[i].phi = -1;
+	}
 }
 
 /*******************************************************************/
@@ -1281,7 +1349,7 @@ void heun_euler()
 	double rhs2[MAX_SIZE];
 	double Q[MAX_SIZE];
 	double Q_average=0,delta,rhs_average=0;
-	double DTmin=DTauto/10000,DTmax=DTauto*10000.;
+	double DTmin=DTauto*1E-5,DTmax=DTauto*1E5;
 	long i;
 
 	FILE *f_ou;
@@ -1308,7 +1376,7 @@ void heun_euler()
 
 	if(rhs_average<tol)halt_now=1;
 
-	delta=tol/Q_average/2;
+	delta=pow(20.*tol/Q_average,.5);
 
 	if(delta<.1){DT*=.1;}
 	else if(delta>4.){DT*=4.;}
