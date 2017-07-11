@@ -258,11 +258,12 @@ void init(int argc, char *argv[])
 								};
 								break;
 						case 'p':
-								c_0=atof(argv[n+1]);
+								seed=atol(argv[n+1]);
+								c_0=atof(argv[n+2]);
 								if(c_0>=0&&c_0<=1){
-									printf("Fill the mesh with ±1 randomly, with total concentration %lg \n",c_0);
+									printf("Fill the mesh with ±1 randomly, with seed %ld and total concentration %lg \n",seed,c_0);
 									i_flag=4;
-									n++;
+									n+=2;
 								}else{
 									printf("Error, total relative concentration has to be between 0 and 1 (you passed %lg) \n",c_0);
 									printf("\nType ./membrane -h for help\n"); 
@@ -332,7 +333,7 @@ void init(int argc, char *argv[])
 
 void print_cmd_line()
 {
-	printf("\t./membrane -m MESH_FILE -t RUN_TIME -I METHOD (-r SEED C0 | -R START_FILE | -o C0 | -p C0) [-e EPSILON] [-T TOL] [-L LEVEL] [-x STEPS] [-i TOTAL_ITERATIONS] [-C GAMMA_H GAMMA_H^2 GAMMA_KG] [-P CX CY CZ] [-A NX NY NZ] [-k BARRIER] [-g SIGMA] [-l] [-M] [-a AREA] [-v VOL]\n\n");
+	printf("\t./membrane -m MESH_FILE -t RUN_TIME -I METHOD (-r SEED C0 | -R START_FILE | -o C0 | -p SEED C0) [-e EPSILON] [-T TOL] [-L LEVEL] [-x STEPS] [-i TOTAL_ITERATIONS] [-C GAMMA_H GAMMA_H^2 GAMMA_KG] [-P CX CY CZ] [-A NX NY NZ] [-k BARRIER] [-g SIGMA] [-l] [-M] [-a AREA] [-v VOL]\n\n");
 }
 
 /*******************************************************************/
@@ -348,7 +349,7 @@ void help()
 	printf("\t -r $1 $2\t: quasi-constant random initial configuration (seed $1) centered around mean value $2 and variance %g\n",noise);
 	printf("\t -R FILE\t: import initial configuration from file\n");
 	printf("\t -o $1\t\t: initial configuration is set for fields at ±1 ordered as in the mesh file, total concentration $1\n");
-	printf("\t -p $1\t\t: initial configuration is set for fields at ±1 at random, total concentration $1\n");
+	printf("\t -p $1 $2\t: initial configuration is set for fields at ±1 at random, seed $1 and total concentration $2\n");
 	printf("\t -e EPSILON\t: set the value of epsilon. If not set is computed automatically from average edge length\n");
 	printf("\t -T TOL\t\t: set the tolerance for adaptive step-size integration methods\n");
 	printf("\t -L LEVEL\t: choose which output files will be printed\n\t\t\t\t0: 'last.dat', 'final.dat'\n\t\t\t\t1: previous +  'histo.dat', 'geometry.dat', 'last.m', 'interface.m', 'triangles.dat' + 'gc_#.dat' if -x is set [DEFAULT]\n\t\t\t\t2: previous + 'mean_curvature.m', 'gaussian_curvature.m' + 'gc_#.m' if -x is set\n\t\t\t\t3: as in '1' + debug files\n");
@@ -1062,16 +1063,37 @@ void init_pm1_ordered()
 
 void init_pm1_random()
 {
-	long i,j;
-	
-	j=floor(c_0*num_of_meshpoint);
+	long i,j,j_this,k,k_this;
+	double ran2(long *),c_0_temp=0;
 
-	for (i=0; i<j; i++){
-		vertex[i].phi = +1;
-	}
-	for (i=j; i<num_of_meshpoint; i++){
+	for (i=0; i<num_of_meshpoint; i++){
 		vertex[i].phi = -1;
 	}
+
+	while(c_0_temp < c_0){
+		i = floor(ran2(&seed)*num_of_meshpoint);
+		//printf("Random vertex %d\n",i);
+		if(vertex[i].phi < 0){
+			vertex[i].phi= +1;
+			c_0_temp+=vertex[i].area/total_area;
+		}
+		for (j=0; j<vertex[i].num_of_neighbors; j++){
+			j_this = vertex[i].neighbor[j];
+			if(vertex[j_this].phi < 0){
+				vertex[j_this].phi= +1;
+				c_0_temp+=vertex[j_this].area/total_area;
+			}
+			for (k=0; k<vertex[j_this].num_of_neighbors; k++){
+				k_this = vertex[j_this].neighbor[k];
+				if(vertex[k_this].phi < 0){
+					vertex[k_this].phi= +1;
+					c_0_temp+=vertex[k_this].area/total_area;
+				}
+			}
+		}
+	
+	};
+
 }
 
 /*******************************************************************/
