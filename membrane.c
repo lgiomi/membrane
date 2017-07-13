@@ -964,7 +964,9 @@ void get_geometry()
 	printf("\tCouplings entering EOMs\t\t: (%lg H, %lg H^2, %lg KG)\n",gamma_h,gamma_h2,gamma_kg);
 
 	// The couplings in the \epsilon \to 0 limit could take any value. 
-	// However, since numerically epsilon is finite, this sets a bound on the magnitude of the curvature couplings in order to preserve the double-well structure of the potential		
+	// However, since numerically epsilon is finite, this sets a bound on the magnitude of the curvature couplings in order to preserve the double-well structure of the potential	
+
+	printf("\tExtremal value of deltas \t: (%lg H, %lg H^2, %lg - %lg KG)\n",.75/k_barrier*gamma_h*epsilon*sqrt(h2_max),.75/k_barrier*gamma_h2*epsilon*h2_max,.75/k_barrier*gamma_kg*epsilon*kg_min,.75/k_barrier*gamma_kg*epsilon*kg_max);	
 	
 	printf("\tAllowed coupling ranges\t\t: |Leibler|<%lg, |Delta k|<%lg, |Delta k_b|<%lg\n",4./3.*k_barrier/epsilon/sqrt(h2_max),4./3.*k_barrier/epsilon/h2_max,4./3.*k_barrier/epsilon/max(kg_max,sqrt(kg_min*kg_min)));  
 
