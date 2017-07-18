@@ -1,0 +1,69 @@
+#!/bin/bash
+
+if [ "$#" -lt 7 ]; then
+	echo "Syntax: ./dobig3D x_in x_fin y_in y_fin z_in n_in n_fin"
+	exit
+fi
+
+x_in=$1
+x_fin=$2
+
+y_in=$3
+y_fin=$4
+
+z_in=$5
+#z_fin=$6
+
+n_in=$6
+n_fin=$7
+
+convert -size 1920x1080 xc:white blank.png
+
+while [ $y_in -le $y_fin ];  do
+
+	while [ $n_in -le $n_fin ];  do
+
+		while [ $x_in -le $x_fin ];  do
+
+			if [ -e img_temp/t_${x_in}_${z_in}_${y_in}_${n_in}.png ]; then
+				cp img_temp/t_${x_in}_${z_in}_${y_in}_${n_in}.png .
+
+			else
+				cp blank.png t_${x_in}_${z_in}_${y_in}_${n_in}.png
+			fi
+			let x_in+=1
+
+		done
+		
+		x_in=$1
+
+		tot=`ls t_*_${z_in}_${y_in}_${n_in}.png | wc -w`
+
+		montage $(ls -1 t_*_${z_in}_${y_in}_${n_in}.png | sort -r -t _ -V)  -geometry +2+2 -tile 1x${tot} tcolumn_${y_in}_${z_in}_${n_in}.jpg
+
+		convert tcolumn_${y_in}_${z_in}_${n_in}.jpg -resize 400 smalltcolumn_${y_in}_${z_in}_${n_in}.jpg
+
+		rm tcolumn_${y_in}_${z_in}_${n_in}.jpg
+
+		rm t_*_${z_in}_${y_in}_${n_in}.png
+
+		let n_in+=1
+
+	done
+
+	n_in=$6
+
+	let y_in+=1
+
+done
+
+n_in=$6
+
+while [ $n_in -le $n_fin ];  do
+	tot=`ls smalltcolumn_*_${z_in}_${n_in}.png | wc -w`
+	montage $(ls -1 smalltcolumn_*_${z_in}_${n_in}.jpg | sort -t _ -V)  -geometry +2+2 -tile ${tot}x1 tfinal_${z_in}_${n_in}.jpg
+	let n_in+=1
+done
+
+rm blank.png
+rm smalltcolumn*
