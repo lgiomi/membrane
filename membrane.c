@@ -61,7 +61,6 @@ void init();
 
 void one_step();
 void init_random();
-void init_pm1_ordered();
 void init_pm1_random();
 void import_initial(char *);
 void get_geometry();
@@ -245,24 +244,12 @@ void init(int argc, char *argv[])
 									exit(0);
 								};
 								break;
-						case 'o':
-								c_0=atof(argv[n+1]);
-								if(c_0>=0&&c_0<=1){
-									printf("Fill the mesh with ±1 following mesh, with total concentration %lg \n",c_0);
-									i_flag=3;
-									n++;
-								}else{
-									printf("Error, total relative concentration has to be between 0 and 1 (you passed %lg) \n",c_0);
-									printf("\nType ./membrane -h for help\n"); 
-									exit(0);
-								};
-								break;
 						case 'p':
 								seed=atol(argv[n+1]);
 								c_0=atof(argv[n+2]);
 								if(c_0>=0&&c_0<=1){
 									printf("Fill the mesh with ±1 randomly, with seed %ld and total concentration %lg \n",seed,c_0);
-									i_flag=4;
+									i_flag=3;
 									n+=2;
 								}else{
 									printf("Error, total relative concentration has to be between 0 and 1 (you passed %lg) \n",c_0);
@@ -292,7 +279,7 @@ void init(int argc, char *argv[])
 			}	
 		}
 		DT = run_time/num_of_iteration;
-		if( run_time==0 ||  method == 0 || (num_of_iteration == 1 && method < 4) || i_flag <1 || a_flag*v_flag>0 || a_flag < 0 || v_flag <0){
+		if( run_time==0 ||  method == 0 || (num_of_iteration == 1 && method < 4) || i_flag == 0 || a_flag*v_flag>0 || a_flag < 0 || v_flag <0){
 				printf("\nError: not enough arguments given or wrong parameter values. Write input in the following format:\n"); 
 				print_cmd_line();
 				printf("Type ./membrane -h for help\n"); 
@@ -321,9 +308,6 @@ void init(int argc, char *argv[])
 		init_random();
 	} 
 	else if(i_flag==3){
-		init_pm1_ordered();
-	} 
-	else if(i_flag==4){
 		init_pm1_random();
 	} 
 	;
@@ -333,7 +317,7 @@ void init(int argc, char *argv[])
 
 void print_cmd_line()
 {
-	printf("\t./membrane -m MESH_FILE -t RUN_TIME -I METHOD (-r SEED C0 | -R START_FILE | -o C0 | -p SEED C0) [-e EPSILON] [-T TOL] [-L LEVEL] [-x STEPS] [-i TOTAL_ITERATIONS] [-C GAMMA_H GAMMA_H^2 GAMMA_KG] [-P CX CY CZ] [-A NX NY NZ] [-k BARRIER] [-g SIGMA] [-l] [-M] [-a AREA] [-v VOL]\n\n");
+	printf("\t./membrane -m MESH_FILE -t RUN_TIME -I METHOD (-r SEED C0 | -p SEED C0 | -R START_FILE ) [-e EPSILON] [-T TOL] [-L LEVEL] [-x STEPS] [-i TOTAL_ITERATIONS] [-C GAMMA_H GAMMA_H^2 GAMMA_KG] [-P CX CY CZ] [-A NX NY NZ] [-k BARRIER] [-g SIGMA] [-l] [-M] [-a AREA] [-v VOL]\n\n");
 }
 
 /*******************************************************************/
@@ -348,7 +332,6 @@ void help()
 	printf("\t -I METHOD\t: choose integration method\n\t\t\t\t1: Euler\n\t\t\t\t2: RK2\n\t\t\t\t3: RK4\n\t\t\t\t4: RK2-Euler with adaptive step-size\n\t\t\t\t5: RKF45 with adaptive stepsize\n");
 	printf("\t -r $1 $2\t: quasi-constant random initial configuration (seed $1) centered around mean value $2 and variance %g\n",noise);
 	printf("\t -R FILE\t: import initial configuration from file\n");
-	printf("\t -o $1\t\t: initial configuration is set for fields at ±1 ordered as in the mesh file, total concentration $1\n");
 	printf("\t -p $1 $2\t: initial configuration is set for fields at ±1 at random, seed $1 and total concentration $2\n");
 	printf("\t -e EPSILON\t: set the value of epsilon. If not set is computed automatically from average edge length\n");
 	printf("\t -T TOL\t\t: set the tolerance for adaptive step-size integration methods\n");
@@ -1043,22 +1026,6 @@ void import_initial(char *import_name)
 	c_0/=total_area;
 	c_0=.5+c_0/2.;
 	printf("Imported initial configuration from %s with mean concentration %g\n",import_name,c_0);
-}
-
-/*******************************************************************/
-
-void init_pm1_ordered()
-{
-	long i,j;
-	
-	j=floor(c_0*num_of_meshpoint);
-
-	for (i=0; i<j; i++){
-		vertex[i].phi = +1;
-	}
-	for (i=j; i<num_of_meshpoint; i++){
-		vertex[i].phi = -1;
-	}
 }
 
 /*******************************************************************/
@@ -1950,7 +1917,7 @@ double ran2(long *idum)
 }
 
 /*******************************************************************/
-// Returns a normailly distributed deviate with zero mean and unit variance,
+// Returns a normally distributed deviate with zero mean and unit variance,
 // using ran2(idum) as the source of uniform random deviates.
 
 double gauss_ran2(long *idum, double mean, double stddev)
