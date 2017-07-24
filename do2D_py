@@ -2,6 +2,7 @@
 rm -f temp*.dat
 rm -f tmp*.dat
 rm -f worldline*.dat
+rm -f 3d_field.mkv
 
 file=`ls gc_*.dat | sort -n -k 1.4`
 n_file=`ls gc_*.dat | wc -w`
