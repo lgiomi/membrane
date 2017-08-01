@@ -20,22 +20,24 @@ Vertex vertex[MAX_SIZE];
 
 long num_of_meshpoint,num_of_triangles,num_of_iteration,num_of_edges=0;
 
-double c_x,c_y,c_z;
-double a_x,a_y,a_z;
-long method;
-long export;
 int c_flag=0,o_flag=1,i_flag=0,g_flag=0;
 double a_flag=0,v_flag=0;
 double avg_flag=0;
-double tol;
+long method;
+long export;
+
 double DT,DTauto,run_time;
-double c_0,epsilon;
+double c_0,epsilon,tol;
 double gamma_h,gamma_h2,gamma_kg;
+
 double k_barrier=1.;
 double g_sigma;
 double conserved=1;
 double scale=1;
 double noise=.1;
+
+double c_x,c_y,c_z;
+double a_x,a_y,a_z;
 
 double total_area,willmore_energy,euler_chi,total_volume;
 double l_min,l_max,l_avg;
@@ -49,30 +51,35 @@ int num_of_domains;
 long seed;
 int halt_now=0;
 
+void init();
+void run();
+void end();
+
+void init_random_mixed();
+void init_random_domains();
+void init_import(char *);
+
+void one_step();
+void get_rhs(double *);
+
 void euler();
 void rk2();
 void rk4();
 void heun_euler();
 void rkf45();
 
-void run();
-void end();
-void init();
-
-void one_step();
-void init_random();
-void init_pm1_random();
-void import_initial(char *);
+void import_mesh(char *);
 void get_geometry();
+
 void track_domains();
 void find_neighbors();
-void get_rhs(double *);
-void progress_bar(long);
-void import_mesh(char *);
-void write_hi(FILE *, long);
-void get_time(time_t, CPU_Time *);
+
+void export_histogram(FILE *, long);
 void export_graphic_complex(FILE *, long);
 void export_dat(FILE *);
+
+void get_time(time_t, CPU_Time *);
+void progress_bar(long);
 
 double ran2(long *);
 double gauss_ran2(long *,double, double);
@@ -181,7 +188,7 @@ void init(int argc, char *argv[])
 								break;
 						case 'M':
 								avg_flag=1;
-								printf("Will use NN averages for curvatures\n");
+								printf("Will use NN-averaged values for curvatures\n");
 								break;
 						case 'C':
 								gamma_h=atof(argv[n+1]);
@@ -217,10 +224,10 @@ void init(int argc, char *argv[])
 									case '3': method=3;break;
 									case '4': method=4;break;
 									case '5': method=5;break;
-									default:printf("Illegal integration method  %c\n",(int)argv[n+1][0]);
-										printf("\nType ./membrane -h for help\n"); 
-										exit(0);
-										break;
+									default : printf("Illegal integration method  %c\n",(int)argv[n+1][0]);
+										  printf("\nType ./membrane -h for help\n"); 
+										  exit(0);
+										  break;
 								}
 								printf("Integration method\t: %ld\n",method);		
 								n++;
@@ -234,28 +241,16 @@ void init(int argc, char *argv[])
 						case 'r':
 								seed=atol(argv[n+1]);
 								c_0=atof(argv[n+2]);
-								if(c_0>=0&&c_0<=1){
-									printf("Random initial data\t: (seed %ld, total concentration %lg)\n",seed,c_0);
-									i_flag=2;
-									n+=2;
-								}else{
-									printf("Error, total relative concentration has to be between 0 and 1 (you passed %lg) \n",c_0);
-									printf("\nType ./membrane -h for help\n"); 
-									exit(0);
-								};
+								printf("Random initial data\t: (seed %ld, total concentration %lg)\n",seed,c_0);
+								i_flag=2;
+								n+=2;
 								break;
 						case 'p':
 								seed=atol(argv[n+1]);
 								c_0=atof(argv[n+2]);
-								if(c_0>=0&&c_0<=1){
-									printf("Fill the mesh with ±1 randomly, with seed %ld and total concentration %lg \n",seed,c_0);
-									i_flag=3;
-									n+=2;
-								}else{
-									printf("Error, total relative concentration has to be between 0 and 1 (you passed %lg) \n",c_0);
-									printf("\nType ./membrane -h for help\n"); 
-									exit(0);
-								};
+								printf("Fill the mesh with ±1 randomly over NNN domains, with seed %ld and total concentration %lg \n",seed,c_0);
+								i_flag=3;
+								n+=2;
 								break;     
 						case 'g':
 								g_sigma=atof(argv[n+1]);
@@ -302,13 +297,13 @@ void init(int argc, char *argv[])
 		tol=1E-6;
 	}
 	if(i_flag==1){
-		import_initial(import_name);
+		init_import(import_name);
 	}
 	else if(i_flag==2){
-		init_random();
+		init_random_mixed();
 	} 
 	else if(i_flag==3){
-		init_pm1_random();
+		init_random_domains();
 	} 
 	;
 }
@@ -346,7 +341,7 @@ void help()
 	printf("\t -l \t\t: switch off the conservation of order parameter\n");
 	printf("\t -M \t\t: use values of curvatures averaged over nearest neighbours\n");
 	printf("\t -a AREA\t: rescale the mesh so that the total area is AREA\n");
-	printf("\t -v VOL\t\t: rescale the mesh to that the total volume is VOL\n");
+	printf("\t -v VOL\t\t: rescale the mesh to that the total volume is VOL (overrides -a)\n");
 
 	printf("\n");
 	exit(1);
@@ -908,6 +903,7 @@ void get_geometry()
 
 	// Print summary of mesh computations
 	printf("\n");
+
 	printf("\tVertices\t\t\t: %ld\n",num_of_meshpoint);
 	printf("\tTriangles\t\t\t: %ld\n",num_of_triangles);
 	printf("\tObtuse triangles\t\t: %ld (%.1ld%% of total)\n",num_of_obtuse/2,100*num_of_obtuse/2/num_of_triangles);
@@ -974,7 +970,7 @@ void get_geometry()
 
 /*******************************************************************/
 
-void init_random()
+void init_random_mixed()
 {
 	double ran2(long *);
 	long i;
@@ -986,7 +982,7 @@ void init_random()
 
 /*******************************************************************/
 
-void import_initial(char *import_name)
+void init_import(char *import_name)
 {
 	int i,lines=0;
 	char line[LINESIZE];
@@ -1010,12 +1006,12 @@ void import_initial(char *import_name)
 		c_0=0;
 		FILE *f_in = fopen(import_name,"r");
 		for (i=0; i<num_of_meshpoint; i++){
-		if(fscanf(f_in,"%lg%*[^\n]",&vertex[i].phi)){
-			c_0+=vertex[i].area*vertex[i].phi;
-		}else{
-			printf("Error: failed to read mesh point in %s.\n",import_name);
-			exit(0);
-		};
+			if(fscanf(f_in,"%lg%*[^\n]",&vertex[i].phi)){
+				c_0+=vertex[i].area*vertex[i].phi;
+			}else{
+				printf("Error: failed to read mesh point in %s.\n",import_name);
+				exit(0);
+			};
 		}
 
 		fclose(f_in);
@@ -1030,37 +1026,43 @@ void import_initial(char *import_name)
 
 /*******************************************************************/
 
-void init_pm1_random()
+void init_random_domains()
 {
 	long i,j,j_this,k,k_this;
+	double phi_1=-1,phi_2=1;
 	double ran2(long *),c_0_temp=0;
 
+	if(c_0 < 0 || c_0 > 1){
+		phi_1 = 2.*min(phi_1,c_0);
+		phi_2 = 2.*max(phi_2,c_0);
+		printf("Warning: provided c0 does not lie in the range [-1,+1] (which has anyway little phyisical sense): reshifting to [%2.3g,%2.3g]\n",phi_1,phi_2);
+	};
+
 	for (i=0; i<num_of_meshpoint; i++){
-		vertex[i].phi = -1;
+		vertex[i].phi = phi_1;
 	}
 
 	while(c_0_temp < c_0){
 		i = floor(ran2(&seed)*num_of_meshpoint);
 		//printf("Random vertex %d\n",i);
 		if(vertex[i].phi < 0){
-			vertex[i].phi= +1;
-			c_0_temp+=vertex[i].area/total_area;
+			vertex[i].phi= phi_2;
+			c_0_temp+=(.5+phi_2/2.)*vertex[i].area/total_area;
 		}
 		for (j=0; j<vertex[i].num_of_neighbors; j++){
 			j_this = vertex[i].neighbor[j];
 			if(vertex[j_this].phi < 0){
-				vertex[j_this].phi= +1;
-				c_0_temp+=vertex[j_this].area/total_area;
+				vertex[j_this].phi= phi_2;
+				c_0_temp+=(.5+phi_2/2.)*vertex[j_this].area/total_area;
 			}
 			for (k=0; k<vertex[j_this].num_of_neighbors; k++){
 				k_this = vertex[j_this].neighbor[k];
 				if(vertex[k_this].phi < 0){
-					vertex[k_this].phi= +1;
-					c_0_temp+=vertex[k_this].area/total_area;
+					vertex[k_this].phi= phi_2;
+					c_0_temp+=(.5+phi_2/2.)*vertex[k_this].area/total_area;
 				}
 			}
 		}
-	
 	};
 
 }
@@ -1173,7 +1175,7 @@ void run()
 
 			current_time+=DT;
 
-			if(o_flag>=1)write_hi(f_hi,t);
+			if(o_flag>=1)export_histogram(f_hi,t);
 
 			if (export>0 && t%export==0){
 
@@ -1201,7 +1203,7 @@ void run()
 
 			current_time+=DT;
 
-			if(o_flag>=1)write_hi(f_hi,t);
+			if(o_flag>=1)export_histogram(f_hi,t);
 
 			if (export>0 && t%export==0){
 				if(o_flag == 2 && c_flag==1){
@@ -1730,7 +1732,7 @@ void end()
 
 /*******************************************************************/
 
-void write_hi(FILE *f_ou, long t)
+void export_histogram(FILE *f_ou, long t)
 {
 	long m, i, j;
 	double V(long);
