@@ -1,18 +1,16 @@
 TO DO:
 
+	7- Explain the equipartition theorem, and also why it seems that (numerically) it is violated when the coupling with H^2 is switched on [CHECK THE 2017 MATH PAPER]
+
 	13- RKF45 is not really implemented: we accept always the step, just reduce the next DT: does this create convergence problems?
 		a. Is it possible to improve convergence?
 
 	14- Fluctuations in the mixed phase: how are they linked to Laplace modes? 
 
-	7- Explain the equipartition theorem, and also why it seems that (numerically) it is violated when the coupling with H^2 is switched on [CHECK THE 2017 MATH PAPER]
-
 	16- Proof of the fact that thermodynamical fluctuations of interface are negligible
 
 	17- (Configurational) entropy considerations if we care only on number of domains (integrating degeneracies over phase space)
-		a - MIXING ENTROPY S = phi log phi: does it matter?
-
-	36- Entropic considerations (in the paper on plumbers nightmare, they derive from F=U-TS a Fermi-Dirac distribution for the lipid density?). What is the meaning of entropy in this context 
+		a - MIXING ENTROPY S = phi log phi + (1-phi) log (1-phi): does it matter?
 
 	20- Circular domain formation on developable surfaces: are they ever stable?
 
@@ -28,18 +26,22 @@ TO DO:
 		c- Plumber's nightmare and other minimal
 		d- Nodoids and other CMC surfaces
 
+[UNDONE]28- Improve mesh reading with a strncp and just checking $Nodes and $Elements at random position 
+
 	30- Construct a rotational ellipsoid, very oblate, and try to see the exceptional geodesics https://en.wikipedia.org/wiki/Geodesics_on_an_ellipsoid fig 11&12, they should be preferred over CGC? maybe not.
 
 	35- Rethinking the choice of potentials: can the shift of minima positions be a phsyically meaningful operation? Especially in account of the partially demixed phases observed by Melissa 
 		a- Do simulations of the above point 
 
+	36- Entropic considerations (in the paper on plumbers nightmare, they derive from F=U-TS a Fermi-Dirac distribution for the lipid density?). What is the meaning of entropy in this context 
+
 	37- Check ref [3] of Jiang PRL. They see experimentally concentration shifts
 
-	38- Implement Cahn-Hilliard
-
-[UNDONE]28- Improve mesh reading with a strncp and just checking $Nodes and $Elements at random position 
-
 	40- STABILITY of initial condition in the presence of U: use phi=c0 as initial conditions and see if you can infer whether spinodal deco will happen or just adiabatic rearrangment.
+
+	41- Choose phi_1 and phi_2 arbitrarily when selecting -p initial conditon
+
+	42- Implement Cahn-Hilliard
 
 SIMULATIONS:
 
@@ -77,57 +79,9 @@ SIMULATIONS:
 
 FINISHED STUFF:
 
-[DONE]	39- New initial conditions: only \pm 1 phases at the beginning.
-
-[FIXED]	3b. Fix Heun-Euler (or implement another algorithm) [COMPUTATION OF ERROR IS VERY AD HOC]
-
-[DONE]	38- Simulate the system of two disconnected spheres with common lagrange multiplier
-
-[DONE]	32- Do phase diagrams in Python
-
-[DONE]	16a- Add (Gaussian) noise to EOMs?
-
-[DONE]	34- Redo simulation (or add option) to use H2_avg and KG_avg in the EOM
-
-[DONE]	33- Compute limits on couplings from avg curvatures (and also display min/max/avg for the same quantities)
-
-[DONE]	31- Compute averaged-over-NN values of H2 and KG at each vertex.
-
-[DONE] 	29- Change color to Yellow/Red
-
-[DONE]	34- In array_plot_3d.py add the option to check file existence and skip it in case.
-
-[DONE] 	25- Save total simulation time as an additional order parameter for phase diagrams
-
-[DONE] 	27- Improve mesh reading so that the header does not matter
-
-[DONE]	26- Make -C take as input the "Reynold" numbers instead of bare couplings
-
-[DONE]	23- Add option to rescale the overall mesh in order to tune volume or area
-
-[DONE]	21- Check scaling of variables (how to compare different sizes different values of coupling?)
-
-[DONE]	19- Improve estimates of couplings for regions with exceedingly high curvatures. [This is solved by improving mesh quality]
-
-[DONE]	11- Fix normal vector orientation globally [DONE UP TO PATHOLOGICAL MESHES]	
-
-[DONE]	18- Add computation of the volume 
-
-[DONE] 	1- Fix the vertices with wrong area/H^2/KG (and understand why) [GOOD MESHES IS THE SOLUTION: FRONTAL ALGORITHM]				
-
-[DONE]	15- After geometry calculations, give bounds on couplings such that the convexity of W at \phi=\pm1 does not change 
-		a. What is a (too) strong coupling: point- or global- or meso-values? 
-		b. Is the behaviour of very strong coupling consistent with theoretical expectations?
-
-[DONE]	12- Implement the potential barrier
-
-[DONE] 	9- Improve the random seed & allow for external input file (maybe from a previous evolution) [VERY IMPORTANT]
-
-[DONE]	3- RKF45										
-				a. while loop until lower bound for error is reached
-
-
 [DONE]	0- argc argv so scripting goes easier 
+
+[DONE] 	1- Fix the vertices with wrong area/H^2/KG (and understand why) [GOOD MESHES IS THE SOLUTION: FRONTAL ALGORITHM]
 
 [DONE]	2- integrals of arbitrary stuff over the surface, so that the following observables can be monitored
 			- Total energy 								[DONE]
@@ -137,15 +91,10 @@ FINISHED STUFF:
 			- Other correlations functions: <\phi^2>_c,  				[DONE]
 			- <\phi H^2>_c .... 							[DONE]
 
-[DONE]	5- Couplings: compute K_G and H (should be relatively easy) and allow for direct coupling in the eom 
-			- Coupling with H^2 		[DONE]
-			- Coupling with KG		[DONE]
-	
-[DONE]	6- Add a help() function
+[DONE]	3- RKF45										
+				a. while loop until lower bound for error is reached
 
-[DONE]	8- Compute Willmore energy of surfaces
-
-[DONE]	10- Export mean_curvature.m and gaussian_curvature.m 
+[FIXED]	3b. Fix Heun-Euler (or implement another algorithm) [COMPUTATION OF ERROR IS VERY AD HOC]
 
 [DONE]	4- Export data in order to make nice graphics:
 		a. Export on 2-D grid 				[DONE]
@@ -154,3 +103,54 @@ FINISHED STUFF:
 		c. 3D Plots in Python				[DONE]
 		d. 3D Movies in Python 				[DONE]
 
+[DONE]	5- Couplings: compute K_G and H (should be relatively easy) and allow for direct coupling in the eom 
+			- Coupling with H^2 		[DONE]
+			- Coupling with KG		[DONE]
+	
+[DONE]	6- Add a help() function
+
+[DONE]	8- Compute Willmore energy of surfaces
+
+[DONE] 	9- Improve the random seed & allow for external input file (maybe from a previous evolution) [VERY IMPORTANT]
+
+[DONE]	10- Export mean_curvature.m and gaussian_curvature.m 
+
+[DONE]	11- Fix normal vector orientation globally [DONE UP TO PATHOLOGICAL MESHES]	
+
+[DONE]	12- Implement the potential barrier
+
+[DONE]	15- After geometry calculations, give bounds on couplings such that the convexity of W at \phi=\pm1 does not change 
+		a. What is a (too) strong coupling: point- or global- or meso-values? 
+		b. Is the behaviour of very strong coupling consistent with theoretical expectations?
+
+[DONE]	16a- Add (Gaussian) noise to EOMs?
+
+[DONE]	18- Add computation of the volume 
+
+[DONE]	19- Improve estimates of couplings for regions with exceedingly high curvatures. [This is solved by improving mesh quality]
+
+[DONE]	21- Check scaling of variables (how to compare different sizes different values of coupling?)
+
+[DONE]	23- Add option to rescale the overall mesh in order to tune volume or area
+
+[DONE] 	25- Save total simulation time as an additional order parameter for phase diagrams
+
+[DONE] 	27- Improve mesh reading so that the header does not matter
+
+[DONE]	28a- Make -C take as input the "Reynold" numbers instead of bare couplings
+
+[DONE] 	29- Change color to Yellow/Red
+
+[DONE]	31- Compute averaged-over-NN values of H2 and KG at each vertex.
+
+[DONE]	32- Do phase diagrams in Python
+
+[DONE]	33- Compute limits on couplings from avg curvatures (and also display min/max/avg for the same quantities)
+
+[DONE]	34- In array_plot_3d.py add the option to check file existence and skip it in case.
+
+[DONE]	34a- Redo simulation (or add option) to use H2_avg and KG_avg in the EOM
+
+[DONE]	38- Simulate the system of two disconnected spheres with common Lagrange multiplier
+
+[DONE]	39- New initial conditions: only \pm 1 phases at the beginning.
