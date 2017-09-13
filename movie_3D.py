@@ -23,7 +23,7 @@ phi = np.transpose(np.loadtxt(f))
 mlab.figure(bgcolor=(1,1,1))
 s = mlab.triangular_mesh(coord3D[0],coord3D[1],coord3D[2],triangles,scalars = (phi[0]+1)/2,vmax=1,vmin=0,colormap='PiYG')
 #s.module_manager.scalar_lut_manager.lut.table = rgmap
-mlab.view(90, 0, 2)
+mlab.view(45, 45, 1.5)
 #mlab.view(45, -45,2.1)
 n=f.split("_")[1]
 n=n.split(".")[0]

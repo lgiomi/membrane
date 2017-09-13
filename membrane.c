@@ -2,7 +2,7 @@
 **                                                               **
 **                           MEMBRANE                            **
 **                                                               **
-**			      V 3.0                              **
+**			                                         **
 **                                                               **
 *******************************************************************/
 
@@ -21,6 +21,8 @@ Vertex vertex[MAX_SIZE];
 long num_of_meshpoint,num_of_triangles,num_of_iteration,num_of_edges=0;
 
 int c_flag=0,o_flag=1,i_flag=0,g_flag=0;
+int V_flag=0;
+double a_V;
 double a_flag=0,v_flag=0;
 double avg_flag=0;
 long method;
@@ -257,10 +259,16 @@ void init(int argc, char *argv[])
 								g_flag=1;
 								printf("Gaussian noise enabled (with dispersion %lg)\n",g_sigma);
 								n++;
+								break;
+						case 'u':
+								a_V=atol(argv[n+1]);
+								printf("Mean-field free energy with mixing entropy term, interaction J/T=%lg\n",a_V);
+								V_flag=1;
+								n++;
 								break;        
 						default:  
 							printf("Illegal option code \"-%c\"\n",(int)argv[n][1]);
-							printf("\nType ./membrane -h for help\n"); 
+							printf("Type ./membrane -h for help\n"); 
 							exit(0);
 							break;
 					}
@@ -312,7 +320,7 @@ void init(int argc, char *argv[])
 
 void print_cmd_line()
 {
-	printf("\t./membrane -m MESH_FILE -t RUN_TIME -I METHOD (-r SEED C0 | -p SEED C0 | -R START_FILE ) [-e EPSILON] [-T TOL] [-L LEVEL] [-x STEPS] [-i TOTAL_ITERATIONS] [-C GAMMA_H GAMMA_H^2 GAMMA_KG] [-P CX CY CZ] [-A NX NY NZ] [-k BARRIER] [-g SIGMA] [-l] [-M] [-a AREA] [-v VOL]\n\n");
+	printf("membrane -m MESH_FILE -t RUN_TIME -I METHOD (-r SEED C0 | -p SEED C0 | -R START_FILE ) [-e EPSILON] [-T TOL] [-L LEVEL] [-x STEPS] [-i TOTAL_ITERATIONS] [-C GAMMA_H GAMMA_H^2 GAMMA_KG] [-P CX CY CZ] [-A NX NY NZ] [-k BARRIER] [-g SIGMA] [-l] [-M] [-a AREA] [-v VOL] [-u J]\n\n");
 }
 
 /*******************************************************************/
@@ -326,9 +334,9 @@ void help()
 	printf("\t -t RUN_TIME\t: total simulation time. For adaptive stepsize is an (obligatory) upper bound\n");
 	printf("\t -I METHOD\t: choose integration method\n\t\t\t\t1: Euler\n\t\t\t\t2: RK2\n\t\t\t\t3: RK4\n\t\t\t\t4: RK2-Euler with adaptive step-size\n\t\t\t\t5: RKF45 with adaptive stepsize\n");
 	printf("\t -r $1 $2\t: quasi-constant random initial configuration (seed $1) centered around mean value $2 and variance %g\n",noise);
-	printf("\t -R FILE\t: import initial configuration from file\n");
 	printf("\t -p $1 $2\t: initial configuration is set for fields at ±1 at random, seed $1 and total concentration $2\n");
-	printf("\t -e EPSILON\t: set the value of epsilon. If not set is computed automatically from average edge length\n");
+	printf("\t -R FILE\t: import initial configuration from file\n");
+	printf("\t -e EPSILON\t: set the value of epsilon (if it is not set, it will be computed automatically from average edge length)\n");
 	printf("\t -T TOL\t\t: set the tolerance for adaptive step-size integration methods\n");
 	printf("\t -L LEVEL\t: choose which output files will be printed\n\t\t\t\t0: 'last.dat', 'final.dat'\n\t\t\t\t1: previous +  'histo.dat', 'geometry.dat', 'last.m', 'interface.m', 'triangles.dat' + 'gc_#.dat' if -x is set [DEFAULT]\n\t\t\t\t2: previous + 'mean_curvature.m', 'gaussian_curvature.m' + 'gc_#.m' if -x is set\n\t\t\t\t3: as in '1' + debug files\n");
 	printf("\t -x STEPS\t: if specified and nonzero, decides the frequency with which to export field configurations \n");
@@ -342,6 +350,7 @@ void help()
 	printf("\t -M \t\t: use values of curvatures averaged over nearest neighbours\n");
 	printf("\t -a AREA\t: rescale the mesh so that the total area is AREA\n");
 	printf("\t -v VOL\t\t: rescale the mesh to that the total volume is VOL (overrides -a)\n");
+	printf("\t -u J\t\t: use lattice-gas mean-field free energy with interaction parameter J [CURVATURE INTERACTION YET TO BE PROPERLY DEFINED]\n");
 
 	printf("\n");
 	exit(1);
@@ -1118,10 +1127,27 @@ double laplace(long i)
 double V(long i)
 {
 	double V_0,V_int;
+	double phi,Phi;
 
-	V_0 = k_barrier*.25*pow(pow(vertex[i].phi,2.)-1,2.);
+	phi = vertex[i].phi;
 
-	V_int = .25*pow((vertex[i].phi+1),2.)*(2-vertex[i].phi)*epsilon;
+	if(V_flag == 0){
+
+		V_0 = k_barrier*.25*pow(pow(phi,2.)-1,2.);
+
+		V_int = .25*pow((phi+1),2.)*(2-phi)*epsilon;
+
+	} else if(V_flag == 1){
+
+		Phi = .5*(phi+1.);
+
+		V_0 = k_barrier*(Phi*log(Phi)+(1.-Phi)*log(1.-Phi)+a_V*Phi*(1-Phi));
+
+		// This interaction is temporary.
+
+		V_int = .25*Phi;
+
+	};
 	
 	if(avg_flag==0)return V_0+V_int*(gamma_h2*vertex[i].h2+gamma_kg*vertex[i].kg+gamma_h*sqrt(vertex[i].h2));
 	if(avg_flag!=0)return V_0+V_int*(gamma_h2*vertex[i].h2_avg+gamma_kg*vertex[i].kg_avg+gamma_h*sqrt(vertex[i].h2_avg));
@@ -1130,8 +1156,21 @@ double V(long i)
 double Vp(long i)
 {
 	double V_0;
+	double phi,Phi;
 
-	V_0 = k_barrier*.25*pow(pow(vertex[i].phi,2.)-1,2.);
+	phi = vertex[i].phi;
+
+	if(V_flag == 0){
+
+		V_0 = k_barrier*.25*pow(pow(phi,2.)-1,2.);
+
+	} else if(V_flag == 1){
+
+		Phi = .5*(phi+1.);
+
+		V_0 = k_barrier*(Phi*log(Phi)+(1.-Phi)*log(1.-Phi)+a_V*Phi*(1-Phi));
+
+	};
 
 	return V_0;
 }
@@ -1139,6 +1178,27 @@ double Vp(long i)
 double dV(long i)
 {
 	double dV_0,dV_int;
+	double phi,Phi;
+
+	phi = vertex[i].phi;
+
+	if(V_flag == 0){
+
+		dV_0 = k_barrier*phi*(phi*phi-1);
+
+		dV_int = .75*(1-phi*phi)*epsilon;
+
+	} else if(V_flag == 1){
+
+		Phi = .5*(phi+1.);
+
+		dV_0 = k_barrier*(a_V*(1-2*Phi)-2*atanh(1-2*Phi));
+
+		// This interaction is temporary.
+
+		dV_int = .25;
+
+	};
 
 	dV_0 = k_barrier*vertex[i].phi*(vertex[i].phi*vertex[i].phi-1);
 

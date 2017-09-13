@@ -10,7 +10,7 @@ TO DO:
 	16- Proof of the fact that thermodynamical fluctuations of interface are negligible
 
 	17- (Configurational) entropy considerations if we care only on number of domains (integrating degeneracies over phase space)
-		a - MIXING ENTROPY S = phi log phi + (1-phi) log (1-phi): does it matter?
+		a - MIXING ENTROPY S = phi log phi + (1-phi) log (1-phi) + J phi (1-phi) + CURVATURETERM
 
 	20- Circular domain formation on developable surfaces: are they ever stable?
 
