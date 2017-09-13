@@ -1145,7 +1145,7 @@ double V(long i)
 
 		// This interaction is temporary.
 
-		V_int = .25*Phi;
+		V_int = Phi*Phi*(1-Phi)*epsilon;
 
 	};
 	
@@ -1196,7 +1196,7 @@ double dV(long i)
 
 		// This interaction is temporary.
 
-		dV_int = .25;
+		dV_int = (2.-3.*Phi)*Phi*epsilon;
 
 	};
 
