@@ -1143,8 +1143,6 @@ double V(long i)
 
 		V_0 = k_barrier*(Phi*log(Phi)+(1.-Phi)*log(1.-Phi)+a_V*Phi*(1-Phi));
 
-		// This interaction is temporary.
-
 		V_int = Phi*Phi*(1-Phi)*epsilon;
 
 	};
@@ -1193,8 +1191,6 @@ double dV(long i)
 		Phi = .5*(phi+1.);
 
 		dV_0 = k_barrier*(a_V*(1-2*Phi)-2*atanh(1-2*Phi));
-
-		// This interaction is temporary.
 
 		dV_int = (2.-3.*Phi)*Phi*epsilon;
 
