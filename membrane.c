@@ -1199,10 +1199,6 @@ double dV(long i)
 		dV_int = (2.-3.*Phi)*Phi*epsilon;
 
 	};
-
-	dV_0 = k_barrier*vertex[i].phi*(vertex[i].phi*vertex[i].phi-1);
-
-	dV_int = .75*(1-vertex[i].phi*vertex[i].phi)*epsilon;
 	
 	if(avg_flag==0)return dV_0+dV_int*(gamma_h2*vertex[i].h2+gamma_kg*vertex[i].kg+gamma_h*sqrt(vertex[i].h2));
 	if(avg_flag!=0)return dV_0+dV_int*(gamma_h2*vertex[i].h2_avg+gamma_kg*vertex[i].kg_avg+gamma_h*sqrt(vertex[i].h2_avg));

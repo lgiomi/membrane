@@ -10,7 +10,6 @@ TO DO:
 	16- Proof of the fact that thermodynamical fluctuations of interface are negligible
 
 	17- (Configurational) entropy considerations if we care only on number of domains (integrating degeneracies over phase space)
-		a - MIXING ENTROPY S = phi log phi + (1-phi) log (1-phi) + J phi (1-phi) + CURVATURETERM
 
 	20- Circular domain formation on developable surfaces: are they ever stable?
 
@@ -42,6 +41,8 @@ TO DO:
 	41- Choose phi_1 and phi_2 arbitrarily when selecting -p initial conditon
 
 	42- Implement Cahn-Hilliard
+
+	43- Fix the counting in the cluser scripts, some intervals are counting one extra terms
 
 SIMULATIONS:
 
@@ -124,6 +125,8 @@ FINISHED STUFF:
 		b. Is the behaviour of very strong coupling consistent with theoretical expectations?
 
 [DONE]	16a- Add (Gaussian) noise to EOMs?
+
+[DONE] 	17a - MIXING ENTROPY S = phi log phi + (1-phi) log (1-phi) + J phi (1-phi) + CURVATURETERM
 
 [DONE]	18- Add computation of the volume 
 

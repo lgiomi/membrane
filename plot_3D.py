@@ -43,5 +43,5 @@ s = mlab.triangular_mesh(coord3D[0],coord3D[1],coord3D[2],triangles,scalars = (p
 mlab.view(45, 45, 1.5)
 mlab.savefig(sys.argv[2],size=(1920, 1080))
 
-mlab.show()
+#mlab.show()
 
