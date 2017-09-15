@@ -261,7 +261,7 @@ void init(int argc, char *argv[])
 								n++;
 								break;
 						case 'u':
-								a_V=atol(argv[n+1]);
+								a_V=atof(argv[n+1]);
 								printf("Mean-field free energy with mixing entropy term, interaction J/T=%lg\n",a_V);
 								V_flag=1;
 								n++;
