@@ -1038,7 +1038,7 @@ void init_import(char *import_name)
 void init_random_domains()
 {
 	long i,j,j_this,k,k_this;
-	double phi_1=-1,phi_2=1;
+	double phi_1=-.9,phi_2=.9;
 	double ran2(long *),c_0_temp=0;
 
 	if(c_0 < 0 || c_0 > 1){
