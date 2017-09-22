@@ -43,7 +43,8 @@ phi = np.transpose(np.loadtxt(f))
 mlab.figure(bgcolor=(1,1,1))
 s = mlab.triangular_mesh(coord3D[0],coord3D[1],coord3D[2],triangles,scalars = (phi[0]+1)/2,vmax=1,vmin=0,colormap='PiYG')
 #s.module_manager.scalar_lut_manager.lut.table = rgmap
-mlab.view(90, 0, 2)
+#mlab.view(90, 0, 2)
+mlab.view(180, 30,1.8)
 n=f.split("_")
 mlab.savefig("img_temp/t_"+str(listk.index(float(n[-5])))+"_"+str(listkb.index(float(n[-4])))+"_"+str(listc.index(float(n[-3])))+"_"+str(listn.index(int(n[-2])))+".png",size=(1920, 1080))
 

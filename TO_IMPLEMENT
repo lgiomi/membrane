@@ -46,6 +46,10 @@ TO DO:
 
 	44- The role of k_barrier when -u is selected should change, because the minima DO NOT lie at zero. Fix this in order to compute real bare couplings with curvature.
 
+	45- Initial conditions: can we set anti-mixed phase as initial condition?
+
+	46 - (THEORETICAL) Estimate the energy in a catenoid-shaped neck as function of the diameter (as in [Seifert '93]).
+
 SIMULATIONS:
 
 	1. Sphere
