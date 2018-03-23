@@ -6,4 +6,4 @@ rm -f *.png
 rm -f *.m
 make
 
-./membrane -m mesh/snowman_2.msh -t 120 -I 5 -r $RANDOM .7 -C 0 .1 -.1 -L 3 -a 1 -k 4 -x 50 -M -T 1E-6 -u 2.2
+./membrane -m mesh/ellipsoid.msh -t 120 -I 5 -p $RANDOM .7 -C 0 0 0 -L 3 -a 1 -k 1 -x 200 -M -T 1E-6 
