@@ -5,7 +5,6 @@ from matplotlib.colors import LinearSegmentedColormap
 if len(sys.argv)<3:
     sys.exit("Syntax: python plot.py input.dat output.png")
 
-
 coord3D = np.transpose(np.loadtxt("geometry.dat",usecols=(1,2,3),delimiter='\t'))
 coord2D = np.transpose(np.loadtxt("geometry.dat",usecols=(7,8),delimiter='\t'))
 

@@ -42,7 +42,7 @@ TO DO:
 
 	42- Implement Cahn-Hilliard
 
-	43- Fix the counting in the cluser scripts, some intervals are counting one extra terms
+	43- Fix the integer index counting in the cluster bashs scripts, some intervals are counting one extra terms
 
 	44- The role of k_barrier when -u is selected should change, because the minima DO NOT lie at zero. Fix this in order to compute real bare couplings with curvature.
 

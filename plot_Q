@@ -1,4 +1,4 @@
-f='Q_avg_debug.dat'
+f='< tail -n 10000 Q_avg_debug.dat'
 set key
 set logscale y
 set format y "%2.2G"

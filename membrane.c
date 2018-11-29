@@ -1,28 +1,29 @@
-/******************************************************************
-**                                                               **
-**                           MEMBRANE                            **
-**                                                               **
-**			                                         **
-**                                                               **
-*******************************************************************/
+// A solver for the non-local Allen-Cahn equation on curved surfaces
+#include <time.h>
+#include <math.h>
+#include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
+#include <unistd.h>
 
-#include "membrane.h"
+// Load program-specific libraries from subdirectory lib/
+#include "lib/structures.h"
+#include "lib/basic.h"
+#include "lib/get_geometry.h"
+#include "lib/solver.h"
 
-#define  sign(x) ((x < 0) ? -1 : 1)
+// Ad-hoc min & max functions
 #define  min(x,y) ((x < y) ? x : y)
 #define  max(x,y) ((x > y) ? x : y)
-#define  mod(x,y) ((x % y + y) % y)
 
+// Global variables
 time_t t1, t2;
 
-Triangle triangle[MAX_SIZE];
-Vertex vertex[MAX_SIZE];
-
-long num_of_meshpoint,num_of_triangles,num_of_iteration,num_of_edges=0;
+long num_of_iteration;
 
 int c_flag=0,o_flag=1,i_flag=0,g_flag=0;
 int V_flag=0;
-double a_V;
+int cutoff_flag=0;
 double a_flag=0,v_flag=0;
 double avg_flag=0;
 long method;
@@ -30,13 +31,20 @@ long export;
 
 double DT,DTauto,run_time;
 double c_0,epsilon,tol;
-double gamma_h,gamma_h2,gamma_kg;
 
+
+//Couplings for the classical GL free energy
+double gamma_h,gamma_h2,gamma_kg;
 double k_barrier=1.;
+
+//Couplings of the full thermodynamic model used in my work on antimixing
+double T_V,J_V,Lk_V,Lkb_V,Mk_V,Mkb_V;
+
+double HK_cutoff;
 double g_sigma;
 double conserved=1;
 double scale=1;
-double noise=.1;
+double noise=NOISE;
 
 double c_x,c_y,c_z;
 double a_x,a_y,a_z;
@@ -70,24 +78,13 @@ void rk4();
 void heun_euler();
 void rkf45();
 
-void import_mesh(char *);
 void get_geometry();
 
 void track_domains();
-void find_neighbors();
 
 void export_histogram(FILE *, long);
 void export_graphic_complex(FILE *, long);
 void export_dat(FILE *);
-
-void get_time(time_t, CPU_Time *);
-void progress_bar(long);
-
-double ran2(long *);
-double gauss_ran2(long *,double, double);
-
-void help();
-void print_cmd_line();
 
 /*******************************************************************/
 
@@ -105,7 +102,7 @@ int main(int argc, char *argv[])
 
 void init(int argc, char *argv[])
 {
-	double box_size,norm;
+	double norm;
 	char f_name[32];
 	char import_name[32];
 	int n;                           
@@ -118,6 +115,7 @@ void init(int argc, char *argv[])
 	gamma_h=0;
 	gamma_h2=0;
 	gamma_kg=0;
+	HK_cutoff=0;
 	method=0;
 	seed=0;
 	tol=0;
@@ -261,11 +259,23 @@ void init(int argc, char *argv[])
 								n++;
 								break;
 						case 'u':
-								a_V=atof(argv[n+1]);
-								printf("Mean-field free energy with mixing entropy term, interaction J/T=%lg\n",a_V);
+								T_V=atof(argv[n+1]);
+								J_V=atof(argv[n+2]);
+								Lk_V=atof(argv[n+3]);
+								Lkb_V=atof(argv[n+4]);
+								Mk_V=atof(argv[n+5]);
+								Mkb_V=atof(argv[n+6]);
+								printf("Mean-field free energy with mixing entropy term, parameters T=%lg, J=%lg, Lk=%lg, Lkb=%lg, Mk=%lg, Mkb=%lg\n",T_V,J_V,Lk_V,Lkb_V,Mk_V,Mkb_V);
 								V_flag=1;
+								n+=6;
+								break;
+						case 'w':
+								HK_cutoff=atof(argv[n+1]);
+								printf("Cut-off for curvatures=%lg\n",HK_cutoff);
+								cutoff_flag=1;
 								n++;
-								break;        
+								break;
+        
 						default:  
 							printf("Illegal option code \"-%c\"\n",(int)argv[n][1]);
 							printf("Type ./membrane -h for help\n"); 
@@ -318,212 +328,6 @@ void init(int argc, char *argv[])
 
 /*******************************************************************/
 
-void print_cmd_line()
-{
-	printf("membrane -m MESH_FILE -t RUN_TIME -I METHOD (-r SEED C0 | -p SEED C0 | -R START_FILE ) [-e EPSILON] [-T TOL] [-L LEVEL] [-x STEPS] [-i TOTAL_ITERATIONS] [-C GAMMA_H GAMMA_H^2 GAMMA_KG] [-P CX CY CZ] [-A NX NY NZ] [-k BARRIER] [-g SIGMA] [-l] [-M] [-a AREA] [-v VOL] [-u J]\n\n");
-}
-
-/*******************************************************************/
-
-void help()
-{
-	printf("\nThis program takes input from in-line commands. The syntax is (commands delimited by [] are optional):\n\n");	
-	print_cmd_line();
-	printf("Where:\n");
-	printf("\t -m MESH_FILE\t: import mesh from file (works only with standard gmsh mesh format .msh)\n");
-	printf("\t -t RUN_TIME\t: total simulation time. For adaptive stepsize is an (obligatory) upper bound\n");
-	printf("\t -I METHOD\t: choose integration method\n\t\t\t\t1: Euler\n\t\t\t\t2: RK2\n\t\t\t\t3: RK4\n\t\t\t\t4: RK2-Euler with adaptive step-size\n\t\t\t\t5: RKF45 with adaptive stepsize\n");
-	printf("\t -r $1 $2\t: quasi-constant random initial configuration (seed $1) centered around mean value $2 and variance %g\n",noise);
-	printf("\t -p $1 $2\t: initial configuration is set for fields at ±1 at random, seed $1 and total concentration $2\n");
-	printf("\t -R FILE\t: import initial configuration from file\n");
-	printf("\t -e EPSILON\t: set the value of epsilon (if it is not set, it will be computed automatically from average edge length)\n");
-	printf("\t -T TOL\t\t: set the tolerance for adaptive step-size integration methods\n");
-	printf("\t -L LEVEL\t: choose which output files will be printed\n\t\t\t\t0: 'last.dat', 'final.dat'\n\t\t\t\t1: previous +  'histo.dat', 'geometry.dat', 'last.m', 'interface.m', 'triangles.dat' + 'gc_#.dat' if -x is set [DEFAULT]\n\t\t\t\t2: previous + 'mean_curvature.m', 'gaussian_curvature.m' + 'gc_#.m' if -x is set\n\t\t\t\t3: as in '1' + debug files\n");
-	printf("\t -x STEPS\t: if specified and nonzero, decides the frequency with which to export field configurations \n");
-	printf("\t -i ITERATIONS\t: total number of iterations (-I 4 and -I 5 do not use this parameter)\n");
-	printf("\t -C $1 $2 $3\t: specifies the values of the couplings with H, H^2 and K_G\n");
-	printf("\t -P $1 $2 $3\t: specifies the (x,y,z) coordinates of the center for projection of the surface onto a unit sphere\n");
-	printf("\t -A $1 $2 $3\t: if -P has been given, specifies the north pole direction w.r.t coordinate axis [DEFAULT (0,0,1)]\n");
-	printf("\t -k BARRIER\t: set the height of the potential barrier (default is 1)\n");
-	printf("\t -g SIGMA\t: add white Gaussian noise to the EOM with standard deviation SIGMA.\n");
-	printf("\t -l \t\t: switch off the conservation of order parameter\n");
-	printf("\t -M \t\t: use values of curvatures averaged over nearest neighbours\n");
-	printf("\t -a AREA\t: rescale the mesh so that the total area is AREA\n");
-	printf("\t -v VOL\t\t: rescale the mesh to that the total volume is VOL (overrides -a)\n");
-	printf("\t -u J\t\t: use lattice-gas mean-field free energy with interaction parameter J [CURVATURE INTERACTION YET TO BE PROPERLY DEFINED]\n");
-
-	printf("\n");
-	exit(1);
-}
-
-/*******************************************************************/
-
-void import_mesh(char *f_name)
-{
-	long i, v1, v2, v3, chi, triangle_test, dummy;
-
-	if( access( f_name, F_OK ) == -1 ) {
-		printf("\nError: file %s does not exist\n",f_name);
-		exit(0);
-	};
-
-	FILE *f_in = fopen(f_name,"r");
-	
-	char line[LINESIZE];
-
-	for (i=0; i<8; i++){
-		if(fgets(line,LINESIZE-1,f_in)){};
-	}
-	
-	if(fscanf(f_in,"%ld",&num_of_meshpoint)){};
-
-	if (num_of_meshpoint>MAX_SIZE){
-		printf("ERROR: number of vertices (%ld) exceeds MAX_SIZE (%d)\n",num_of_meshpoint,MAX_SIZE);
-		exit(0);
-	}
-
-	for (i=0; i<num_of_meshpoint; i++){
-		if(fscanf(f_in,"%ld%lg%lg%lg",
-		&dummy,
-		&vertex[i].x,
-		&vertex[i].y,
-		&vertex[i].z)){}else{printf("Failed to read mesh point.");};
-	}
-
-
-	for (i=0; i<3; i++){
-		if(fgets(line,LINESIZE-1,f_in)){};
-	}
-
-	if(fscanf(f_in,"%ld",&num_of_triangles)){};
-
-	if (num_of_triangles>MAX_SIZE){
-		printf("ERROR: number of triangles (%ld) exceeds MAX_SIZE (%d)\n",num_of_triangles,MAX_SIZE);
-		exit(0);
-	}	
-
-	for (i=0; i<num_of_triangles; i++){
-		if(fscanf(f_in,"%ld%ld%ld%ld%ld%ld%ld%ld",
-		&dummy,
-		&triangle_test,
-		&dummy,
-		&dummy,
-		&dummy,
-		&v1,
-		&v2,
-		&v3)){};
-		if(triangle_test!=2){break;}; //Only elements with the second column equal to 2 are triangles: therefore, ignore anything else.
-		triangle[i].v1 = v1-1;
-		triangle[i].v2 = v2-1;
-		triangle[i].v3 = v3-1;
-	}
-
-	fclose(f_in);		
-				
-	find_neighbors();			
-				
-	for (i=0; i<num_of_meshpoint; i++){
-		num_of_edges += vertex[i].num_of_neighbors;
-	}
-
-	// If each edge is not counted twice we might have a problem	
-	if (!num_of_edges%2){
-		printf("ERROR: bad triangulation, 2E = %ld\n",num_of_edges);
-		exit(0);
-	}
-
-	chi = num_of_meshpoint-num_of_edges/2+num_of_triangles;
-	
-	if (chi!=2){
-		printf("WARNING: apparently not a genus zero surface, Euler characteristic is %ld\n",chi);
-		//exit(0);
-	} 
-
-}	
-
-/*******************************************************************/
-
-void find_neighbors()
-{
-	int is_neighbor(long,long);
-	long i, max_neighbors=0; 
-	
-	for (i=0; i<num_of_meshpoint; i++){
-		vertex[i].num_of_neighbors = 0;
-	}
-		
-	for (i=0; i<num_of_triangles; i++){
-		if (!is_neighbor(triangle[i].v1,triangle[i].v2)){
-			vertex[triangle[i].v1].neighbor[vertex[triangle[i].v1].num_of_neighbors] = triangle[i].v2;
-			vertex[triangle[i].v1].num_of_neighbors++;
-			if (vertex[triangle[i].v1].num_of_neighbors==MAX_NEIGHBORS){
-				max_neighbors = triangle[i].v1;
-				break;
-			}
-		}
-		if (!is_neighbor(triangle[i].v1,triangle[i].v3)){
-			vertex[triangle[i].v1].neighbor[vertex[triangle[i].v1].num_of_neighbors] = triangle[i].v3;
-			vertex[triangle[i].v1].num_of_neighbors++;
-			if (vertex[triangle[i].v1].num_of_neighbors==MAX_NEIGHBORS){
-				max_neighbors = triangle[i].v1;
-				break;
-			}
-		}
-		if (!is_neighbor(triangle[i].v2,triangle[i].v1)){
-			vertex[triangle[i].v2].neighbor[vertex[triangle[i].v2].num_of_neighbors] = triangle[i].v1;
-			vertex[triangle[i].v2].num_of_neighbors++;
-			if (vertex[triangle[i].v2].num_of_neighbors==MAX_NEIGHBORS){
-				max_neighbors = triangle[i].v2;
-				break;
-			}
-		}
-		if (!is_neighbor(triangle[i].v2,triangle[i].v3)){
-			vertex[triangle[i].v2].neighbor[vertex[triangle[i].v2].num_of_neighbors] = triangle[i].v3;
-			vertex[triangle[i].v2].num_of_neighbors++;
-			if (vertex[triangle[i].v2].num_of_neighbors==MAX_NEIGHBORS){
-				max_neighbors = triangle[i].v2;
-				break;
-			}
-		}
-		if (!is_neighbor(triangle[i].v3,triangle[i].v1)){
-			vertex[triangle[i].v3].neighbor[vertex[triangle[i].v3].num_of_neighbors] = triangle[i].v1;
-			vertex[triangle[i].v3].num_of_neighbors++;
-			if (vertex[triangle[i].v3].num_of_neighbors==MAX_NEIGHBORS){
-				max_neighbors = triangle[i].v3;
-				break;
-			}
-		}
-		if (!is_neighbor(triangle[i].v3,triangle[i].v2)){
-			vertex[triangle[i].v3].neighbor[vertex[triangle[i].v3].num_of_neighbors] = triangle[i].v2;
-			vertex[triangle[i].v3].num_of_neighbors++;
-			if (vertex[triangle[i].v3].num_of_neighbors==MAX_NEIGHBORS){
-				max_neighbors = triangle[i].v3;
-				break;
-			}
-		}
-	}
-	
-	if (max_neighbors){
-		printf("Error: vertex %ld reached the maximum number of neighbors\n",max_neighbors);
-		exit(0);
-	}
-}
-
-/*******************************************************************/
-
-int is_neighbor(long i, long j)
-{
-	long k;
-	
-	for (k=0; k<vertex[i].num_of_neighbors; k++){
-		if (j==vertex[i].neighbor[k]) return 1;
-	}
-	
-	return 0;
-}
-
-/*******************************************************************/
-
 void get_geometry()
 {
 
@@ -534,6 +338,7 @@ void get_geometry()
 	double sp,area_t;
 	int this;
 	double dx, dy, dz, base, x[3],y[3],z[3],rm[3];
+	double gc[3];
 
 	l_min=1E10;
 	l_max=0;
@@ -550,6 +355,10 @@ void get_geometry()
 
 	kg_avg_min=1E10;
 	kg_avg_max=-1E10;
+
+	gc[0]=0;
+	gc[1]=0;
+	gc[2]=0;
 
 	long i, j, obtuse[MAX_SIZE], num_of_obtuse=0;
 	
@@ -756,7 +565,7 @@ void get_geometry()
 
 	}
 
-	// Try to point all normal vectors outwards: this does only one full loop through vertices
+	// Try to point all normal vectors outwards: this does only do a single loop through vertices.
 	// It is not safe to assume that after just this iteration any mesh will be nicely oriented. 
 	// However, it has been working so far, but remember, the general solution is more complicated
 	// Moreover, use this loop to compute averaged values of H2 and KG
@@ -791,6 +600,7 @@ void get_geometry()
 	}
 
 	// If rescaling was chosen, rescale all Vertex attributes accordingly, rescale mesh details and recompute area and volume
+
 	if(a_flag>0 || v_flag>0){
 
 		if(a_flag>0)scale=pow(a_flag/total_area,1./2.);
@@ -828,6 +638,30 @@ void get_geometry()
 		l_avg*=scale;
 
 	};
+
+	if(cutoff_flag>0){
+
+		for (i=0; i<num_of_meshpoint; i++){
+
+			vertex[i].h2=min(vertex[i].h2,HK_cutoff);
+			vertex[i].kg=min(vertex[i].kg,HK_cutoff);
+			vertex[i].kg=max(vertex[i].kg,-HK_cutoff);
+
+			vertex[i].h2_avg=min(vertex[i].h2_avg,HK_cutoff);
+			vertex[i].kg_avg=min(vertex[i].kg_avg,HK_cutoff);
+			vertex[i].kg_avg=max(vertex[i].kg_avg,-HK_cutoff);
+
+		}
+	
+	};
+
+	// Compute the geometrical center
+
+	for (i=0; i<num_of_meshpoint; i++){
+		gc[0]+=1./num_of_meshpoint*vertex[i].x;
+		gc[1]+=1./num_of_meshpoint*vertex[i].y;
+		gc[2]+=1./num_of_meshpoint*vertex[i].z;
+	}
 	
 	if(o_flag>=1)f_ou = fopen("geometry.dat","w");
 
@@ -899,7 +733,7 @@ void get_geometry()
 	}	
 	if(o_flag>=1)fclose(f_ou);
 
-	if(o_flag>=2){
+	if(o_flag==2){
 		f_ou = fopen("mean_curvature.m","w");
 		export_graphic_complex(f_ou,2);
 		fclose(f_ou);
@@ -916,6 +750,8 @@ void get_geometry()
 	printf("\tVertices\t\t\t: %ld\n",num_of_meshpoint);
 	printf("\tTriangles\t\t\t: %ld\n",num_of_triangles);
 	printf("\tObtuse triangles\t\t: %ld (%.1ld%% of total)\n",num_of_obtuse/2,100*num_of_obtuse/2/num_of_triangles);
+
+	printf("\tGeometrical center\t\t: (%2.1f,%2.1f,%2.1f)\n",gc[0],gc[1],gc[2]);
 
 	printf("\tTotal surface area\t\t: %lg (typical length %lg)\n",total_area,sqrt(total_area));
 	printf("\tTotal enclosed volume\t\t: %lg (typical length %lg)\n",total_volume,pow(total_volume,1./3.));
@@ -939,26 +775,26 @@ void get_geometry()
 		printf("\tProposed epsilon\t\t: %lg (minimal), %lg (averaged) or %lg (conservative)\n",l_max*sqrt(k_barrier/2),l_avg*sqrt(k_barrier/2),1.1*l_max*sqrt(k_barrier/2));
 	}
 
-	// Interface thickness 
-	printf("\tInterface thickness\t\t: %lg (roughly %2.1f%% - %2.1f%% of membrane size)\n",3*sqrt(2)*epsilon/sqrt(k_barrier),3*sqrt(2)*epsilon/sqrt(k_barrier)/sqrt(total_area)*100.,3*sqrt(2)*epsilon/sqrt(k_barrier)/pow(total_volume,1./3.)*100.);
+	if(V_flag==0){
+		// Interface thickness can be computed independently of curvature only in the phase-field JL model
+		printf("\tInterface thickness\t\t: %lg (roughly %2.1f%% - %2.1f%% of membrane size)\n",3*sqrt(2)*epsilon/sqrt(k_barrier),3*sqrt(2)*epsilon/sqrt(k_barrier)/sqrt(total_area)*100.,3*sqrt(2)*epsilon/sqrt(k_barrier)/pow(total_volume,1./3.)*100.);
+		// Line tension can be computed independently of curvature only in the phase-field JL model
+		printf("\tExpected line tension\t\t: %lg\n",2./3.*sqrt(2*k_barrier)*epsilon);
+		// Real couplings are obtained from -C by multiplying back to real values
+		gamma_h*=2./3.*sqrt(2*k_barrier*total_area);
+		gamma_h2*=2./3.*sqrt(2*k_barrier*total_area);
+		gamma_kg*=2./3.*sqrt(2*k_barrier*total_area);
+		printf("\tCouplings entering EOMs\t\t: (%lg H, %lg H^2, %lg KG)\n",gamma_h,gamma_h2,gamma_kg);
 
-	// Line tension
-	printf("\tExpected line tension\t\t: %lg\n",2./3.*sqrt(2*k_barrier)*epsilon);
+		// The couplings in the \epsilon \to 0 limit could take any value. 
+		// However, since numerically epsilon is finite, this sets a bound on the magnitude of the curvature couplings in order to preserve the double-well structure of the potential	
 
-	// Real couplings are obtained from -C by multiplying back to real values
-	gamma_h*=2./3.*sqrt(2*k_barrier*total_area);
-	gamma_h2*=2./3.*sqrt(2*k_barrier*total_area);
-	gamma_kg*=2./3.*sqrt(2*k_barrier*total_area);
-	printf("\tCouplings entering EOMs\t\t: (%lg H, %lg H^2, %lg KG)\n",gamma_h,gamma_h2,gamma_kg);
-
-	// The couplings in the \epsilon \to 0 limit could take any value. 
-	// However, since numerically epsilon is finite, this sets a bound on the magnitude of the curvature couplings in order to preserve the double-well structure of the potential	
-
-	printf("\tExtremal value of deltas \t: (%lg H, %lg H^2, %lg - %lg KG)\n",.75/k_barrier*gamma_h*epsilon*sqrt(h2_max),.75/k_barrier*gamma_h2*epsilon*h2_max,.75/k_barrier*gamma_kg*epsilon*kg_min,.75/k_barrier*gamma_kg*epsilon*kg_max);	
+		printf("\tExtremal value of deltas \t: (%lg H, %lg H^2, %lg - %lg KG)\n",.75/k_barrier*gamma_h*epsilon*sqrt(h2_max),.75/k_barrier*gamma_h2*epsilon*h2_max,.75/k_barrier*gamma_kg*epsilon*kg_min,.75/k_barrier*gamma_kg*epsilon*kg_max);	
 	
-	printf("\tAllowed coupling ranges\t\t: |Leibler|<%lg, |Delta k|<%lg, |Delta k_b|<%lg\n",4./3.*k_barrier/epsilon/sqrt(h2_max),4./3.*k_barrier/epsilon/h2_max,4./3.*k_barrier/epsilon/max(kg_max,sqrt(kg_min*kg_min)));  
+		printf("\tAllowed coupling ranges\t\t: |Leibler|<%lg, |Delta k|<%lg, |Delta k_b|<%lg\n",4./3.*k_barrier/epsilon/sqrt(h2_max),4./3.*k_barrier/epsilon/h2_max,4./3.*k_barrier/epsilon/max(kg_max,sqrt(kg_min*kg_min)));  
 
-	printf("\tAllowed coupling ranges (NN avg): |Leibler|<%lg, |Delta k|<%lg, |Delta k_b|<%lg\n",4./3.*k_barrier/epsilon/sqrt(h2_avg_max),4./3.*k_barrier/epsilon/h2_avg_max,4./3.*k_barrier/epsilon/max(kg_avg_max,sqrt(kg_avg_min*kg_avg_min)));  
+		printf("\tAllowed coupling ranges (NN avg): |Leibler|<%lg, |Delta k|<%lg, |Delta k_b|<%lg\n",4./3.*k_barrier/epsilon/sqrt(h2_avg_max),4./3.*k_barrier/epsilon/h2_avg_max,4./3.*k_barrier/epsilon/max(kg_avg_max,sqrt(kg_avg_min*kg_avg_min))); 
+	}
 
 	// For diffusion processes are stable only for DT/DX^2 \simeq 1/2:
 	DTauto=.1*l_min*l_min/2;
@@ -986,6 +822,8 @@ void init_random_mixed()
 		
 	for (i=0; i<num_of_meshpoint; i++){
 		vertex[i].phi = (2*c_0-1)+noise*(1-2*ran2(&seed));
+		if( V_flag==1 && vertex[i].phi>1. ){vertex[i].phi=.99;};
+		if( V_flag==1 && vertex[i].phi<-1. ){vertex[i].phi=-.99;};	
 	}
 }
 
@@ -1044,7 +882,7 @@ void init_random_domains()
 	if(c_0 < 0 || c_0 > 1){
 		phi_1 = 2.*min(phi_1,c_0);
 		phi_2 = 2.*max(phi_2,c_0);
-		printf("Warning: provided c0 does not lie in the range [-1,+1] (which has anyway little phyisical sense): reshifting to [%2.3g,%2.3g]\n",phi_1,phi_2);
+		printf("Warning: provided c0 does not lie in the range [-1,+1]: reshifting to [%2.3g,%2.3g]\n",phi_1,phi_2);
 	};
 
 	for (i=0; i<num_of_meshpoint; i++){
@@ -1122,11 +960,11 @@ double laplace(long i)
 
 /*******************************************************************/
 
-// Define the potential and its functional derivative 
+// Define the potential
 
 double V(long i)
 {
-	double V_0,V_int;
+	double V_0;
 	double phi,Phi;
 
 	phi = vertex[i].phi;
@@ -1135,21 +973,23 @@ double V(long i)
 
 		V_0 = k_barrier*.25*pow(pow(phi,2.)-1,2.);
 
-		V_int = .25*pow((phi+1),2.)*(2-phi)*epsilon;
+		if(avg_flag==0)return V_0+.25*pow((phi+1),2.)*(2-phi)*epsilon*(gamma_h2*vertex[i].h2+gamma_kg*vertex[i].kg+gamma_h*sqrt(vertex[i].h2));
+		if(avg_flag!=0)return V_0+.25*pow((phi+1),2.)*(2-phi)*epsilon*(gamma_h2*vertex[i].h2_avg+gamma_kg*vertex[i].kg_avg+gamma_h*sqrt(vertex[i].h2_avg));
 
 	} else if(V_flag == 1){
 
 		Phi = .5*(phi+1.);
 
-		V_0 = k_barrier*(Phi*log(Phi)+(1.-Phi)*log(1.-Phi)+a_V*Phi*(1-Phi));
+		V_0 = T_V*(Phi*log(Phi)+(1.-Phi)*log(1.-Phi))+J_V*Phi*(1.-Phi);
 
-		V_int = Phi*Phi*(1-Phi)*epsilon;
+		if(avg_flag==0)return V_0+Phi*(1.-Phi)*(Lk_V*vertex[i].h2+Lkb_V*vertex[i].kg)+Phi*(Mk_V*vertex[i].h2+Mkb_V*vertex[i].kg);
+		if(avg_flag!=0)return V_0+Phi*(1.-Phi)*(Lk_V*vertex[i].h2_avg+Lkb_V*vertex[i].kg_avg)+Phi*(Mk_V*vertex[i].h2_avg+Mkb_V*vertex[i].kg_avg);
 
 	};
 	
-	if(avg_flag==0)return V_0+V_int*(gamma_h2*vertex[i].h2+gamma_kg*vertex[i].kg+gamma_h*sqrt(vertex[i].h2));
-	if(avg_flag!=0)return V_0+V_int*(gamma_h2*vertex[i].h2_avg+gamma_kg*vertex[i].kg_avg+gamma_h*sqrt(vertex[i].h2_avg));
 }
+
+//Pure potential without curvature interactions
 
 double Vp(long i)
 {
@@ -1166,17 +1006,19 @@ double Vp(long i)
 
 		Phi = .5*(phi+1.);
 
-		V_0 = k_barrier*(Phi*log(Phi)+(1.-Phi)*log(1.-Phi)+a_V*Phi*(1-Phi));
+		V_0 = T_V*(Phi*log(Phi)+(1.-Phi)*log(1.-Phi))+J_V*Phi*(1.-Phi);
 
 	};
 
 	return V_0;
 }
 
+//The first functional derivative of the thermodynamic potential
+
 double dV(long i)
 {
-	double dV_0,dV_int;
-	double phi,Phi;
+	double dV_0;
+	double phi,Phi,om2Phi;
 
 	phi = vertex[i].phi;
 
@@ -1184,20 +1026,22 @@ double dV(long i)
 
 		dV_0 = k_barrier*phi*(phi*phi-1);
 
-		dV_int = .75*(1-phi*phi)*epsilon;
+		if(avg_flag==0)return dV_0+.75*(1-phi*phi)*epsilon*(gamma_h2*vertex[i].h2+gamma_kg*vertex[i].kg+gamma_h*sqrt(vertex[i].h2));
+		if(avg_flag!=0)return dV_0+.75*(1-phi*phi)*epsilon*(gamma_h2*vertex[i].h2_avg+gamma_kg*vertex[i].kg_avg+gamma_h*sqrt(vertex[i].h2_avg));
 
 	} else if(V_flag == 1){
 
 		Phi = .5*(phi+1.);
+		om2Phi = 1.-2.*Phi;
 
-		dV_0 = k_barrier*(a_V*(1-2*Phi)-2*atanh(1-2*Phi));
+		dV_0 = -2.*T_V*atanh(om2Phi)+J_V*(om2Phi);
 
-		dV_int = (2.-3.*Phi)*Phi*epsilon;
+		if(avg_flag==0)return dV_0+(om2Phi*Lk_V+Mk_V)*vertex[i].h2+(om2Phi*Lkb_V+Mkb_V)*vertex[i].kg;
+		if(avg_flag!=0)return dV_0+(om2Phi*Lk_V+Mk_V)*vertex[i].h2_avg+(om2Phi*Lkb_V+Mkb_V)*vertex[i].kg_avg;
 
 	};
 	
-	if(avg_flag==0)return dV_0+dV_int*(gamma_h2*vertex[i].h2+gamma_kg*vertex[i].kg+gamma_h*sqrt(vertex[i].h2));
-	if(avg_flag!=0)return dV_0+dV_int*(gamma_h2*vertex[i].h2_avg+gamma_kg*vertex[i].kg_avg+gamma_h*sqrt(vertex[i].h2_avg));
+
 }
 
 
@@ -1215,7 +1059,7 @@ void run()
 	current_time=0;
 
 	if(export>0 && c_flag==0 && o_flag!=2){
-		printf("You chose to export configurations every %ld time steps, but did not specify a center nor chose -O 2. Assuming -C 0 0 0.\n",export);
+		printf("You chose to export configurations every %ld time steps, but did not specify a center nor chose -O 2. Assuming -P 0 0 0.\n",export);
 		c_flag=1;
 		c_x=0;
 		c_y=0;
@@ -1273,7 +1117,7 @@ void run()
 			}
 		
 			//track_domains();
-			progress_bar(t);
+			progress_bar(t,num_of_iteration);
 			one_step();
 		}
 	};
@@ -1681,25 +1525,6 @@ int unio(int x, int y, int *parent)
 
 /*******************************************************************/
 
-void progress_bar(long t)
-{
-	long i, ticks, percent, num_of_ticks=20;
-	char progress[32];
-
-	percent = 100*t/num_of_iteration;
-	ticks = num_of_ticks*percent/100;
-	
-	for (i=0; i<20; i++){
-		progress[i] = ((i<=ticks)?'#':' ');
-	}
-	progress[20] = '\0';
-	
-	printf("Progress: [%s] %ld%%\r",progress,percent);
-	fflush(stdout);
-}
-
-/*******************************************************************/
-
 void end()
 {	
 	CPU_Time cpu_time;
@@ -1713,7 +1538,7 @@ void end()
 	
 	track_domains();
 
-	if(o_flag>=1){
+	if(o_flag==1 || o_flag==2){
 		f_ou = fopen("last.m","w");
 		export_graphic_complex(f_ou,1);
 		fclose(f_ou);
@@ -1909,103 +1734,3 @@ void export_dat(FILE *f_ou)
 		bphi);
 	}
 }
-/*******************************************************************/
-
-void get_time(time_t t, CPU_Time *cpu_time)
-{
-  long sec_in_day, sec_in_ora, sec_in_min;
-
-  sec_in_day = 86400;
-  sec_in_ora = 3600;
-  sec_in_min = 60;
-
-  cpu_time->d = t/sec_in_day; t = t%sec_in_day;
-  cpu_time->h = t/sec_in_ora; t = t%sec_in_ora;
-  cpu_time->m = t/sec_in_min; t = t%sec_in_min;
-  cpu_time->s = t;
-}
-
-/*******************************************************************/
-//  Long period (>2 E18) random number generator of
-//  L'Ecuyer with Bays-Durham suffle and added
-//  safeguards. Returns a uniform random deviate between
-//  0.0 and 1.0 (exclusive of the endpoint values).
-//  Call with idum a negative integer to initialise;
-//  thereafter, do not alter idum between successive
-//  deviates in a sequence. RNMX should approximate the
-//  largest floating value that is less than 1.
-
-double ran2(long *idum)
-{
-  	int j;
-  	long k;
-  	static long idum2=123456789;
-  	static long iy=0;
-  	static long iv[NTAB];
-  	double temp;
- 
-  	if (*idum <= 0) { 
-    	if (-(*idum) < 1) *idum=1; 
-    	else *idum = -(*idum);
-    	idum2 = (*idum);
-    	for (j=NTAB+7; j>=0; j--) {
-      		k = (*idum)/IQ1;
-      		*idum = IA1*(*idum-k*IQ1)-k*IR1;
-      		if (*idum < 0) *idum += IM1;
-      		if (j < NTAB) iv[j] = *idum;
-    	}
-    	iy = iv[0];
-  	}
-  	k = (*idum)/IQ1; 
-  	*idum = IA1*(*idum-k*IQ1)-k*IR1; 
-  	if (*idum < 0) *idum += IM1; 
-  	k = idum2/IQ2;
-  	idum2 = IA2*(idum2-k*IQ2)-k*IR2; 
-  	if (idum2 < 0) idum2 += IM2;
-  	j = iy/NDIV; 
-  	iy = iv[j]-idum2;
-  	iv[j] = *idum; 
-  	if (iy < 1) iy += IMM1;
-  	if ((temp = AM*iy) > RNMX) return RNMX; 
-  	else return temp;
-}
-
-/*******************************************************************/
-// Returns a normally distributed deviate with zero mean and unit variance,
-// using ran2(idum) as the source of uniform random deviates.
-
-double gauss_ran2(long *idum, double mean, double stddev)
-{
-  static int iset = 0;
-  static double gset;
-  double fac,rsq,v1,v2, deviate;
-
-  if (*idum < 0) iset = 0; // Reinitialize
-  if (iset == 0) { 
-    // 
-    // We don't have an extra deviate handy, so pick two uniform numbers
-    // in the square extending from -1 to +1 in each direction, and
-    // see if they are in the unit circle
-    //
-    do {
-      v1 = 2.0 * ran2(idum) - 1.0; 
-      v2 = 2.0 * ran2(idum) - 1.0;
-      rsq = v1 * v1 + v2 * v2; 
-    } while (rsq >= 1.0 || rsq == 0.0); // and if they are not, try again.
-    fac = sqrt(-2.0 * log(rsq)/rsq);
-
-    //
-    // Now make the Box-Muller transformation to get two normal deviates.
-    // Return one and save the other for next time.
-    //
-    gset = v1*fac;
-    iset = 1;      // Set flag.
-    deviate = v2*fac;
-  }
-  else {       // We have an extra deviate handy,
-    iset = 0;      // so unset the flag,
-    deviate = gset; // and return it.
-  }
-
-  return deviate * stddev + mean;
-} 

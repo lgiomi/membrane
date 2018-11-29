@@ -41,10 +41,14 @@ for i in range(256):
 f=listconf[0]
 phi = np.transpose(np.loadtxt(f))
 mlab.figure(bgcolor=(1,1,1))
-s = mlab.triangular_mesh(coord3D[0],coord3D[1],coord3D[2],triangles,scalars = (phi[0]+1)/2,vmax=.7,vmin=.3,colormap='PiYG')
+s = mlab.triangular_mesh(coord3D[0],coord3D[1],coord3D[2],triangles,scalars = (phi[0]+1)/2,vmax=1,vmin=0,colormap='PiYG')
 #s.module_manager.scalar_lut_manager.lut.table = rgmap
-#mlab.view(90, 0, 2)
-mlab.view(180, 30,1.8)
+#view 1
+#mlab.view(180, 0,1.5)
+#view 2
+#mlab.view(180, 180,1.5)
+#view 3
+mlab.view(225, 135,1.5)
 n=f.split("_")
 mlab.savefig("img_temp/t_"+str(listk.index(float(n[-5])))+"_"+str(listkb.index(float(n[-4])))+"_"+str(listc.index(float(n[-3])))+"_"+str(listn.index(int(n[-2])))+".png",size=(1920, 1080))
 
@@ -59,7 +63,7 @@ for f in listconf:
 
 	n=f.split("_")
 	print "\033[F"+"                                                                                   				 "
-	print "\033[F"+"Processing file t_"+n[-5]+"_"+n[-4]+"_"+n[-3]+"_"+n[-2]+" ("+str(counter+1)+" of "+str(len(listconf))+")"
+	print "\033[F"+"Processing file t_"+n[-5]+"_"+n[-4]+"_"+n[-3]+"_"+n[-2]+" ("+str(counter)+" of "+str(len(listconf))+")"
 	counter=counter+1
 	if os.path.isfile("img_temp/"+"t_"+str(listk.index(float(n[-5])))+"_"+str(listkb.index(float(n[-4])))+"_"+str(listc.index(float(n[-3])))+"_"+str(listn.index(int(n[-2])))+".png"):
 		continue
