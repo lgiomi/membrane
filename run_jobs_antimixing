@@ -193,77 +193,12 @@ while [ $ncPhi -le $nPhi ];
 		fi
 
 		let crpp=crpp+1
-		let njob=njob+5
 		jobp=$(echo "scale=2; 100*$njob/$tot" | bc -l )
 	done
 
 	crpp=1
 	let ncPhi=ncPhi+1
 	cPhi=$(echo "scale=3; $cPhi+$dphi" | bc -l )
-done
-
-exit
-
-
-nnow=0
-
-
-
-echo ""
-
-
-
-
-
-c0_c=0
-k_c=0
-kb_c=0
-rpp_c=0
-njob=1
-
-while [ $k_c -le $n_k ];
-	do
-	k=$(echo "scale=3; $k_i+$k_f*$k_c/$n_k-$k_i*$k_c/$n_k" | bc -l )
-	while [ $kb_c -le $n_kb ];
-		do
-		kb=$(echo "scale=3; ($kb_i)+$kb_f*$kb_c/$n_kb-($kb_i)*$kb_c/$n_kb" | bc -l )
-		while [  $c0_c -le $n_c0 ]; 
-			do
-			while [  $rpp_c -le $rpp ]; 
-				do
-				c0=$(echo "scale=3; $c0_i+$c0_f*$c0_c/$n_c0-$c0_i*$c0_c/$n_c0" | bc -l )
-				jobp=$(echo "scale=2; 100*$njob/$tot" | bc -l )
-				echo -ne "Processing ($k,$kb,$c0,$rpp_c) and found $njob/$tot ($jobp%)                                   "  \\r
-
-				DIR=temp_${k}_${kb}_${c0}_${rpp_c}
-
-				if [ -d "$DIR" ]; then
-					if [ -e "$DIR/last.dat" ]; then
-						let njob=njob+1
-						cp $DIR/last.dat finalconfigurations/conf_${k}_${kb}_${c0}_${rpp_c}_last.dat
-						cat $DIR/final.dat | awk -v var1="$k" -v var2="$kb" -v var3="$c0"  -F"\t" '{print var1,"\t", var2,"\t", var3,"\t", $2,"\t", $3,"\t", $4,"\t", $5,"\t", $6,"\t", $7,"\t", $8,"\t", $9,"\t", $1, "\t", $10}'  >> finalconfigurations/final.dat
-					fi
-				fi
-
-				let rpp_c=rpp_c+1
-			done 
-			rpp_c=0
-			let c0_c=c0_c+1 
-			if [ "$c0_flag" -gt 0 ]; then
-				break
-			fi 
-		done
-		c0_c=0
-		let kb_c=kb_c+1
-		if [ "$kb_flag" -gt 0 ]; then
-			break
-		fi 
-	done
-	kb_c=0
-	let k_c=k_c+1
-	if [ "$k_flag" -gt 0 ]; then
-		break
-	fi 
 done
 
 echo ""
