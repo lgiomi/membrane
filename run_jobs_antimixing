@@ -1,0 +1,272 @@
+#!/bin/bash
+
+if [ "$#" -lt 1 ]; then
+	echo "Syntax: ./run_jobs_antimixing parameter_file"
+	exit
+fi
+
+filename="$1"
+i=0
+
+while read -r line ; do
+	[[ "$line" =~ ^#.*$ ]] && continue
+	name="$line"
+	n_words=$(echo $name | wc -w)
+	if [ "$n_words" -lt 5 ]; then
+		echo "Wrong syntax in file $filen$ame. Exiting."
+		exit
+	fi
+	let i=i+1
+	TV=$(echo $name | cut --delimiter=" " -f1)
+	JV=$(echo $name | cut --delimiter=" " -f2)
+	cV=$(echo $name | cut --delimiter=" " -f3)
+	nPhi=$(echo $name | cut --delimiter=" " -f4)
+	rpp=$(echo $name | cut --delimiter=" " -f5)
+
+done < "$filename"
+
+echo -ne "T=$TV, J=$JV, generic coupling $cV.\n$nPhi steps in concentration and $rpp run per points\n"
+let tot="5*$nPhi*$rpp"
+echo "Total simulations to run: $tot"
+
+#rm -f membrane
+#rm -f *.dat
+rm -f *.png
+rm -f *.m
+rm -fR finalconfigurations
+rm -fR temp_*
+rm -fR testconf*
+echo "make > /dev/null"
+
+# Save current dir in the PATH environment
+DIR=`pwd`
+export PATH=${DIR}:$PATH
+
+
+dphi=$(echo "scale=3; 1/($nPhi+1)" | bc -l )
+ncPhi=1
+crpp=1
+cPhi=$dphi
+njob=0
+jobp=0
+nnow=0
+
+while [ $ncPhi -le $nPhi ];
+	do
+	while [  $crpp -le $rpp ];
+		do
+
+		DIR1=temp_${TV}_${JV}_0_0_0_0_${cPhi}_${crpp}
+		DIR2=temp_${TV}_${JV}_${cV}_0_0_0_${cPhi}_${crpp}
+		DIR3=temp_${TV}_${JV}_0_${cV}_0_0_${cPhi}_${crpp}
+		DIR4=temp_${TV}_${JV}_0_0_${cV}_0_${cPhi}_${crpp}
+		DIR5=temp_${TV}_${JV}_0_0_0_${cV}_${cPhi}_${crpp}
+
+		while [ $nnow -gt 400 ]; 
+   			do
+      			sleep 5
+ 			nnow=`squeue | grep fonda | wc -l`
+			echo -ne "Parameters at ($cPhi,$ncPhi,$crpp_c) and $jobp% of jobs sent (waiting some job to finish, $nnow running)                   "  \\r
+		done
+
+             	#nnow=`squeue | grep fonda | wc -l`
+
+		mkdir -p $DIR1
+		cd $DIR1
+		
+		echo "sbatch  job_antimixing.sbatch $cPhi $TV $JV 0 0 0 0 > /dev/null"
+
+		cd ..
+
+		mkdir -p $DIR2
+		cd $DIR2
+		
+		echo "sbatch  job_antimixing.sbatch $cPhi $TV $JV $cV 0 0 0 > /dev/null"
+
+		cd ..
+
+		mkdir -p $DIR3
+		cd $DIR3
+		
+		echo "sbatch  job_antimixing.sbatch $cPhi $TV $JV 0 $cV 0 0 > /dev/null"
+
+		cd ..
+
+		mkdir -p $DIR4
+		cd $DIR4
+		
+		echo "sbatch  job_antimixing.sbatch $cPhi $TV $JV 0 0 $cV 0 > /dev/null"
+		echo -ne "0\t0\t0\t0\t0\t0\t0\t0\t0\t0\t0\t0\t0\t0\t0\n" > last.dat
+		echo -ne "0\t0\t0\t0\t0\t0\t0\t0\t0\t0\t0\t0\t0\t0\t0\n" > final.dat
+
+		cd ..
+
+		mkdir -p $DIR5
+		cd $DIR5
+		
+		echo "sbatch  job_antimixing.sbatch $cPhi $TV $JV 0 0 0 $cV > /dev/null"
+
+		cd ..
+
+		let crpp=crpp+1
+		let njob=njob+5
+		jobp=$(echo "scale=2; 100*$njob/$tot" | bc -l )
+	done
+
+	crpp=1
+	let ncPhi=ncPhi+1
+	cPhi=$(echo "scale=3; $cPhi+$dphi" | bc -l )
+done
+
+echo "All jobs called. "
+
+nnow=0
+
+#while [ $nnow -lt $tot ]; 
+#	do
+#	sleep 10 
+#	nnow=`ls -R temp* | grep last.dat | wc -l`
+#	echo -ne "Waiting for the job to finish ($nnow out of $njob)..."\\r
+#done
+
+echo -ne "\nFinished running. Now collecting data together.\n"
+
+mkdir -p finalconfigurations
+
+# Re-initialising counters
+ncPhi=1
+crpp=1
+cPhi=$dphi
+njob=0
+jobp=0
+nnow=0
+
+while [ $ncPhi -le $nPhi ];
+	do
+	while [  $crpp -le $rpp ];
+		do
+
+		DIR1=temp_${TV}_${JV}_0_0_0_0_${cPhi}_${crpp}
+		DIR2=temp_${TV}_${JV}_${cV}_0_0_0_${cPhi}_${crpp}
+		DIR3=temp_${TV}_${JV}_0_${cV}_0_0_${cPhi}_${crpp}
+		DIR4=temp_${TV}_${JV}_0_0_${cV}_0_${cPhi}_${crpp}
+		DIR5=temp_${TV}_${JV}_0_0_0_${cV}_${cPhi}_${crpp}
+
+		if [ -d "$DIR1" ]; then
+			if [ -e "$DIR1/last.dat" ]; then
+				let njob=njob+1
+				cp $DIR1/last.dat finalconfigurations/conf_${TV}_${JV}_0_0_0_0_${cPhi}_${crpp}_last.dat
+				cat $DIR1/final.dat | awk -v var1="$TV" -v var2="$JV" -v var3="$cPhi"  -F"\t" '{print var1,"\t", var2,"\t", 0,"\t", 0,"\t", 0,"\t", 0,"\t", $2,"\t", $3,"\t", $4,"\t", $5,"\t", $6,"\t", $7,"\t", $8,"\t", $9,"\t", $1, "\t", $10}'  >> finalconfigurations/final.dat
+			fi
+		fi
+
+		if [ -d "$DIR2" ]; then
+			if [ -e "$DIR2/last.dat" ]; then
+				let njob=njob+1
+				cp $DIR2/last.dat finalconfigurations/conf_${TV}_${JV}_${cV}_0_0_0_${cPhi}_${crpp}_last.dat
+				cat $DIR2/final.dat | awk -v var1="$TV" -v var2="$JV" -v var3="$cPhi" -v var4="$cV"  -F"\t" '{print var1,"\t", var2,"\t", var4,"\t", 0,"\t", 0,"\t", 0,"\t", $2,"\t", $3,"\t", $4,"\t", $5,"\t", $6,"\t", $7,"\t", $8,"\t", $9,"\t", $1, "\t", $10}'  >> finalconfigurations/final.dat
+			fi
+		fi
+
+		if [ -d "$DIR3" ]; then
+			if [ -e "$DIR3/last.dat" ]; then
+				let njob=njob+1
+				cp $DIR3/last.dat finalconfigurations/conf_${TV}_${JV}_0_${cV}_0_0_${cPhi}_${crpp}_last.dat
+				cat $DIR3/final.dat | awk -v var1="$TV" -v var2="$JV" -v var3="$cPhi" -v var4="$cV"  -F"\t" '{print var1,"\t", var2,"\t", 0,"\t", var4,"\t", 0,"\t", 0,"\t", $2,"\t", $3,"\t", $4,"\t", $5,"\t", $6,"\t", $7,"\t", $8,"\t", $9,"\t", $1, "\t", $10}'  >> finalconfigurations/final.dat
+			fi
+		fi
+
+		if [ -d "$DIR4" ]; then
+			if [ -e "$DIR4/last.dat" ]; then
+				let njob=njob+1
+				cp $DIR4/last.dat finalconfigurations/conf_${TV}_${JV}_0_0_${cV}_0_${cPhi}_${crpp}_last.dat
+				cat $DIR4/final.dat | awk -v var1="$TV" -v var2="$JV" -v var3="$cPhi" -v var4="$cV"  -F"\t" '{print var1,"\t", var2,"\t", 0,"\t", 0,"\t", var4,"\t", 0,"\t", $2,"\t", $3,"\t", $4,"\t", $5,"\t", $6,"\t", $7,"\t", $8,"\t", $9,"\t", $1, "\t", $10}'  >> finalconfigurations/final.dat
+			fi
+		fi
+
+		if [ -d "$DIR5" ]; then
+			if [ -e "$DIR5/last.dat" ]; then
+				let njob=njob+1
+				cp $DIR5/last.dat finalconfigurations/conf_${TV}_${JV}_0_0_0_${cV}_${cPhi}_${crpp}_last.dat
+				cat $DIR5/final.dat | awk -v var1="$TV" -v var2="$JV" -v var3="$cPhi" -v var4="$cV"  -F"\t" '{print var1,"\t", var2,"\t", 0,"\t", 0,"\t", 0,"\t", var4,"\t", $2,"\t", $3,"\t", $4,"\t", $5,"\t", $6,"\t", $7,"\t", $8,"\t", $9,"\t", $1, "\t", $10}'  >> finalconfigurations/final.dat
+			fi
+		fi
+
+		let crpp=crpp+1
+		let njob=njob+5
+		jobp=$(echo "scale=2; 100*$njob/$tot" | bc -l )
+	done
+
+	crpp=1
+	let ncPhi=ncPhi+1
+	cPhi=$(echo "scale=3; $cPhi+$dphi" | bc -l )
+done
+
+exit
+
+
+nnow=0
+
+
+
+echo ""
+
+
+
+
+
+c0_c=0
+k_c=0
+kb_c=0
+rpp_c=0
+njob=1
+
+while [ $k_c -le $n_k ];
+	do
+	k=$(echo "scale=3; $k_i+$k_f*$k_c/$n_k-$k_i*$k_c/$n_k" | bc -l )
+	while [ $kb_c -le $n_kb ];
+		do
+		kb=$(echo "scale=3; ($kb_i)+$kb_f*$kb_c/$n_kb-($kb_i)*$kb_c/$n_kb" | bc -l )
+		while [  $c0_c -le $n_c0 ]; 
+			do
+			while [  $rpp_c -le $rpp ]; 
+				do
+				c0=$(echo "scale=3; $c0_i+$c0_f*$c0_c/$n_c0-$c0_i*$c0_c/$n_c0" | bc -l )
+				jobp=$(echo "scale=2; 100*$njob/$tot" | bc -l )
+				echo -ne "Processing ($k,$kb,$c0,$rpp_c) and found $njob/$tot ($jobp%)                                   "  \\r
+
+				DIR=temp_${k}_${kb}_${c0}_${rpp_c}
+
+				if [ -d "$DIR" ]; then
+					if [ -e "$DIR/last.dat" ]; then
+						let njob=njob+1
+						cp $DIR/last.dat finalconfigurations/conf_${k}_${kb}_${c0}_${rpp_c}_last.dat
+						cat $DIR/final.dat | awk -v var1="$k" -v var2="$kb" -v var3="$c0"  -F"\t" '{print var1,"\t", var2,"\t", var3,"\t", $2,"\t", $3,"\t", $4,"\t", $5,"\t", $6,"\t", $7,"\t", $8,"\t", $9,"\t", $1, "\t", $10}'  >> finalconfigurations/final.dat
+					fi
+				fi
+
+				let rpp_c=rpp_c+1
+			done 
+			rpp_c=0
+			let c0_c=c0_c+1 
+			if [ "$c0_flag" -gt 0 ]; then
+				break
+			fi 
+		done
+		c0_c=0
+		let kb_c=kb_c+1
+		if [ "$kb_flag" -gt 0 ]; then
+			break
+		fi 
+	done
+	kb_c=0
+	let k_c=k_c+1
+	if [ "$k_flag" -gt 0 ]; then
+		break
+	fi 
+done
+
+echo ""
+echo "Found $njob (of $tot) directories  with useful data"
+
+rm -R temp_*
