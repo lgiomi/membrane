@@ -92,6 +92,8 @@ while [ $ncPhi -le $nPhi ];
 			fi
 		fi
 
+		echo -ne "Processing ($ncPhi,$kcrpp) and found $njob/$tot ($jobp%)                                   "  \\r
+
 		let crpp=crpp+1
 		jobp=$(echo "scale=2; 100*$njob/$tot" | bc -l )
 	done
