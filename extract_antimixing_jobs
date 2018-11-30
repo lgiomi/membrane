@@ -1,0 +1,105 @@
+#!/bin/bash
+
+if [ "$#" -lt 1 ]; then
+	echo "Syntax: ./extract_antimixin0_jobs parameter_file"
+	exit
+fi
+
+filename="$1"
+i=0
+
+while read -r line ; do
+	[[ "$line" =~ ^#.*$ ]] && continue
+	name="$line"
+	n_words=$(echo $name | wc -w)
+	if [ "$n_words" -lt 5 ]; then
+		echo "Wrong syntax in file $filen$ame. Exiting."
+		exit
+	fi
+	let i=i+1
+	TV=$(echo $name | cut --delimiter=" " -f1)
+	JV=$(echo $name | cut --delimiter=" " -f2)
+	cV=$(echo $name | cut --delimiter=" " -f3)
+	nPhi=$(echo $name | cut --delimiter=" " -f4)
+	rpp=$(echo $name | cut --delimiter=" " -f5)
+
+done < "$filename"
+
+
+let tot="5*$nPhi*$rpp"
+echo -ne "Parameters: T=$TV, J=$JV, generic coupling $cV.\n$nPhi steps in concentration and $rpp run per points (total $tot)\n"
+
+dphi=$(echo "scale=3; 1/($nPhi+1)" | bc -l )
+ncPhi=1
+crpp=1
+cPhi=$dphi
+njob=0
+jobp=0
+nnow=0
+
+rm -fR testconf
+mkdir -p testconf
+
+
+while [ $ncPhi -le $nPhi ];
+	do
+	while [  $crpp -le $rpp ];
+		do
+
+		DIR1=temp_${TV}_${JV}_0_0_0_0_${cPhi}_${crpp}
+		DIR2=temp_${TV}_${JV}_${cV}_0_0_0_${cPhi}_${crpp}
+		DIR3=temp_${TV}_${JV}_0_${cV}_0_0_${cPhi}_${crpp}
+		DIR4=temp_${TV}_${JV}_0_0_${cV}_0_${cPhi}_${crpp}
+		DIR5=temp_${TV}_${JV}_0_0_0_${cV}_${cPhi}_${crpp}
+
+		if [ -d "$DIR1" ]; then
+			if [ -e "$DIR1/last.dat" ]; then
+				let njob=njob+1
+				cp $DIR1/last.dat testconf/conf_${TV}_${JV}_0_0_0_0_${cPhi}_${crpp}_last.dat
+				cat $DIR1/final.dat | awk -v var1="$TV" -v var2="$JV" -v var3="$cPhi"  -F"\t" '{print var1,"\t", var2,"\t", 0,"\t", 0,"\t", 0,"\t", 0,"\t", $2,"\t", $3,"\t", $4,"\t", $5,"\t", $6,"\t", $7,"\t", $8,"\t", $9,"\t", $1, "\t", $10}'  >> testconf/final.dat
+			fi
+		fi
+
+		if [ -d "$DIR2" ]; then
+			if [ -e "$DIR2/last.dat" ]; then
+				let njob=njob+1
+				cp $DIR2/last.dat testconf/conf_${TV}_${JV}_${cV}_0_0_0_${cPhi}_${crpp}_last.dat
+				cat $DIR2/final.dat | awk -v var1="$TV" -v var2="$JV" -v var3="$cPhi" -v var4="$cV"  -F"\t" '{print var1,"\t", var2,"\t", var4,"\t", 0,"\t", 0,"\t", 0,"\t", $2,"\t", $3,"\t", $4,"\t", $5,"\t", $6,"\t", $7,"\t", $8,"\t", $9,"\t", $1, "\t", $10}'  >> testconf/final.dat
+			fi
+		fi
+
+		if [ -d "$DIR3" ]; then
+			if [ -e "$DIR3/last.dat" ]; then
+				let njob=njob+1
+				cp $DIR3/last.dat testconf/conf_${TV}_${JV}_0_${cV}_0_0_${cPhi}_${crpp}_last.dat
+				cat $DIR3/final.dat | awk -v var1="$TV" -v var2="$JV" -v var3="$cPhi" -v var4="$cV"  -F"\t" '{print var1,"\t", var2,"\t", 0,"\t", var4,"\t", 0,"\t", 0,"\t", $2,"\t", $3,"\t", $4,"\t", $5,"\t", $6,"\t", $7,"\t", $8,"\t", $9,"\t", $1, "\t", $10}'  >> testconf/final.dat
+			fi
+		fi
+
+		if [ -d "$DIR4" ]; then
+			if [ -e "$DIR4/last.dat" ]; then
+				let njob=njob+1
+				cp $DIR4/last.dat testconf/conf_${TV}_${JV}_0_0_${cV}_0_${cPhi}_${crpp}_last.dat
+				cat $DIR4/final.dat | awk -v var1="$TV" -v var2="$JV" -v var3="$cPhi" -v var4="$cV"  -F"\t" '{print var1,"\t", var2,"\t", 0,"\t", 0,"\t", var4,"\t", 0,"\t", $2,"\t", $3,"\t", $4,"\t", $5,"\t", $6,"\t", $7,"\t", $8,"\t", $9,"\t", $1, "\t", $10}'  >> testconf/final.dat
+			fi
+		fi
+
+		if [ -d "$DIR5" ]; then
+			if [ -e "$DIR5/last.dat" ]; then
+				let njob=njob+1
+				cp $DIR5/last.dat testconf/conf_${TV}_${JV}_0_0_0_${cV}_${cPhi}_${crpp}_last.dat
+				cat $DIR5/final.dat | awk -v var1="$TV" -v var2="$JV" -v var3="$cPhi" -v var4="$cV"  -F"\t" '{print var1,"\t", var2,"\t", 0,"\t", 0,"\t", 0,"\t", var4,"\t", $2,"\t", $3,"\t", $4,"\t", $5,"\t", $6,"\t", $7,"\t", $8,"\t", $9,"\t", $1, "\t", $10}'  >> testconf/final.dat
+			fi
+		fi
+
+		let crpp=crpp+1
+		jobp=$(echo "scale=2; 100*$njob/$tot" | bc -l )
+	done
+
+	crpp=1
+	let ncPhi=ncPhi+1
+	cPhi=$(echo "scale=3; $cPhi+$dphi" | bc -l )
+done
+
+echo ""
+echo "Found $njob (of $tot) directories  with useful data"

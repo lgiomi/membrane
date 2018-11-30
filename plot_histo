@@ -3,5 +3,6 @@ set key
 set logscale y
 set format y "%3.2G"
 set format x "%3.2G"
-plot f u 3:4 w l t "kinetic energy/interface length", f u 3:5 w l t "reaction potential", f u 3:6 w l t "full potential", f u 3:7 w l t "<phi^2>-<phi>^2", f u 3:(abs($8)) w l t "<phi H^2>_c", f u 3:(abs($9)) w l t "<phi KG>_c", f u 3:(abs($10)) w l t "lagrange"
+plot f u 3:($4+$6) t "total energy"
+#plot f u 3:4 w l t "kinetic energy/interface length", f u 3:($4+$6) t "total energy",f u 3:5 w l t "reaction potential", f u 3:6 w l t "full potential", f u 3:7 w l t "<phi^2>-<phi>^2", f u 3:(abs($8)) w l t "<phi H^2>_c", f u 3:(abs($9)) w l t "<phi KG>_c", f u 3:(abs($10)) w l t "lagrange"
 pause -1
