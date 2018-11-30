@@ -56,7 +56,7 @@ while [ $ncPhi -le $nPhi ];
 			if [ -e "$DIR1/last.dat" ]; then
 				let njob=njob+1
 				cp $DIR1/last.dat testconf/conf_${TV}_${JV}_0_0_0_0_${cPhi}_${crpp}_last.dat
-				cat $DIR1/final.dat | awk -v var1="$TV" -v var2="$JV" -v var3="$cPhi"  -F"\t" '{print var1,"\t", var2,"\t", 0,"\t", 0,"\t", 0,"\t", 0,"\t", $2,"\t", $3,"\t", $4,"\t", $5,"\t", $6,"\t", $7,"\t", $8,"\t", $9,"\t", $1, "\t", $10}'  >> testconf/final.dat
+				cat $DIR1/final.dat | awk -v var1="$TV" -v var2="$JV" -v var3="$cPhi"  -F"\t" '{print var1,"\t", var2,"\t", var3,"\t", 0,"\t", 0,"\t", 0,"\t", 0,"\t", $2,"\t", $3,"\t", $4,"\t", $5,"\t", $6,"\t", $7,"\t", $8,"\t", $9,"\t", $1, "\t", $10}'  >> testconf/final.dat
 			fi
 		fi
 
@@ -64,7 +64,7 @@ while [ $ncPhi -le $nPhi ];
 			if [ -e "$DIR2/last.dat" ]; then
 				let njob=njob+1
 				cp $DIR2/last.dat testconf/conf_${TV}_${JV}_${cV}_0_0_0_${cPhi}_${crpp}_last.dat
-				cat $DIR2/final.dat | awk -v var1="$TV" -v var2="$JV" -v var3="$cPhi" -v var4="$cV"  -F"\t" '{print var1,"\t", var2,"\t", var4,"\t", 0,"\t", 0,"\t", 0,"\t", $2,"\t", $3,"\t", $4,"\t", $5,"\t", $6,"\t", $7,"\t", $8,"\t", $9,"\t", $1, "\t", $10}'  >> testconf/final.dat
+				cat $DIR2/final.dat | awk -v var1="$TV" -v var2="$JV" -v var3="$cPhi" -v var4="$cV"  -F"\t" '{print var1,"\t", var2,"\t", var3,"\t", var4,"\t", 0,"\t", 0,"\t", 0,"\t", $2,"\t", $3,"\t", $4,"\t", $5,"\t", $6,"\t", $7,"\t", $8,"\t", $9,"\t", $1, "\t", $10}'  >> testconf/final.dat
 			fi
 		fi
 
@@ -72,7 +72,7 @@ while [ $ncPhi -le $nPhi ];
 			if [ -e "$DIR3/last.dat" ]; then
 				let njob=njob+1
 				cp $DIR3/last.dat testconf/conf_${TV}_${JV}_0_${cV}_0_0_${cPhi}_${crpp}_last.dat
-				cat $DIR3/final.dat | awk -v var1="$TV" -v var2="$JV" -v var3="$cPhi" -v var4="$cV"  -F"\t" '{print var1,"\t", var2,"\t", 0,"\t", var4,"\t", 0,"\t", 0,"\t", $2,"\t", $3,"\t", $4,"\t", $5,"\t", $6,"\t", $7,"\t", $8,"\t", $9,"\t", $1, "\t", $10}'  >> testconf/final.dat
+				cat $DIR3/final.dat | awk -v var1="$TV" -v var2="$JV" -v var3="$cPhi" -v var4="$cV"  -F"\t" '{print var1,"\t", var2,"\t", var3,"\t", 0,"\t", var4,"\t", 0,"\t", 0,"\t", $2,"\t", $3,"\t", $4,"\t", $5,"\t", $6,"\t", $7,"\t", $8,"\t", $9,"\t", $1, "\t", $10}'  >> testconf/final.dat
 			fi
 		fi
 
@@ -80,7 +80,7 @@ while [ $ncPhi -le $nPhi ];
 			if [ -e "$DIR4/last.dat" ]; then
 				let njob=njob+1
 				cp $DIR4/last.dat testconf/conf_${TV}_${JV}_0_0_${cV}_0_${cPhi}_${crpp}_last.dat
-				cat $DIR4/final.dat | awk -v var1="$TV" -v var2="$JV" -v var3="$cPhi" -v var4="$cV"  -F"\t" '{print var1,"\t", var2,"\t", 0,"\t", 0,"\t", var4,"\t", 0,"\t", $2,"\t", $3,"\t", $4,"\t", $5,"\t", $6,"\t", $7,"\t", $8,"\t", $9,"\t", $1, "\t", $10}'  >> testconf/final.dat
+				cat $DIR4/final.dat | awk -v var1="$TV" -v var2="$JV" -v var3="$cPhi" -v var4="$cV"  -F"\t" '{print var1,"\t", var2,"\t", var3,"\t", 0,"\t", 0,"\t", var4,"\t", 0,"\t", $2,"\t", $3,"\t", $4,"\t", $5,"\t", $6,"\t", $7,"\t", $8,"\t", $9,"\t", $1, "\t", $10}'  >> testconf/final.dat
 			fi
 		fi
 
@@ -88,11 +88,11 @@ while [ $ncPhi -le $nPhi ];
 			if [ -e "$DIR5/last.dat" ]; then
 				let njob=njob+1
 				cp $DIR5/last.dat testconf/conf_${TV}_${JV}_0_0_0_${cV}_${cPhi}_${crpp}_last.dat
-				cat $DIR5/final.dat | awk -v var1="$TV" -v var2="$JV" -v var3="$cPhi" -v var4="$cV"  -F"\t" '{print var1,"\t", var2,"\t", 0,"\t", 0,"\t", 0,"\t", var4,"\t", $2,"\t", $3,"\t", $4,"\t", $5,"\t", $6,"\t", $7,"\t", $8,"\t", $9,"\t", $1, "\t", $10}'  >> testconf/final.dat
+				cat $DIR5/final.dat | awk -v var1="$TV" -v var2="$JV" -v var3="$cPhi" -v var4="$cV"  -F"\t" '{print var1,"\t", var2,"\t", var3,"\t", 0,"\t", 0,"\t", 0,"\t", var4,"\t", $2,"\t", $3,"\t", $4,"\t", $5,"\t", $6,"\t", $7,"\t", $8,"\t", $9,"\t", $1, "\t", $10}'  >> testconf/final.dat
 			fi
 		fi
 
-		echo -ne "Processing ($ncPhi,$kcrpp) and found $njob/$tot ($jobp%)                                   "  \\r
+		echo -ne "Processing ($ncPhi,$crpp) and found $njob/$tot ($jobp%)                                   "  \\r
 
 		let crpp=crpp+1
 		jobp=$(echo "scale=2; 100*$njob/$tot" | bc -l )
