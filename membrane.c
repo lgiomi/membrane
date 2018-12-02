@@ -265,13 +265,13 @@ void init(int argc, char *argv[])
 								Lkb_V=atof(argv[n+4]);
 								Mk_V=atof(argv[n+5]);
 								Mkb_V=atof(argv[n+6]);
-								printf("Mean-field free energy with mixing entropy term, parameters T=%lg, J=%lg, Lk=%lg, Lkb=%lg, Mk=%lg, Mkb=%lg\n",T_V,J_V,Lk_V,Lkb_V,Mk_V,Mkb_V);
+								printf("Mean-field free energy, parameters T=%lg, J=%lg, Lk=%lg, Lkb=%lg, Mk=%lg, Mkb=%lg\n",T_V,J_V,Lk_V,Lkb_V,Mk_V,Mkb_V);
 								V_flag=1;
 								n+=6;
 								break;
 						case 'w':
 								HK_cutoff=atof(argv[n+1]);
-								printf("Cut-off for curvatures=%lg\n",HK_cutoff);
+								printf("Cut-off for curvatures\t:%lg\n",HK_cutoff);
 								cutoff_flag=1;
 								n++;
 								break;
@@ -1349,8 +1349,8 @@ void rkf45()
 
 	delta=pow(tol/Q_average/2.,.25);
 
-	if(delta<.1){DT*=.1;}
-	else if(delta>1.5){DT*=1.5;}
+	if(delta<.3){DT*=.1;}
+	else if(delta>1.3){DT*=1.5;}
 	else {DT*=delta;};
 
 	if(DT<DTmin)DT=DTmin;
