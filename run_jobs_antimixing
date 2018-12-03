@@ -36,7 +36,7 @@ rm -f *.m
 rm -fR finalconfigurations
 rm -fR temp_*
 rm -fR testconf*
-echo "make > /dev/null"
+make > /dev/null
 
 # Save current dir in the PATH environment
 DIR=`pwd`
