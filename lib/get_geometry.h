@@ -4,7 +4,7 @@ void import_mesh(char *);
 void find_neighbors();
 int is_neighbor(long,long);
 
-long num_of_meshpoint,num_of_triangles,num_of_edges=0;
+long N_GRID_POINTS,N_GRID_TRIANGLES,num_of_edges=0;
 
 Triangle triangle[MAX_SIZE];
 Vertex vertex[MAX_SIZE];
@@ -16,11 +16,11 @@ void find_neighbors()
 
 	long i, max_neighbors=0; 
 	
-	for (i=0; i<num_of_meshpoint; i++){
+	for (i=0; i<N_GRID_POINTS; i++){
 		vertex[i].num_of_neighbors = 0;
 	}
 		
-	for (i=0; i<num_of_triangles; i++){
+	for (i=0; i<N_GRID_TRIANGLES; i++){
 		if (!is_neighbor(triangle[i].v1,triangle[i].v2)){
 			vertex[triangle[i].v1].neighbor[vertex[triangle[i].v1].num_of_neighbors] = triangle[i].v2;
 			vertex[triangle[i].v1].num_of_neighbors++;
@@ -110,14 +110,14 @@ void import_mesh(char *f_name)
 		if(fgets(line,LINESIZE-1,f_in)){};
 	}
 	
-	if(fscanf(f_in,"%ld",&num_of_meshpoint)){};
+	if(fscanf(f_in,"%ld",&N_GRID_POINTS)){};
 
-	if (num_of_meshpoint>MAX_SIZE){
-		printf("ERROR: number of vertices (%ld) exceeds MAX_SIZE (%d)\n",num_of_meshpoint,MAX_SIZE);
+	if (N_GRID_POINTS>MAX_SIZE){
+		printf("ERROR: number of vertices (%ld) exceeds MAX_SIZE (%d)\n",N_GRID_POINTS,MAX_SIZE);
 		exit(0);
 	}
 
-	for (i=0; i<num_of_meshpoint; i++){
+	for (i=0; i<N_GRID_POINTS; i++){
 		if(fscanf(f_in,"%ld%lg%lg%lg",
 		&dummy,
 		&vertex[i].x,
@@ -130,14 +130,14 @@ void import_mesh(char *f_name)
 		if(fgets(line,LINESIZE-1,f_in)){};
 	}
 
-	if(fscanf(f_in,"%ld",&num_of_triangles)){};
+	if(fscanf(f_in,"%ld",&N_GRID_TRIANGLES)){};
 
-	if (num_of_triangles>MAX_SIZE){
-		printf("ERROR: number of triangles (%ld) exceeds MAX_SIZE (%d)\n",num_of_triangles,MAX_SIZE);
+	if (N_GRID_TRIANGLES>MAX_SIZE){
+		printf("ERROR: number of triangles (%ld) exceeds MAX_SIZE (%d)\n",N_GRID_TRIANGLES,MAX_SIZE);
 		exit(0);
 	}	
 
-	for (i=0; i<num_of_triangles; i++){
+	for (i=0; i<N_GRID_TRIANGLES; i++){
 		if(fscanf(f_in,"%ld%ld%ld%ld%ld%ld%ld%ld",
 		&dummy,
 		&triangle_test,
@@ -157,7 +157,7 @@ void import_mesh(char *f_name)
 				
 	find_neighbors();			
 				
-	for (i=0; i<num_of_meshpoint; i++){
+	for (i=0; i<N_GRID_POINTS; i++){
 		num_of_edges += vertex[i].num_of_neighbors;
 	}
 
@@ -167,12 +167,11 @@ void import_mesh(char *f_name)
 		exit(0);
 	}
 
-	chi = num_of_meshpoint-num_of_edges/2+num_of_triangles;
+	chi = N_GRID_POINTS-num_of_edges/2+N_GRID_TRIANGLES;
 	
 	if (chi!=2){
 		printf("WARNING: apparently not a genus zero surface, Euler characteristic is %ld\n",chi);
 		//exit(0);
 	} 
 
-}	
-
+}

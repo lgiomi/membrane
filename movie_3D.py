@@ -1,6 +1,6 @@
 import numpy as np,sys
 import matplotlib.pyplot as plt
-import glob
+import glob, os
 from mayavi import mlab
 
 mlab.options.offscreen = True
@@ -45,14 +45,17 @@ for f in listconf:
 	n=n.split(".")[0]
 
 	print "\033[F"+"                                                                                 "
-	print "\033[F"+"Processing file "+f+" ("+str(counter+1)+" of "+str(len(listconf))+")"
+	print "\033[F"+"Processing file "+f+" ("+str(counter)+" of "+str(len(listconf))+")"
+
+	counter=counter+1
+
+	if os.path.isfile("t_"+n+".png"):
+		continue
 
 	phi = np.transpose(np.loadtxt(f))
 	s.mlab_source.scalars = (phi[0]+1)/2
 	#mlab.view(counter, 45,1.3)
 	#mlab.view(counter, 135,2.5)
 	mlab.savefig("t_"+n+".png",size=(1920, 1080))
-
-	counter=counter+1
 
 mlab.close()

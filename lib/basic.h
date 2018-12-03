@@ -1,7 +1,6 @@
 // Implementations of help functions and of the pseudorandom number generators.
 
 #define NOISE .1
-
 #define IM1 2147483563
 #define IM2 2147483399
 #define AM (1.0/IM1)
@@ -32,7 +31,7 @@ void progress_bar(long, long);
 
 void print_cmd_line()
 {
-	printf("membrane -m MESH_FILE -t RUN_TIME -I METHOD (-r SEED C0 | -p SEED C0 | -R START_FILE ) [-e EPSILON] [-T TOL] [-L LEVEL] [-x STEPS] [-i TOTAL_ITERATIONS] [-C GAMMA_H GAMMA_H^2 GAMMA_KG] [-P CX CY CZ] [-A NX NY NZ] [-k BARRIER] [-g SIGMA] [-l] [-M] [-a AREA] [-v VOL] [-u T J Lk Lkb Mk Mkb] [-w CUTOFF]\n\n");
+	printf("membrane -m MESH_FILE -t RUN_TIME -I METHOD (-r SEED C0 | -p SEED C0 | -R START_FILE ) [-e EPSILON] [-T TOLERANCE] [-L LEVEL] [-x STEPS] [-i TOTAL_ITERATIONS] [-C GAMMA_H GAMMA_H^2 GAMMA_KG] [-P CX CY CZ] [-A NX NY NZ] [-k BARRIER] [-g SIGMA] [-l] [-M] [-a AREA] [-v VOL] [-u T J Lk Lkb Mk Mkb] [-w CUTOFF]\n\n");
 }
 
 /*******************************************************************/
@@ -44,12 +43,12 @@ void help()
 	printf("Where:\n");
 	printf("\t -m MESH_FILE\t: import mesh from file (works only with standard gmsh mesh format .msh)\n");
 	printf("\t -t RUN_TIME\t: total simulation time. For adaptive stepsize is an (obligatory) upper bound\n");
-	printf("\t -I METHOD\t: choose integration method\n\t\t\t\t1: Euler\n\t\t\t\t2: RK2\n\t\t\t\t3: RK4\n\t\t\t\t4: RK2-Euler with adaptive step-size\n\t\t\t\t5: RKF45 with adaptive stepsize\n");
+	printf("\t -I METHOD\t: choose integration method\n\t\t\t\t1: Euler\n\t\t\t\t2: RK2\n\t\t\t\t3: RK4\n\t\t\t\t4: RK2-Euler with adaptive stepsize\n\t\t\t\t5: RKF45 with adaptive stepsize\n");
 	printf("\t -r $1 $2\t: quasi-constant random initial configuration (seed $1) centered around mean value $2 and variance %g\n",NOISE);
 	printf("\t -p $1 $2\t: initial configuration is set for fields at ±1 at random, seed $1 and total concentration $2\n");
 	printf("\t -R FILE\t: import initial configuration from file\n");
-	printf("\t -e EPSILON\t: set the value of epsilon (if it is not set, it will be computed automatically from average edge length)\n");
-	printf("\t -T TOL\t\t: set the tolerance for adaptive step-size integration methods\n");
+	printf("\t -e EPSILON\t: set the value of EPSILON (if it is not set, it will be computed automatically from average edge length)\n");
+	printf("\t -T TOLERANCE\t: set the tolerance for adaptive step-size integration methods\n");
 	printf("\t -L LEVEL\t: choose which output files will be printed\n\t\t\t\t0: 'last.dat', 'final.dat'\n\t\t\t\t1: previous +  'histo.dat', 'geometry.dat', 'last.m', 'interface.m', 'triangles.dat' + 'gc_#.dat' if -x is set [DEFAULT]\n\t\t\t\t2: previous + 'mean_curvature.m', 'gaussian_curvature.m' + 'gc_#.m' if -x is set\n\t\t\t\t3: as in '1' without Mathematica files + debug dat \n");
 	printf("\t -x STEPS\t: if specified and nonzero, decides the frequency with which to export field configurations \n");
 	printf("\t -i ITERATIONS\t: total number of iterations (-I 4 and -I 5 do not use this parameter)\n");
@@ -61,7 +60,7 @@ void help()
 	printf("\t -l \t\t: switch off the conservation of order parameter\n");
 	printf("\t -M \t\t: use values of curvatures averaged over nearest neighbours\n");
 	printf("\t -a AREA\t: rescale the mesh so that the total area is AREA\n");
-	printf("\t -v VOL\t\t: rescale the mesh to that the total volume is VOL (overrides -a)\n");
+	printf("\t -v VOLUME\t: rescale the mesh to that the total volume is VOLUME (overrides -a)\n");
 	printf("\t -u $1-$6\t: use lattice-gas mean-field free energy with\n\t\t\t\t -temperature T ($1)\n\t\t\t\t -quadratic homogeneous coupling J ($2)\n\t\t\t\t -quadratic mean curvature squared interaction Lk ($3)\n\t\t\t\t -quadratic Gaussian curvature interaction Lkb ($4)\n\t\t\t\t -linear mean curvature squared interaction Mk ($5)\n\t\t\t\t -linear Gaussian curvature interaction Mkb ($6)\n");
 	printf("\t -w CUTOFF\t: add a cutoff for the H^2 and K absolute values (eventually NN averaged).\n");
 

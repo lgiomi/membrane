@@ -2,9 +2,6 @@ TO DO:
 
 	7- Explain the equipartition theorem, and also why it seems that (numerically) it is violated when the coupling with H^2 is switched on [CHECK THE 2017 MATH PAPER]
 
-	13- RKF45 is not really implemented: we accept always the step, just reduce the next DT: does this create convergence problems?
-		a. Is it possible to improve convergence?
-
 	14- Fluctuations in the mixed phase: how are they linked to Laplace modes? 
 
 	16- Proof of the fact that thermodynamical fluctuations of interface are negligible
@@ -29,14 +26,7 @@ TO DO:
 
 	30- Construct a rotational ellipsoid, very oblate, and try to see the exceptional geodesics https://en.wikipedia.org/wiki/Geodesics_on_an_ellipsoid fig 11&12, they should be preferred over CGC? maybe not.
 
-	35- Rethinking the choice of potentials: can the shift of minima positions be a phsyically meaningful operation? Especially in account of the partially demixed phases observed by Melissa 
-		a- Do simulations of the above point 
-
-	36- Entropic considerations (in the paper on plumbers nightmare, they derive from F=U-TS a Fermi-Dirac distribution for the lipid density?). What is the meaning of entropy in this context 
-
-	37- Check ref [3] of Jiang PRL. They see experimentally concentration shifts
-
-	40- STABILITY of initial condition in the presence of U: use phi=c0 as initial conditions and see if you can infer whether spinodal deco will happen or just adiabatic rearrangment.
+	40- Stability vs. metastability of initial conditions: use phi=c0 as initial conditions and see if you can infer whether spinodal deco will happen or just adiabatic rearrangment.
 
 	41- Choose phi_1 and phi_2 arbitrarily when selecting -p initial conditon
 
@@ -44,11 +34,9 @@ TO DO:
 
 	43- Fix the integer index counting in the cluster bashs scripts, some intervals are counting one extra terms
 
-	44- The role of k_barrier when -u is selected should change, because the minima DO NOT lie at zero. Fix this in order to compute real bare couplings with curvature.
-
 	45- Initial conditions: can we set anti-mixed phase as initial condition?
 
-	46 - (THEORETICAL) Estimate the energy in a catenoid-shaped neck as function of the diameter (as in [Seifert '93]).
+	46 - [THEORETICAL] Estimate the energy in a catenoid-shaped neck as function of the diameter (as in [Seifert '93]).
 
 SIMULATIONS:
 
@@ -163,3 +151,28 @@ FINISHED STUFF:
 [DONE]	38- Simulate the system of two disconnected spheres with common Lagrange multiplier
 
 [DONE]	39- New initial conditions: only \pm 1 phases at the beginning.
+
+[OBSOLETE] 35- Rethinking the choice of potentials: can the shift of minima positions be a phsyically meaningful operation? Especially in account of the partially demixed phases observed by Melissa 
+		a- Do simulations of the above point 
+
+[UNDERSTOOD] 36- Entropic considerations (in the paper on plumbers nightmare, they derive from F=U-TS a Fermi-Dirac distribution for the lipid density?). What is the meaning of entropy in this context 
+
+[DONE]	44- The role of k_barrier when -u is selected should change, because the minima DO NOT lie at zero. Fix this in order to compute real bare couplings with curvature.
+
+[DONE] 	37- Check ref [3] of Jiang PRL. They see experimentally concentration shifts
+
+[DONE] 	13- RKF45 is not really implemented: we accept always the step, just reduce the next DT: does this create convergence problems?
+		a. Is it possible to improve convergence?
+
+
+
+
+
+
+
+
+
+
+
+
+

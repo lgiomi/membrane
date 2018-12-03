@@ -61,4 +61,3 @@ typedef struct {
 
 #endif
 #define TYPES_DECLARATION
-
