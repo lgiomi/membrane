@@ -17,7 +17,7 @@
 #define  max(x,y) ((x > y) ? x : y)
 
 // Global variables
-time_t t1, t2;
+time_t T1, T2;
 
 long N_ITERATIONS;
 
@@ -90,7 +90,7 @@ void export_dat(FILE *);
 int main(int argc, char *argv[])
 {	
 	init(argc, argv);
-	time(&t1);
+	time(&T1);
 	run();
 	end();
 	
@@ -1529,8 +1529,8 @@ void end()
 	
 	FILE *f_ou;
 	
-	time(&t2);
-  	get_time(t2-t1,&cpu_time);
+	time(&T2);
+  	get_time(T2-T1,&cpu_time);
 	
 	track_domains();
 
