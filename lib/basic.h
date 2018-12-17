@@ -48,7 +48,7 @@ void help()
 	printf("\t -p $1 $2\t: initial configuration is set for fields at ±1 at random, seed $1 and total concentration $2\n");
 	printf("\t -R FILE\t: import initial configuration from file\n");
 	printf("\t -e EPSILON\t: set the value of EPSILON (if it is not set, it will be computed automatically from average edge length)\n");
-	printf("\t -T TOLERANCE\t: set the tolerance for adaptive step-size integration methods\n");
+	printf("\t -T TOLERANCE\t: set the tolerance for adaptive stepsize integration methods\n");
 	printf("\t -L LEVEL\t: choose which output files will be printed\n\t\t\t\t0: 'last.dat', 'final.dat'\n\t\t\t\t1: previous +  'histo.dat', 'geometry.dat', 'last.m', 'interface.m', 'triangles.dat' + 'gc_#.dat' if -x is set [DEFAULT]\n\t\t\t\t2: previous + 'mean_curvature.m', 'gaussian_curvature.m' + 'gc_#.m' if -x is set\n\t\t\t\t3: as in '1' without Mathematica files + debug dat \n");
 	printf("\t -x STEPS\t: if specified and nonzero, decides the frequency with which to export field configurations \n");
 	printf("\t -i ITERATIONS\t: total number of iterations (-I 4 and -I 5 do not use this parameter)\n");
@@ -60,7 +60,7 @@ void help()
 	printf("\t -l \t\t: switch off the conservation of order parameter\n");
 	printf("\t -M \t\t: use values of curvatures averaged over nearest neighbours\n");
 	printf("\t -a AREA\t: rescale the mesh so that the total area is AREA\n");
-	printf("\t -v VOLUME\t: rescale the mesh to that the total volume is VOLUME (overrides -a)\n");
+	printf("\t -v VOLUME\t: rescale the mesh so that the total volume is VOLUME (overrides -a)\n");
 	printf("\t -u $1-$6\t: use lattice-gas mean-field free energy with\n\t\t\t\t -temperature T ($1)\n\t\t\t\t -quadratic homogeneous coupling J ($2)\n\t\t\t\t -quadratic mean curvature squared interaction Lk ($3)\n\t\t\t\t -quadratic Gaussian curvature interaction Lkb ($4)\n\t\t\t\t -linear mean curvature squared interaction Mk ($5)\n\t\t\t\t -linear Gaussian curvature interaction Mkb ($6)\n");
 	printf("\t -w CUTOFF\t: add a cutoff for the H^2 and K absolute values (eventually NN averaged).\n");
 
