@@ -28,8 +28,8 @@ def tuples(A):
     except TypeError: return A
 
 # The structure of final.dat is of 13 columns, with the values:
-# 1	    |2	    |3	    |4		        |5			            |6		        |7		    |8              |9              |10		    |11		    |12		    |13
-# eta_k	|eta_kb	|c0	    |kinetic_energy	|phase_field_potential	|full_potential	|<phi^2>_c	|<phi H^2>_c	|<phi K_G>_c	|Lagrange	|N_domains	|total_time	|C0
+# 1	|2	    	|3	    |4		        |5			      	|6		|7		|8              |9              |10		|11		|12		|13
+# eta_k	|eta_kb		|c0	    |kinetic_energy	|phase_field_potential		|full_potential	|<phi^2>_c	|<phi H^2>_c	|<phi K_G>_c	|Lagrange	|N_domains	|total_time	|C0
 # (note that c0 is an input from run_jobs and ranges [0,1], while C0 is computed from an integral of phi and ranges [-1,1])
 
 #if not os.path.exists("pd_images"):
@@ -208,6 +208,5 @@ ax.set_aspect(2./ax.get_data_ratio())
 #cax = divider.append_axes("right", size="5%", pad=0.05)
 plt.colorbar(cax=cax, ticks=[1,2,3,4])
 #ax.set_aspect('equal')
-
-
+s
 plt.savefig("Ndomains.pdf",bbox_inches='tight',dpi=80)

@@ -16,50 +16,51 @@
 #define  min(x,y) ((x < y) ? x : y)
 #define  max(x,y) ((x > y) ? x : y)
 
-// Global variables
+//
+// GLOBAL VARIABLES
+//
+// Time variable, to compute the start and end times of the simulation
 time_t T1, T2;
-
+// Various flags that determine whether specific settings were called from the line-command options
 long N_ITERATIONS;
-
 int C_FLAG=0,O_FLAG=1,I_FLAG=0,G_FLAG=0;
 int V_FLAG=0;
 int CUTOFF_FLAG=0;
 double AREA_FLAG=0,VOLUME_FLAG=0;
 double AVG_FLAG=0;
 long INT_FLAG,N_EXPORT;
-
+// Time-step related variables
 double DT,DT_AUTO,RUN_TIME;
-double PHI_AVG,EPSILON,TOLERANCE;
-
-
-//Couplings for the classical GL free energy
-double GAMMA_H,GAMMA_H2,GAMMA_KG;
-double K_BARRIER=1.;
-
-//Couplings of the full thermodynamic model used in my work on antimixing
-double T_V,J_V,Lk_V,Lkb_V,Mk_V,Mkb_V;
-
+// Phi, \epsilon and toleranceof the evolution
+double EPSILON,TOLERANCE;
+// Extra parameters/flags
 double HK_CUTOFF;
 double G_SIGMA;
 double CONSERVED=1;
 double SCALE_FACTOR=1;
-
+double LAGRANGE,PHI_AVG;
+double CURRENT_TIME;
+int N_DOMAINS;
+long SEED;
+int HALT_NOW=0;
+//Couplings for the polynomial GL free energy
+double GAMMA_H,GAMMA_H2,GAMMA_KG;
+double K_BARRIER=1.;
+//Couplings of the full thermodynamic model used in my work on antimixing
+double T_V,J_V,Lk_V,Lkb_V,Mk_V,Mkb_V;
+// Coordinates of center and direction of axis for the 2D cylindrical projection 
 double C_X,C_Y,C_Z;
 double A_X,A_Y,A_Z;
-
+// Geometry-related global quantiteis
 double TOTAL_AREA,TOTAL_VOLUME;
 double WILLMORE_ENERGY,EULER_CHI;
 double L_MIN,L_MAX,L_AVG;
 double H2_MIN,H2_MAX,KG_MIN,KG_MAX;
 double H2_AVG_MIN,H2_AVG_MAX,KG_AVG_MIN,KG_AVG_MAX;
 
-double LAGRANGE;
-double CURRENT_TIME;
-int N_DOMAINS;
-
-long SEED;
-int HALT_NOW=0;
-
+//
+// GLOBAL FUNCTIONS
+//
 void init();
 void run();
 void end();
@@ -338,6 +339,7 @@ void get_geometry()
 	int this;
 	double dx, dy, dz, base, x[3],y[3],z[3],rm[3];
 	double gc[3];
+	double xm[3],xM[3];
 
 	L_MIN=1E10;
 	L_MAX=0;
@@ -358,6 +360,14 @@ void get_geometry()
 	gc[0]=0;
 	gc[1]=0;
 	gc[2]=0;
+
+	xm[0]=0;
+	xm[1]=0;
+	xm[2]=0;
+
+	xM[0]=0;
+	xM[1]=0;
+	xM[2]=0;
 
 	long i, j, obtuse[MAX_SIZE], num_of_obtuse=0;
 	
@@ -464,7 +474,7 @@ void get_geometry()
 
 	}
 
-	L_AVG*=2./num_of_edges;
+	L_AVG*=2./NUM_OF_EDGES;
 
 	if(O_FLAG>=1){
 		f_ou = fopen("triangles.dat","w");
@@ -654,17 +664,28 @@ void get_geometry()
 	
 	};
 
-	// Compute the geometrical center
+	// Compute the geometrical center and the boxing size 
 
 	for (i=0; i<N_GRID_POINTS; i++){
+
 		gc[0]+=1./N_GRID_POINTS*vertex[i].x;
 		gc[1]+=1./N_GRID_POINTS*vertex[i].y;
 		gc[2]+=1./N_GRID_POINTS*vertex[i].z;
+
+		xm[0]=vertex[i].x<xm[0]?vertex[i].x:xm[0];
+		xm[1]=vertex[i].y<xm[1]?vertex[i].y:xm[1];
+		xm[2]=vertex[i].z<xm[2]?vertex[i].z:xm[2];
+
+		xM[0]=vertex[i].x>xM[0]?vertex[i].x:xM[0];
+		xM[1]=vertex[i].y>xM[1]?vertex[i].y:xM[1];
+		xM[2]=vertex[i].z>xM[2]?vertex[i].z:xM[2];
+
 	}
+
+	// If -O 1 or higher, save geometry.dat
 	
 	if(O_FLAG>=1)f_ou = fopen("geometry.dat","w");
 
-	// If -O 1 or higher, save geometry.dat
 	// Moreover, compute min/max lengths and curvatures
 
 	for (i=0; i<N_GRID_POINTS; i++){
@@ -751,6 +772,7 @@ void get_geometry()
 	printf("\tObtuse triangles\t\t: %ld (%.1ld%% of total)\n",num_of_obtuse/2,100*num_of_obtuse/2/N_GRID_TRIANGLES);
 
 	printf("\tGeometrical center\t\t: (%2.3f,%2.3f,%2.3f)\n",gc[0],gc[1],gc[2]);
+	printf("\tCoordinate dimensions\t\t: (%2.3f,%2.3f,%2.3f)\n",xM[0]-xm[0],xM[1]-xm[1],xM[2]-xm[2]);
 
 	printf("\tTotal surface area\t\t: %lg (typical length %lg)\n",TOTAL_AREA,sqrt(TOTAL_AREA));
 	printf("\tTotal enclosed volume\t\t: %lg (typical length %lg)\n",TOTAL_VOLUME,pow(TOTAL_VOLUME,1./3.));
@@ -775,9 +797,9 @@ void get_geometry()
 	}
 
 	if(V_FLAG==0){
-		// Interface thickness can be computed independently of curvature only in the phase-field JL model
+		// Interface thickness can be computed independently of curvature only in the plynomial GL model
 		printf("\tInterface thickness\t\t: %lg (roughly %2.1f%% - %2.1f%% of membrane size)\n",3*sqrt(2)*EPSILON/sqrt(K_BARRIER),3*sqrt(2)*EPSILON/sqrt(K_BARRIER)/sqrt(TOTAL_AREA)*100.,3*sqrt(2)*EPSILON/sqrt(K_BARRIER)/pow(TOTAL_VOLUME,1./3.)*100.);
-		// Line tension can be computed independently of curvature only in the phase-field JL model
+		// Line tension can be computed independently of curvature only in the polynomial GL model
 		printf("\tExpected line tension\t\t: %lg\n",2./3.*sqrt(2*K_BARRIER)*EPSILON);
 		// Real couplings are obtained from -C by multiplying back to real values
 		GAMMA_H*=2./3.*sqrt(2*K_BARRIER*TOTAL_AREA);

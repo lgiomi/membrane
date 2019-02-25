@@ -4,7 +4,7 @@ void import_mesh(char *);
 void find_neighbors();
 int is_neighbor(long,long);
 
-long N_GRID_POINTS,N_GRID_TRIANGLES,num_of_edges=0;
+long N_GRID_POINTS,N_GRID_TRIANGLES,NUM_OF_EDGES=0;
 
 Triangle triangle[MAX_SIZE];
 Vertex vertex[MAX_SIZE];
@@ -158,16 +158,16 @@ void import_mesh(char *f_name)
 	find_neighbors();			
 				
 	for (i=0; i<N_GRID_POINTS; i++){
-		num_of_edges += vertex[i].num_of_neighbors;
+		NUM_OF_EDGES += vertex[i].num_of_neighbors;
 	}
 
 	// If each edge is not counted twice we might have a problem	
-	if (!num_of_edges%2){
-		printf("ERROR: bad triangulation, 2E = %ld\n",num_of_edges);
+	if (!NUM_OF_EDGES%2){
+		printf("ERROR: bad triangulation, 2E = %ld\n",NUM_OF_EDGES);
 		exit(0);
 	}
 
-	chi = N_GRID_POINTS-num_of_edges/2+N_GRID_TRIANGLES;
+	chi = N_GRID_POINTS-NUM_OF_EDGES/2+N_GRID_TRIANGLES;
 	
 	if (chi!=2){
 		printf("WARNING: apparently not a genus zero surface, Euler characteristic is %ld\n",chi);
