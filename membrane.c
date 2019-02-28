@@ -31,7 +31,7 @@ double AVG_FLAG=0;
 long INT_FLAG,N_EXPORT;
 // Time-step related variables
 double DT,DT_AUTO,RUN_TIME;
-// Phi, \epsilon and toleranceof the evolution
+// Phi, \epsilon and tolerance of the evolution
 double EPSILON,TOLERANCE;
 // Extra parameters/flags
 double HK_CUTOFF;
@@ -391,7 +391,7 @@ void get_geometry()
 		}
 	}
 
-	// Loop through triangles computing vertices weights, mean and gaussian curvatures and areas
+	// Loop through triangles computing vertices weights, mean and Gaussian curvatures and areas
 
 	for (i=0; i<N_GRID_TRIANGLES; i++){
 
@@ -798,7 +798,7 @@ void get_geometry()
 
 	if(V_FLAG==0){
 		// Interface thickness can be computed independently of curvature only in the plynomial GL model
-		printf("\tInterface thickness\t\t: %lg (roughly %2.1f%% - %2.1f%% of membrane size)\n",3*sqrt(2)*EPSILON/sqrt(K_BARRIER),3*sqrt(2)*EPSILON/sqrt(K_BARRIER)/sqrt(TOTAL_AREA)*100.,3*sqrt(2)*EPSILON/sqrt(K_BARRIER)/pow(TOTAL_VOLUME,1./3.)*100.);
+		printf("\tInterface thickness\t\t: %lg (roughly %2.1f%% - %2.1f%% of membrane size)\n",3*sqrt(2/K_BARRIER)*EPSILON,3*sqrt(2/K_BARRIER/TOTAL_AREA)*EPSILON*100.,3*sqrt(2/K_BARRIER)*EPSILON/pow(TOTAL_VOLUME,1./3.)*100.);
 		// Line tension can be computed independently of curvature only in the polynomial GL model
 		printf("\tExpected line tension\t\t: %lg\n",2./3.*sqrt(2*K_BARRIER)*EPSILON);
 		// Real couplings are obtained from -C by multiplying back to real values
@@ -807,7 +807,7 @@ void get_geometry()
 		GAMMA_KG*=2./3.*sqrt(2*K_BARRIER*TOTAL_AREA);
 		printf("\tCouplings entering EOMs\t\t: (%lg H, %lg H^2, %lg KG)\n",GAMMA_H,GAMMA_H2,GAMMA_KG);
 
-		// The couplings in the \EPSILON \to 0 limit could take any value. 
+		// The couplings in the \epsilon \to 0 limit could take any value. 
 		// However, since numerically EPSILON is finite, this sets a bound on the magnitude of the curvature couplings in order to preserve the double-well structure of the potential	
 
 		printf("\tExtremal value of deltas \t: (%lg H, %lg H^2, %lg - %lg KG)\n",.75/K_BARRIER*GAMMA_H*EPSILON*sqrt(H2_MAX),.75/K_BARRIER*GAMMA_H2*EPSILON*H2_MAX,.75/K_BARRIER*GAMMA_KG*EPSILON*KG_MIN,.75/K_BARRIER*GAMMA_KG*EPSILON*KG_MAX);	
@@ -1372,7 +1372,7 @@ void rkf45()
 	delta=pow(TOLERANCE*DT/Q_average/2.,.25);
 	DT*=delta;
 
-	if(rhs_average<TOLERANCE)HALT_NOW=1;
+	if(rhs_average<TOLERANCE/10.)HALT_NOW=1;
 
 	if(O_FLAG>=3){
 		f_ou = fopen("Q_avg_debug.dat","a");
@@ -1546,7 +1546,8 @@ int unio(int x, int y, int *parent)
 void end()
 {	
 	CPU_Time cpu_time;
-	double c0=0,phisq=0,kin=0,pot=0,pot_p=0,tph,tpa,phiH2=0,phiKG=0;
+	double c0=0,phisq=0,kin=0,pot=0,pot_p=0,tph,tpa,tpl,phiH2=0,phiKG=0;
+	double kappa_avg=0,kappa_sq_avg=0;
 	int i;
 	
 	FILE *f_ou;
@@ -1577,10 +1578,11 @@ void end()
 
 		tph=vertex[i].phi;
 		tpa=vertex[i].area;
+		tpl=laplace(i);
 
 		phisq 	+=tpa*tph*tph;
 		c0 	+=tpa*tph;
-		kin	-=tpa*.5*tph*laplace(i)*EPSILON;
+		kin	-=tpa*.5*tph*tpl*EPSILON;
 		pot	+=tpa*V(i)/EPSILON;
 		pot_p	+=tpa*Vp(i)/EPSILON;
 		if(AVG_FLAG==0){
@@ -1591,6 +1593,8 @@ void end()
 		phiH2	+=tpa*tph*vertex[i].h2_avg;
 		phiKG	+=tpa*tph*vertex[i].kg_avg;
 		};
+		kappa_avg+=tpa*(tpl-dV(i)/EPSILON/EPSILON)*sqrt(2.*Vp(i));
+		kappa_sq_avg+=tpa*pow(tpl-dV(i)/EPSILON/EPSILON,2.)*EPSILON/2.;
 	}
 
 	kin/=TOTAL_AREA;
@@ -1610,17 +1614,19 @@ void end()
   	printf("\n");
 	
 	f_ou = fopen("final.dat","w");	
-	fprintf(f_ou,"%.10f\t%.10f\t%.10f\t%.10f\t%.10f\t%.10f\t%.10f\t%.10f\t%d\t%.10f\n",
+	fprintf(f_ou,"%.10f\t%.10f\t%.10f\t%.10f\t%.10f\t%.10f\t%.10f\t%.10f\t%d\t%.10f\t%.10f\t%.10f\n",
 	CURRENT_TIME,
 	kin,
 	pot_p,
 	pot,
 	phisq-c0*c0,
-	phiH2-c0*WILLMORE_ENERGY/TOTAL_AREA,
-	phiKG-c0*2*PI*EULER_CHI/TOTAL_AREA,
+	phiH2,//-c0*WILLMORE_ENERGY/TOTAL_AREA,
+	phiKG,//-c0*2*PI*EULER_CHI/TOTAL_AREA,
 	LAGRANGE,
 	N_DOMAINS,
-	c0);
+	c0,
+	kappa_avg,
+	kappa_sq_avg);
 	fclose(f_ou);
 
 }
@@ -1632,16 +1638,18 @@ void export_histogram(FILE *f_ou, long t)
 	long m, i, j;
 	double V(long);
 
-	double c0=0,phisq=0,kin=0,pot=0,pot_p=0,tph,tpa,phiH2=0,phiKG=0;
+	double c0=0,phisq=0,kin=0,pot=0,pot_p=0,tph,tpa,tpl,phiH2=0,phiKG=0;
+	double kappa_avg=0,kappa_sq_avg=0;
  	
 	for (i=0; i<N_GRID_POINTS; i++){
 
 		tph=vertex[i].phi;
 		tpa=vertex[i].area;
+		tpl=laplace(i);
 
 		phisq 	+=tpa*tph*tph;
 		c0 	+=tpa*tph;
-		kin	-=tpa*.5*tph*laplace(i)*EPSILON;
+		kin	-=tpa*.5*tph*tpl*EPSILON;
 		pot	+=tpa*V(i)/EPSILON;
 		pot_p	+=tpa*Vp(i)/EPSILON;
 		if(AVG_FLAG==0){
@@ -1652,6 +1660,8 @@ void export_histogram(FILE *f_ou, long t)
 		phiH2	+=tpa*tph*vertex[i].h2_avg;
 		phiKG	+=tpa*tph*vertex[i].kg_avg;
 		};
+		kappa_avg+=tpa*(tpl-dV(i)/EPSILON/EPSILON)*sqrt(2.*Vp(i));
+		kappa_sq_avg+=tpa*pow(tpl-dV(i)/EPSILON/EPSILON,2.)*EPSILON/2.;
 	}
 
 	kin/=TOTAL_AREA;
@@ -1662,7 +1672,7 @@ void export_histogram(FILE *f_ou, long t)
 	phiH2/=TOTAL_AREA;
 	phiKG/=TOTAL_AREA;
 	
-	fprintf(f_ou,"%.10ld\t%.10f\t%.10f\t%.10f\t%.10f\t%.10f\t%.10f\t%.10f\t%.10f\t%.10f\t%d\t%.10f\n",
+	fprintf(f_ou,"%.10ld\t%.10f\t%.10f\t%.10f\t%.10f\t%.10f\t%.10f\t%.10f\t%.10f\t%.10f\t%d\t%.10f\t%.10f\t%.10f\n",
 	t,
 	DT,
 	CURRENT_TIME,
@@ -1670,11 +1680,14 @@ void export_histogram(FILE *f_ou, long t)
 	pot_p,
 	pot,
 	phisq-c0*c0,
-	phiH2-c0*WILLMORE_ENERGY/TOTAL_AREA,
-	phiKG-c0*2*PI*EULER_CHI/TOTAL_AREA,
+	phiH2,//-c0*WILLMORE_ENERGY/TOTAL_AREA,
+	phiKG,//-c0*2*PI*EULER_CHI/TOTAL_AREA,
 	LAGRANGE,
 	N_DOMAINS,
-	c0);
+	c0,
+	kappa_avg,
+	kappa_sq_avg
+	);
 	
 }
 
