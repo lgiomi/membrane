@@ -85,7 +85,7 @@ while [ $k_c -le $n_k ];
 					if [ -e "$DIR/last.dat" ]; then
 						let njob=njob+1
 						cp $DIR/last.dat testconf/conf_${k}_${kb}_${c0}_${rpp_c}_last.dat
-						cat $DIR/final.dat | awk -v var1="$k" -v var2="$kb" -v var3="$c0" -F"\t" '{print var1,"\t", var2,"\t", var3,"\t", $2,"\t", $3,"\t", $4,"\t", $5,"\t", $6,"\t", $7,"\t", $8,"\t", $9,"\t", $1}'  >> testconf/final.dat
+						cat $DIR/final.dat | awk -v var1="$k" -v var2="$kb" -v var3="$c0" -F"\t" '{print var1,"\t", var2,"\t", var3,"\t", $2,"\t", $3,"\t", $4,"\t", $5,"\t", $6,"\t", $7,"\t", $8,"\t", $9,"\t", $1, "\t", $10, "\t", $11, "\t", $12, "\t", $1}'  >> testconf/final.dat
 					fi
 				fi
 
