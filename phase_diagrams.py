@@ -16,7 +16,8 @@ except:
 	sys.exit("Error: input file does not exist")
 
 data[:,2]=1-data[:,2]
-data[:,3]=data[:,3]+data[:,4]
+#data[:,3]=data[:,3]+data[:,4]
+data[:,3]=3/2*data[:,3]
 
 try:
     Nx,Ny   = int(sys.argv[2]),int(sys.argv[3])
@@ -87,14 +88,14 @@ X, Y = np.meshgrid(X, Y)
 
 def labelN(n):
     cases = {
-        0: r"$\eta_k$",
-        1: r"$\eta_{\bar{k}}$",
-        2: r"$\varphi_-$"
+        0: r"$\Delta k/\sigma \; [\mu m^2]$",
+        1: r"$\Delta \bar{k}/\sigma \; [\mu m^2]$",
+        2: r"$\Phi$"
     }
     return cases.get(n, "Invalid Axis")
 
 
-N_domains_rbf 	= scipy.interpolate.Rbf(sdata[:,Nx], sdata[:,Ny], sdata[:,10], function='linear')
+N_domains_rbf 		= scipy.interpolate.Rbf(sdata[:,Nx], sdata[:,Ny], sdata[:,10], function='linear')
 N_domains 		= N_domains_rbf(X,Y)
 
 # Alternatively, griddata could have been used:
@@ -144,7 +145,7 @@ plt.colorbar(cax=cax)
 
 full_plot.add_subplot(223)
 
-plt.title(r"$\left<\phi H^2\right>_c$", fontsize=font_title, color='black')
+plt.title(r"$\left<\phi H^2\right>$", fontsize=font_title, color='black')
 plt.xlabel(labelN(Nx),fontsize=font_axeslabel)
 plt.ylabel(labelN(Ny),fontsize=font_axeslabel)
 plt.imshow(phiH2, cmap=c_map, origin='lower', extent=[sdata[:,Nx].min(), sdata[:,Nx].max(), sdata[:,Ny].min(), sdata[:,Ny].max()])
@@ -155,7 +156,7 @@ plt.colorbar(cax=cax)
 
 full_plot.add_subplot(224)
 
-plt.title(r"$\left<\phi K_G\right>_c$", fontsize=font_title, color='black')
+plt.title(r"$\left<\phi K_G\right>$", fontsize=font_title, color='black')
 plt.xlabel(labelN(Nx),fontsize=font_axeslabel)
 plt.ylabel(labelN(Ny),fontsize=font_axeslabel)
 plt.imshow(phiKG, cmap=c_map, origin='lower', extent=[sdata[:,Nx].min(), sdata[:,Nx].max(), sdata[:,Ny].min(), sdata[:,Ny].max()])
@@ -203,10 +204,10 @@ plt.xlabel(labelN(Nx),fontsize=font_axeslabel)
 plt.ylabel(labelN(Ny),fontsize=font_axeslabel)
 plt.imshow(N_domains, cmap=c_map, origin='lower', extent=[sdata[:,Nx].min(), sdata[:,Nx].max(), sdata[:,Ny].min(), sdata[:,Ny].max()], vmin=1, vmax=4)
 ax = plt.gca()
-ax.set_aspect(2./ax.get_data_ratio())
+ax.set_aspect(.5/ax.get_data_ratio())
 #divider = make_axes_locatable(ax)
 #cax = divider.append_axes("right", size="5%", pad=0.05)
 plt.colorbar(cax=cax, ticks=[1,2,3,4])
 #ax.set_aspect('equal')
-s
+
 plt.savefig("Ndomains.pdf",bbox_inches='tight',dpi=80)

@@ -28,7 +28,7 @@ s = mlab.triangular_mesh(coord3D[0],coord3D[1],coord3D[2],triangles,scalars = (p
 #mlab.view(45, 45, 1.5)
 #mlab.view(0, 180,80)
 #mlab.view(0, 180,9)
-mlab.view(45, -45,3.5)
+mlab.view(45, -45,7)
 n=f.split("_")[1]
 n=n.split(".")[0]
 mlab.savefig("t_"+n+".png",size=(1920, 1080))

@@ -790,7 +790,7 @@ void get_geometry()
 
 	// The interface profile anywhere on the surface should countain at least six grid points:
 	if(EPSILON==0){
-		EPSILON=1.1*L_MAX*sqrt(K_BARRIER/2);
+		EPSILON=sqrt(K_BARRIER)*L_MAX;
 		printf("\tSetting EPSILON to\t\t: %f\n",EPSILON);
 	}else{
 		printf("\tProposed EPSILON\t\t: %lg (minimal), %lg (averaged) or %lg (conservative)\n",L_MAX*sqrt(K_BARRIER/2),L_AVG*sqrt(K_BARRIER/2),1.1*L_MAX*sqrt(K_BARRIER/2));
@@ -801,20 +801,28 @@ void get_geometry()
 		printf("\tInterface thickness\t\t: %lg (roughly %2.1f%% - %2.1f%% of membrane size)\n",3*sqrt(2/K_BARRIER)*EPSILON,3*sqrt(2/K_BARRIER/TOTAL_AREA)*EPSILON*100.,3*sqrt(2/K_BARRIER)*EPSILON/pow(TOTAL_VOLUME,1./3.)*100.);
 		// Line tension can be computed independently of curvature only in the polynomial GL model
 		printf("\tExpected line tension\t\t: %lg\n",2./3.*sqrt(2*K_BARRIER)*EPSILON);
-		// Real couplings are obtained from -C by multiplying back to real values
-		GAMMA_H*=2./3.*sqrt(2*K_BARRIER*TOTAL_AREA);
-		GAMMA_H2*=2./3.*sqrt(2*K_BARRIER*TOTAL_AREA);
-		GAMMA_KG*=2./3.*sqrt(2*K_BARRIER*TOTAL_AREA);
+		// What you really want to set in -C is "adimensional", not just \Delta k. 
+		// For this reason we have to rescale the couplings that will enter in the flow equation
+		// It used to be that the \eta's were assumed in -C, and the GAMMA's had to be rescaled as
+		//GAMMA_H*=2./3.*sqrt(2*K_BARRIER*TOTAL_AREA);
+		//GAMMA_H2*=2./3.*sqrt(2*K_BARRIER*TOTAL_AREA);
+		//GAMMA_KG*=2./3.*sqrt(2*K_BARRIER*TOTAL_AREA);
+		// However now it is more convenient to rescale only with \sigma, so that by keeping fixed the -C values 
+		// and rescaling the geometry will produce an effect
+		GAMMA_H*=2./3.*sqrt(2*K_BARRIER);
+		GAMMA_H2*=2./3.*sqrt(2*K_BARRIER);
+		GAMMA_KG*=2./3.*sqrt(2*K_BARRIER);
+
 		printf("\tCouplings entering EOMs\t\t: (%lg H, %lg H^2, %lg KG)\n",GAMMA_H,GAMMA_H2,GAMMA_KG);
 
-		// The couplings in the \epsilon \to 0 limit could take any value. 
+		// The couplings in the \epsilon \to 0 are unbounded.s
 		// However, since numerically EPSILON is finite, this sets a bound on the magnitude of the curvature couplings in order to preserve the double-well structure of the potential	
 
-		printf("\tExtremal value of deltas \t: (%lg H, %lg H^2, %lg - %lg KG)\n",.75/K_BARRIER*GAMMA_H*EPSILON*sqrt(H2_MAX),.75/K_BARRIER*GAMMA_H2*EPSILON*H2_MAX,.75/K_BARRIER*GAMMA_KG*EPSILON*KG_MIN,.75/K_BARRIER*GAMMA_KG*EPSILON*KG_MAX);	
+		//printf("\tExtremal value of deltas \t: (%lg H, %lg H^2, %lg - %lg KG)\n",.75/K_BARRIER*GAMMA_H*EPSILON*sqrt(H2_MAX),.75/K_BARRIER*GAMMA_H2*EPSILON*H2_MAX,.75/K_BARRIER*GAMMA_KG*EPSILON*KG_MIN,.75/K_BARRIER*GAMMA_KG*EPSILON*KG_MAX);	
 	
-		printf("\tAllowed coupling ranges\t\t: |Leibler|<%lg, |Delta k|<%lg, |Delta k_b|<%lg\n",4./3.*K_BARRIER/EPSILON/sqrt(H2_MAX),4./3.*K_BARRIER/EPSILON/H2_MAX,4./3.*K_BARRIER/EPSILON/max(KG_MAX,sqrt(KG_MIN*KG_MIN)));  
+		printf("\tAllowed coupling ranges\t\t: |g_H|<%lg, |Delta k|<%lg, |Delta k_b|<%lg\n",4./3.*K_BARRIER/EPSILON/sqrt(H2_MAX),4./3.*K_BARRIER/EPSILON/H2_MAX,4./3.*K_BARRIER/EPSILON/max(KG_MAX,sqrt(KG_MIN*KG_MIN)));  
 
-		printf("\tAllowed coupling ranges (NN avg): |Leibler|<%lg, |Delta k|<%lg, |Delta k_b|<%lg\n",4./3.*K_BARRIER/EPSILON/sqrt(H2_AVG_MAX),4./3.*K_BARRIER/EPSILON/H2_AVG_MAX,4./3.*K_BARRIER/EPSILON/max(KG_AVG_MAX,sqrt(KG_AVG_MIN*KG_AVG_MIN))); 
+		printf("\tAllowed coupling ranges (NN avg): |g_H|<%lg, |Delta k|<%lg, |Delta k_b|<%lg\n",4./3.*K_BARRIER/EPSILON/sqrt(H2_AVG_MAX),4./3.*K_BARRIER/EPSILON/H2_AVG_MAX,4./3.*K_BARRIER/EPSILON/max(KG_AVG_MAX,sqrt(KG_AVG_MIN*KG_AVG_MIN))); 
 	}
 
 	// For diffusion processes are stable only for DT/DX^2 \simeq 1/2:
@@ -898,14 +906,16 @@ void init_random_domains()
 	double phi_1=-.9,phi_2=.9;
 	double ran2(long *),PHI_AVG_temp=0;
 
-	if(PHI_AVG < 0 || PHI_AVG > 1){
-		phi_1 = 2.*min(phi_1,PHI_AVG);
-		phi_2 = 2.*max(phi_2,PHI_AVG);
-		printf("Warning: provided c0 does not lie in the range [-1,+1]: reshifting to [%2.3g,%2.3g]\n",phi_1,phi_2);
+	if(PHI_AVG < .5*(1.+phi_1) || PHI_AVG > .5*(1.+phi_2)){
+		printf("Warning: provided C0 does not lie in the range [%2.3g,%2.3g]",.5*(1.+phi_1),5*(1.+phi_2));
+		phi_1 = min(phi_1,2*PHI_AVG-1);
+		phi_2 = max(phi_2,2*PHI_AVG-1);
+		printf(", reshifting to [%2.3g,%2.3g]\n",.5*(1.+phi_1),5*(1.+phi_2));
 	};
 
 	for (i=0; i<N_GRID_POINTS; i++){
 		vertex[i].phi = phi_1;
+		PHI_AVG_temp +=.5*(1.+phi_1)*vertex[i].area/TOTAL_AREA;
 	}
 
 	while(PHI_AVG_temp < PHI_AVG){
@@ -913,19 +923,19 @@ void init_random_domains()
 		//printf("Random vertex %d\n",i);
 		if(vertex[i].phi < 0){
 			vertex[i].phi= phi_2;
-			PHI_AVG_temp+=(.5+phi_2/2.)*vertex[i].area/TOTAL_AREA;
+			PHI_AVG_temp +=.5*(phi_2-phi_1)*vertex[i].area/TOTAL_AREA;
 		}
 		for (j=0; j<vertex[i].num_of_neighbors; j++){
 			j_this = vertex[i].neighbor[j];
 			if(vertex[j_this].phi < 0){
 				vertex[j_this].phi= phi_2;
-				PHI_AVG_temp+=(.5+phi_2/2.)*vertex[j_this].area/TOTAL_AREA;
+			        PHI_AVG_temp +=.5*(phi_2-phi_1)*vertex[j_this].area/TOTAL_AREA;
 			}
 			for (k=0; k<vertex[j_this].num_of_neighbors; k++){
 				k_this = vertex[j_this].neighbor[k];
 				if(vertex[k_this].phi < 0){
 					vertex[k_this].phi= phi_2;
-					PHI_AVG_temp+=(.5+phi_2/2.)*vertex[k_this].area/TOTAL_AREA;
+				        PHI_AVG_temp +=.5*(phi_2-phi_1)*vertex[k_this].area/TOTAL_AREA;
 				}
 			}
 		}
@@ -1597,9 +1607,9 @@ void end()
 		kappa_sq_avg+=tpa*pow(tpl-dV(i)/EPSILON/EPSILON,2.)*EPSILON/2.;
 	}
 
-	kin/=TOTAL_AREA;
-	pot/=TOTAL_AREA;
-	pot_p/=TOTAL_AREA;
+	kin*=3/sqrt(2.*K_BARRIER);
+	pot*=3/sqrt(2.*K_BARRIER);
+	pot_p*=3/sqrt(2.*K_BARRIER);
 	phisq/=TOTAL_AREA;
 	c0/=TOTAL_AREA;
 	phiH2/=TOTAL_AREA;
@@ -1664,9 +1674,9 @@ void export_histogram(FILE *f_ou, long t)
 		kappa_sq_avg+=tpa*pow(tpl-dV(i)/EPSILON/EPSILON,2.)*EPSILON/2.;
 	}
 
-	kin/=TOTAL_AREA;
-	pot/=TOTAL_AREA;
-	pot_p/=TOTAL_AREA;
+	kin*=3/sqrt(2.*K_BARRIER);
+	pot*=3/sqrt(2.*K_BARRIER);
+	pot_p*=3/sqrt(2.*K_BARRIER);
 	phisq/=TOTAL_AREA;
 	c0/=TOTAL_AREA;
 	phiH2/=TOTAL_AREA;

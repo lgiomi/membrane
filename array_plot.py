@@ -2,7 +2,7 @@ import numpy as np,sys,os
 import matplotlib.pyplot as plt
 import glob
 
-if len(sys.argv)<1:
+if len(sys.argv)<2:
     sys.exit("Syntax: python array_plot.py folder")
 
 if os.path.exists(sys.argv[1]):
@@ -26,21 +26,22 @@ curvatures = np.transpose(np.loadtxt("geometry.dat",usecols=(7,8),delimiter='\t'
 mlab.figure(bgcolor=(1,1,1))
 s = mlab.triangular_mesh(coord3D[0],coord3D[1],coord3D[2],triangles,scalars = curvatures[0],vmax=1,vmin=0,colormap='PiYG')
 
-mlab.view(0, 180,5)
-
-if os.path.isfile("img_temp/H2.png")==False:
-	mlab.savefig("img_temp/H2.png",size=(1920, 1080))
+mlab.view(0, 180,10)
 
 if os.path.isfile("img_temp/KG.png")==False:
-	s.mlab_source.scalars = curvatures[1]
 	mlab.savefig("img_temp/KG.png",size=(1920, 1080))
+
+if os.path.isfile("img_temp/H2.png")==False:
+	s.mlab_source.scalars = curvatures[1]
+	mlab.savefig("img_temp/H2.png",size=(1920, 1080))
 
 counter=0
 
 for f in listconf:
 
 	n=f.split("_")
-	namefile="img_temp/conf_"+n[1]+"_"+n[2]+"_"+n[3]+"_"+n[4]+"_"+n[5]+"_"+n[6]+"_"+n[7]+"_"+n[8]+".png"
+	#namefile="img_temp/conf_"+n[1]+"_"+n[2]+"_"+n[3]+"_"+n[4]+"_"+n[5]+"_"+n[6]+"_"+n[7]+"_"+n[8]+".png"
+	namefile="img_temp/conf_"+n[1]+"_"+n[2]+"_"+n[3]+"_"+n[4]+".png"
 
 	counter=counter+1
 
