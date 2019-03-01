@@ -110,6 +110,9 @@ phiH2 			= phiH2_rbf(X,Y)
 phiKG_rbf 		= scipy.interpolate.Rbf(sdata[:,Nx], sdata[:,Ny], sdata[:,8], function='linear')
 phiKG	 		= phiKG_rbf(X,Y)
 
+phisqu_rbf		= scipy.interpolate.Rbf(sdata[:,Nx], sdata[:,Ny], sdata[:,6], function='linear')
+phisqu			= phisqu_rbf(X,Y)
+
 
 full_plot = plt.figure(facecolor='white')
 plt.rc('text', usetex=True)
@@ -134,7 +137,7 @@ plt.colorbar(cax=cax, ticks=[1,2,3,4])
 
 full_plot.add_subplot(222)
 
-plt.title(r"$\mathrm{Interface\;length}$", fontsize=font_title, color='black')
+plt.title(r"$\ell_\Gamma \; [\mu m]$", fontsize=font_title, color='black')
 plt.xlabel(labelN(Nx),fontsize=font_axeslabel)
 plt.ylabel(labelN(Ny),fontsize=font_axeslabel)
 plt.imshow(kinetic_energy, cmap=c_map, origin='lower', extent=[sdata[:,Nx].min(), sdata[:,Nx].max(), sdata[:,Ny].min(), sdata[:,Ny].max()])
@@ -145,10 +148,10 @@ plt.colorbar(cax=cax)
 
 full_plot.add_subplot(223)
 
-plt.title(r"$\left<\phi H^2\right>$", fontsize=font_title, color='black')
+plt.title(r"$\left<\phi^2\right>_c$", fontsize=font_title, color='black')
 plt.xlabel(labelN(Nx),fontsize=font_axeslabel)
 plt.ylabel(labelN(Ny),fontsize=font_axeslabel)
-plt.imshow(phiH2, cmap=c_map, origin='lower', extent=[sdata[:,Nx].min(), sdata[:,Nx].max(), sdata[:,Ny].min(), sdata[:,Ny].max()])
+plt.imshow(phisqu, cmap=c_map, origin='lower', extent=[sdata[:,Nx].min(), sdata[:,Nx].max(), sdata[:,Ny].min(), sdata[:,Ny].max()])
 ax = plt.gca()
 divider = make_axes_locatable(ax)
 cax = divider.append_axes("right", size="5%", pad=0.05)
@@ -156,7 +159,7 @@ plt.colorbar(cax=cax)
 
 full_plot.add_subplot(224)
 
-plt.title(r"$\left<\phi K_G\right>$", fontsize=font_title, color='black')
+plt.title(r"$\left< \kappa_g\right>_\Gamma$", fontsize=font_title, color='black')
 plt.xlabel(labelN(Nx),fontsize=font_axeslabel)
 plt.ylabel(labelN(Ny),fontsize=font_axeslabel)
 plt.imshow(phiKG, cmap=c_map, origin='lower', extent=[sdata[:,Nx].min(), sdata[:,Nx].max(), sdata[:,Ny].min(), sdata[:,Ny].max()])

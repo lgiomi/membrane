@@ -1,0 +1,7 @@
+f='< tail -n 2000 histo.dat'
+set key
+#set logscale y
+set format y "%4.3G"
+set format x "%4.3G"
+plot f u 3:4 w l t "L_1" lw 2, f u 3:5 w l t "L_2" lw 2, f u 3:6 w l t "L_3" lw 2
+pause -1

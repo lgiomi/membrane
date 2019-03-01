@@ -1613,7 +1613,8 @@ void end()
 	phisq/=TOTAL_AREA;
 	c0/=TOTAL_AREA;
 	phiH2/=TOTAL_AREA;
-	phiKG/=TOTAL_AREA;
+	//phiKG/=TOTAL_AREA;
+	phiKG/=2;
 
 	printf("\n");
 	printf("\tNumber of domains %d\n",N_DOMAINS);
@@ -1680,7 +1681,8 @@ void export_histogram(FILE *f_ou, long t)
 	phisq/=TOTAL_AREA;
 	c0/=TOTAL_AREA;
 	phiH2/=TOTAL_AREA;
-	phiKG/=TOTAL_AREA;
+	//phiKG/=TOTAL_AREA;
+	phiKG/=2;
 	
 	fprintf(f_ou,"%.10ld\t%.10f\t%.10f\t%.10f\t%.10f\t%.10f\t%.10f\t%.10f\t%.10f\t%.10f\t%d\t%.10f\t%.10f\t%.10f\n",
 	t,

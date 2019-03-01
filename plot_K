@@ -1,0 +1,7 @@
+f='< tail -n 20000 histo.dat'
+set key
+set logscale y
+set format y "%3.2G"
+set format x "%3.2G"
+plot f u 3:7 w l t "<phi^2>-<phi>^2" lw 2, f u 3:(abs($9)) w l t "<phi KG>" lw 2, f u 3:(abs($10)) w l t "Lagrange" lw 2, f u 3:13 w l t "<k_g>" lw 2, f u 3:14 w l t "<k_g^2>" lw 2
+pause -1
