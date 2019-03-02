@@ -88,8 +88,8 @@ X, Y = np.meshgrid(X, Y)
 
 def labelN(n):
     cases = {
-        0: r"$\Delta k/\sigma \; [\mu m^2]$",
-        1: r"$\Delta \bar{k}/\sigma \; [\mu m^2]$",
+        0: r"$\Delta k/\sigma \; [\mu m]$",
+        1: r"$\Delta \bar{k}/\sigma \; [\mu m]$",
         2: r"$\Phi$"
     }
     return cases.get(n, "Invalid Axis")
