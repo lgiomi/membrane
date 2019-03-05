@@ -275,6 +275,10 @@ void init(int argc, char *argv[])
 								CUTOFF_FLAG=1;
 								n++;
 								break;
+						case 'F':
+								printf("Use quintic interaction potential (unbounded, but does not affect Maxwell construction)\n");
+								V_FLAG=2;
+								break;
         
 						default:  
 							printf("Illegal option code \"-%c\"\n",(int)argv[n][1]);
@@ -894,7 +898,7 @@ void init_import(char *import_name)
 		exit(0);
 	};
 	PHI_AVG/=TOTAL_AREA;
-	PHI_AVG=.5+PHI_AVG/2.;
+	PHI_AVG=.5*(1+PHI_AVG);
 	printf("Imported initial configuration from %s with mean concentration %g\n",import_name,PHI_AVG);
 }
 
@@ -963,7 +967,7 @@ double laplace(long i)
 
 double V(long i)
 {
-	double V_0;
+	double V_0,V_I;
 	double phi,Phi;
 
 	phi = vertex[i].phi;
@@ -971,20 +975,30 @@ double V(long i)
 	if(V_FLAG == 0){
 
 		V_0 = K_BARRIER*.25*pow(pow(phi,2.)-1,2.);
+		V_I = .25*pow((phi+1),2.)*(2-phi);
 
-		if(AVG_FLAG==0)return V_0+.25*pow((phi+1),2.)*(2-phi)*EPSILON*(GAMMA_H2*vertex[i].h2+GAMMA_KG*vertex[i].kg+GAMMA_H*sqrt(vertex[i].h2));
-		if(AVG_FLAG!=0)return V_0+.25*pow((phi+1),2.)*(2-phi)*EPSILON*(GAMMA_H2*vertex[i].h2_avg+GAMMA_KG*vertex[i].kg_avg+GAMMA_H*sqrt(vertex[i].h2_avg));
+		if(AVG_FLAG==0)return V_0+V_I*EPSILON*(GAMMA_H2*vertex[i].h2+GAMMA_KG*vertex[i].kg+GAMMA_H*sqrt(vertex[i].h2));
+		if(AVG_FLAG!=0)return V_0+V_I*EPSILON*(GAMMA_H2*vertex[i].h2_avg+GAMMA_KG*vertex[i].kg_avg+GAMMA_H*sqrt(vertex[i].h2_avg));
 
 	} else if(V_FLAG == 1){
 
 		Phi = .5*(phi+1.);
 
 		V_0 = T_V*(Phi*log(Phi)+(1.-Phi)*log(1.-Phi))+J_V*Phi*(1.-Phi);
+		V_I = Phi*(1.-Phi);
 
-		if(AVG_FLAG==0)return V_0+Phi*(1.-Phi)*(Lk_V*vertex[i].h2+Lkb_V*vertex[i].kg)+Phi*(Mk_V*vertex[i].h2+Mkb_V*vertex[i].kg);
-		if(AVG_FLAG!=0)return V_0+Phi*(1.-Phi)*(Lk_V*vertex[i].h2_avg+Lkb_V*vertex[i].kg_avg)+Phi*(Mk_V*vertex[i].h2_avg+Mkb_V*vertex[i].kg_avg);
+		if(AVG_FLAG==0)return V_0+V_I*(Lk_V*vertex[i].h2+Lkb_V*vertex[i].kg)+Phi*(Mk_V*vertex[i].h2+Mkb_V*vertex[i].kg);
+		if(AVG_FLAG!=0)return V_0+V_I*(Lk_V*vertex[i].h2_avg+Lkb_V*vertex[i].kg_avg)+Phi*(Mk_V*vertex[i].h2_avg+Mkb_V*vertex[i].kg_avg);
 
-	};
+	} else if(V_FLAG == 2){
+
+		V_0 = K_BARRIER*.25*pow(pow(phi,2.)-1,2.);
+		V_I = .5+pow(phi,3)-pow(phi,5);
+
+		if(AVG_FLAG==0)return V_0+V_I*EPSILON*(GAMMA_H2*vertex[i].h2+GAMMA_KG*vertex[i].kg+GAMMA_H*sqrt(vertex[i].h2));
+		if(AVG_FLAG!=0)return V_0+V_I*EPSILON*(GAMMA_H2*vertex[i].h2_avg+GAMMA_KG*vertex[i].kg_avg+GAMMA_H*sqrt(vertex[i].h2_avg));
+
+	};;
 	
 }
 
@@ -1016,7 +1030,7 @@ double Vp(long i)
 
 double dV(long i)
 {
-	double dV_0;
+	double dV_0,dV_I;
 	double phi,Phi;
 
 	phi = vertex[i].phi;
@@ -1024,9 +1038,10 @@ double dV(long i)
 	if(V_FLAG == 0){
 
 		dV_0 = K_BARRIER*phi*(phi*phi-1);
+		dV_I = .75*(1-phi*phi);
 
-		if(AVG_FLAG==0)return dV_0+.75*(1-phi*phi)*EPSILON*(GAMMA_H2*vertex[i].h2+GAMMA_KG*vertex[i].kg+GAMMA_H*sqrt(vertex[i].h2));
-		if(AVG_FLAG!=0)return dV_0+.75*(1-phi*phi)*EPSILON*(GAMMA_H2*vertex[i].h2_avg+GAMMA_KG*vertex[i].kg_avg+GAMMA_H*sqrt(vertex[i].h2_avg));
+		if(AVG_FLAG==0)return dV_0+dV_I*EPSILON*(GAMMA_H2*vertex[i].h2+GAMMA_KG*vertex[i].kg+GAMMA_H*sqrt(vertex[i].h2));
+		if(AVG_FLAG!=0)return dV_0+dV_I*EPSILON*(GAMMA_H2*vertex[i].h2_avg+GAMMA_KG*vertex[i].kg_avg+GAMMA_H*sqrt(vertex[i].h2_avg));
 
 	} else if(V_FLAG == 1){
 
@@ -1036,6 +1051,14 @@ double dV(long i)
 
 		if(AVG_FLAG==0)return dV_0+(-phi*Lk_V+Mk_V)*vertex[i].h2+(-phi*Lkb_V+Mkb_V)*vertex[i].kg;
 		if(AVG_FLAG!=0)return dV_0+(-phi*Lk_V+Mk_V)*vertex[i].h2_avg+(-phi*Lkb_V+Mkb_V)*vertex[i].kg_avg;
+
+	} else if(V_FLAG == 2){
+
+		dV_0 = K_BARRIER*phi*(phi*phi-1);
+		dV_I = 3*phi*phi-2.5*pow(phi,4);
+
+		if(AVG_FLAG==0)return dV_0+dV_I*EPSILON*(GAMMA_H2*vertex[i].h2+GAMMA_KG*vertex[i].kg+GAMMA_H*sqrt(vertex[i].h2));
+		if(AVG_FLAG!=0)return dV_0+dV_I*EPSILON*(GAMMA_H2*vertex[i].h2_avg+GAMMA_KG*vertex[i].kg_avg+GAMMA_H*sqrt(vertex[i].h2_avg));
 
 	};
 	
