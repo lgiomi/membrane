@@ -1,0 +1,33 @@
+#!/bin/bash
+
+file=`ls gc_*.dat | sort -n -k 1.4`
+n_file=`ls gc_*.dat | wc -w`
+
+cat geometry.dat |  awk -F " " {'printf "%g\t%g\n", $8, $9'} > tmp.dat
+cat geometry.dat |  awk -F " " {'printf "%g\t%g\t%g\n", $2, $3, $4'} > tmp1.dat
+
+n=1
+lim=$1
+
+rm -f worldline*.dat
+
+for f in $file; do
+	gc_i=`echo ${f:3:-4} | sed 's/^0*//'`
+	namegc_f="`echo ${f:3:-4}`.png"
+	namegc_b="b`echo ${f:3:-4}`.png"
+	n_f=$(echo "scale=2;  100*$n/$n_file" |bc)
+	echo -ne "Processing file $f ($n_f%) with interface bounds at +/-$lim..."\\r
+
+	paste tmp.dat $f > temp.dat
+	paste tmp1.dat $f > temp1.dat
+
+	cat temp.dat | awk -v var="$gc_i" -v var1="$lim" -F"\t" '$3 > - var1 && $3 < var1 {print $1 "\t" $2 "\t" var }' >> worldline_2D.dat
+	cat temp1.dat | awk -v var="$gc_i" -v var1="$lim" -F"\t" '$4 > - var1 && $4 < var1 {print $1 "\t" $2 "\t" $3 "\t" var }' >> worldline_3D.dat
+
+	n=$((n+1))
+done
+
+echo ""
+
+rm -f temp*.dat
+rm -f tmp*.dat
