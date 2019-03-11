@@ -800,7 +800,7 @@ void get_geometry()
 		printf("\tProposed EPSILON\t\t: %lg (minimal), %lg (averaged) or %lg (conservative)\n",L_MAX*sqrt(K_BARRIER/2),L_AVG*sqrt(K_BARRIER/2),1.1*L_MAX*sqrt(K_BARRIER/2));
 	}
 
-	if(V_FLAG==0){
+	if(V_FLAG==0 || V_FLAG ==2){
 		// Interface thickness can be computed independently of curvature only in the plynomial GL model
 		printf("\tInterface thickness\t\t: %lg (roughly %2.1f%% - %2.1f%% of membrane size)\n",3*sqrt(2/K_BARRIER)*EPSILON,3*sqrt(2/K_BARRIER/TOTAL_AREA)*EPSILON*100.,3*sqrt(2/K_BARRIER)*EPSILON/pow(TOTAL_VOLUME,1./3.)*100.);
 		// Line tension can be computed independently of curvature only in the polynomial GL model
@@ -818,15 +818,26 @@ void get_geometry()
 		GAMMA_KG*=2./3.*sqrt(2*K_BARRIER);
 
 		printf("\tCouplings entering EOMs\t\t: (%lg H, %lg H^2, %lg KG)\n",GAMMA_H,GAMMA_H2,GAMMA_KG);
+	}
 
-		// The couplings in the \epsilon \to 0 are unbounded.s
-		// However, since numerically EPSILON is finite, this sets a bound on the magnitude of the curvature couplings in order to preserve the double-well structure of the potential	
+	// The couplings in the \epsilon \to 0 are unbounded.s
+	// However, since numerically EPSILON is finite, this sets a bound on the magnitude of the curvature couplings in order to preserve the double-well structure of the potential	
 
+	if(V_FLAG==0){
+
+		
 		//printf("\tExtremal value of deltas \t: (%lg H, %lg H^2, %lg - %lg KG)\n",.75/K_BARRIER*GAMMA_H*EPSILON*sqrt(H2_MAX),.75/K_BARRIER*GAMMA_H2*EPSILON*H2_MAX,.75/K_BARRIER*GAMMA_KG*EPSILON*KG_MIN,.75/K_BARRIER*GAMMA_KG*EPSILON*KG_MAX);	
 	
 		printf("\tAllowed coupling ranges\t\t: |g_H|<%lg, |Delta k|<%lg, |Delta k_b|<%lg\n",4./3.*K_BARRIER/EPSILON/sqrt(H2_MAX),4./3.*K_BARRIER/EPSILON/H2_MAX,4./3.*K_BARRIER/EPSILON/max(KG_MAX,sqrt(KG_MIN*KG_MIN)));  
 
 		printf("\tAllowed coupling ranges (NN avg): |g_H|<%lg, |Delta k|<%lg, |Delta k_b|<%lg\n",4./3.*K_BARRIER/EPSILON/sqrt(H2_AVG_MAX),4./3.*K_BARRIER/EPSILON/H2_AVG_MAX,4./3.*K_BARRIER/EPSILON/max(KG_AVG_MAX,sqrt(KG_AVG_MIN*KG_AVG_MIN))); 
+	}
+
+	if(V_FLAG==2){
+
+		printf("\tAllowed coupling ranges\t\t: |g_H|<%lg, |Delta k|<%lg, |Delta k_b|<%lg\n",1./2.*K_BARRIER/EPSILON/sqrt(H2_MAX),1./2.*K_BARRIER/EPSILON/H2_MAX,1./2.*K_BARRIER/EPSILON/max(KG_MAX,sqrt(KG_MIN*KG_MIN)));  
+
+		printf("\tAllowed coupling ranges (NN avg): |g_H|<%lg, |Delta k|<%lg, |Delta k_b|<%lg\n",1./2.*K_BARRIER/EPSILON/sqrt(H2_AVG_MAX),1./2.*K_BARRIER/EPSILON/H2_AVG_MAX,1./2.*K_BARRIER/EPSILON/max(KG_AVG_MAX,sqrt(KG_AVG_MIN*KG_AVG_MIN))); 
 	}
 
 	// For diffusion processes are stable only for DT/DX^2 \simeq 1/2:
@@ -993,7 +1004,7 @@ double V(long i)
 	} else if(V_FLAG == 2){
 
 		V_0 = K_BARRIER*.25*pow(pow(phi,2.)-1,2.);
-		V_I = .5+pow(phi,3)-pow(phi,5);
+		V_I = .5+pow(phi,3.)-pow(phi,5.);
 
 		if(AVG_FLAG==0)return V_0+V_I*EPSILON*(GAMMA_H2*vertex[i].h2+GAMMA_KG*vertex[i].kg+GAMMA_H*sqrt(vertex[i].h2));
 		if(AVG_FLAG!=0)return V_0+V_I*EPSILON*(GAMMA_H2*vertex[i].h2_avg+GAMMA_KG*vertex[i].kg_avg+GAMMA_H*sqrt(vertex[i].h2_avg));
@@ -1055,7 +1066,7 @@ double dV(long i)
 	} else if(V_FLAG == 2){
 
 		dV_0 = K_BARRIER*phi*(phi*phi-1);
-		dV_I = 3*phi*phi-2.5*pow(phi,4);
+		dV_I = -.5*pow(phi,2.)*(5.-6.*pow(phi,2.));
 
 		if(AVG_FLAG==0)return dV_0+dV_I*EPSILON*(GAMMA_H2*vertex[i].h2+GAMMA_KG*vertex[i].kg+GAMMA_H*sqrt(vertex[i].h2));
 		if(AVG_FLAG!=0)return dV_0+dV_I*EPSILON*(GAMMA_H2*vertex[i].h2_avg+GAMMA_KG*vertex[i].kg_avg+GAMMA_H*sqrt(vertex[i].h2_avg));

@@ -15,7 +15,7 @@ for f in $file; do
 	gc_i=`echo ${f:3:-4} | sed 's/^0*//'`
 	namefig="`echo ${f:3:-4}`.png"
 	n_f=$(echo "scale=2;  100*$n/$n_file" |bc)
-	echo -ne "Processing file $f ($n_f)..."\\r
+	echo -ne "Processing file $f ($n_f %)..."\\r
 
 	if [ ! -f $namefig ]; then
 		paste temp_n_phi.dat $f > temp.dat
