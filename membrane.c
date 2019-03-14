@@ -805,17 +805,26 @@ void get_geometry()
 		printf("\tInterface thickness\t\t: %lg (roughly %2.1f%% - %2.1f%% of membrane size)\n",3*sqrt(2/K_BARRIER)*EPSILON,3*sqrt(2/K_BARRIER/TOTAL_AREA)*EPSILON*100.,3*sqrt(2/K_BARRIER)*EPSILON/pow(TOTAL_VOLUME,1./3.)*100.);
 		// Line tension can be computed independently of curvature only in the polynomial GL model
 		printf("\tExpected line tension\t\t: %lg\n",2./3.*sqrt(2*K_BARRIER)*EPSILON);
+
 		// What you really want to set in -C is "adimensional", not just \Delta k. 
-		// For this reason we have to rescale the couplings that will enter in the flow equation
-		// It used to be that the \eta's were assumed in -C, and the GAMMA's had to be rescaled as
-		//GAMMA_H*=2./3.*sqrt(2*K_BARRIER*TOTAL_AREA);
-		//GAMMA_H2*=2./3.*sqrt(2*K_BARRIER*TOTAL_AREA);
-		//GAMMA_KG*=2./3.*sqrt(2*K_BARRIER*TOTAL_AREA);
-		// However now it is more convenient to rescale only with \sigma, so that by keeping fixed the -C values 
-		// and rescaling the geometry will produce an effect
-		GAMMA_H*=2./3.*sqrt(2*K_BARRIER);
-		GAMMA_H2*=2./3.*sqrt(2*K_BARRIER);
-		GAMMA_KG*=2./3.*sqrt(2*K_BARRIER);
+		// BIG EDIT: THIS WHOLE RESCALING IDEA WAS WRONG (EXCEPT PERHAPS FOR THE SRQT(AREA) PART).
+		// I KEEP IT HERE FOR THE NEXT DAYS: so to check whether I am right now or I was in the past. 
+		// It defintely does not make sense to me now because if I rescale C I should rescale k as well
+
+		//***************************************************************************************************************
+		//* For this reason we have to rescale the couplings that will enter in the flow equation			*
+		//* It used to be that the \eta's were assumed in -C, and the GAMMA's had to be rescaled as			*
+		//* GAMMA_H*=2./3.*sqrt(2*K_BARRIER*TOTAL_AREA);								*
+		//* GAMMA_H2*=2./3.*sqrt(2*K_BARRIER*TOTAL_AREA);								*
+		//* GAMMA_KG*=2./3.*sqrt(2*K_BARRIER*TOTAL_AREA);								*
+		//* However now it is more convenient to rescale only with \sigma, so that by keeping fixed the -C values 	*
+		//* and rescaling the geometry will produce an effect								*
+		//* GAMMA_H*=2./3.*sqrt(2*K_BARRIER);										*
+		//* GAMMA_H2*=2./3.*sqrt(2*K_BARRIER);										*
+		//* GAMMA_KG*=2./3.*sqrt(2*K_BARRIER);										*
+		//***************************************************************************************************************
+
+		// At second thought: it is better to have NO rescaling, and divide the value of \Delta k and \Delta kb in the plots.
 
 		printf("\tCouplings entering EOMs\t\t: (%lg H, %lg H^2, %lg KG)\n",GAMMA_H,GAMMA_H2,GAMMA_KG);
 	}
@@ -1004,7 +1013,7 @@ double V(long i)
 	} else if(V_FLAG == 2){
 
 		V_0 = K_BARRIER*.25*pow(pow(phi,2.)-1,2.);
-		V_I = .5+pow(phi,3.)-pow(phi,5.);
+		V_I = .5+pow(phi,3.)-.5*pow(phi,5.);
 
 		if(AVG_FLAG==0)return V_0+V_I*EPSILON*(GAMMA_H2*vertex[i].h2+GAMMA_KG*vertex[i].kg+GAMMA_H*sqrt(vertex[i].h2));
 		if(AVG_FLAG!=0)return V_0+V_I*EPSILON*(GAMMA_H2*vertex[i].h2_avg+GAMMA_KG*vertex[i].kg_avg+GAMMA_H*sqrt(vertex[i].h2_avg));
@@ -1022,7 +1031,7 @@ double Vp(long i)
 
 	phi = vertex[i].phi;
 
-	if(V_FLAG == 0){
+	if(V_FLAG == 0 || V_FLAG == 2){
 
 		V_0 = K_BARRIER*.25*pow(pow(phi,2.)-1,2.);
 
@@ -1066,7 +1075,7 @@ double dV(long i)
 	} else if(V_FLAG == 2){
 
 		dV_0 = K_BARRIER*phi*(phi*phi-1);
-		dV_I = -.5*pow(phi,2.)*(5.-6.*pow(phi,2.));
+		dV_I = 3.*pow(phi,2.)-2.5*pow(phi,4.);
 
 		if(AVG_FLAG==0)return dV_0+dV_I*EPSILON*(GAMMA_H2*vertex[i].h2+GAMMA_KG*vertex[i].kg+GAMMA_H*sqrt(vertex[i].h2));
 		if(AVG_FLAG!=0)return dV_0+dV_I*EPSILON*(GAMMA_H2*vertex[i].h2_avg+GAMMA_KG*vertex[i].kg_avg+GAMMA_H*sqrt(vertex[i].h2_avg));

@@ -19,7 +19,13 @@ for f in $file; do
 
 	if [ ! -f $namefig ]; then
 		paste temp_n_phi.dat $f > temp.dat
-		gnuplot -e "f='temp.dat'; set term pngcairo size 1024,768; set output '$namefig'; plot f u 1:2"
+		gnuplot -e "	f='temp.dat';
+				set term pngcairo size 1024,768;
+				set yrange [-1.5:1.5]; 
+				set arrow 1 from graph 0,first 1 to graph 1,first 1 nohead lw 2 lc rgb 'black';
+				set arrow 2 from graph 0,first -1 to graph 1,first -1 nohead lw 2 lc rgb 'black';
+				set output '$namefig'; 
+				plot f u 1:2;"
 	fi
 
 	n=$((n+1))
