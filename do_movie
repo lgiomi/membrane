@@ -1,8 +1,6 @@
 #!/bin/bash
-rm -f temp*.dat
 rm -f tmp*.dat
 rm -f worldline*.dat
-rm -f 3d_field.mkv
 
 file=`ls gc_*.dat | sort -n -k 1.4`
 n_file=`ls gc_*.dat | wc -w`
@@ -41,10 +39,11 @@ python movie_3D.py
 #	done
 #fi
 
+rm -f 3d_field.mkv
 echo -e \\n"Building movies..."
 
 #ffmpeg -framerate 24 -pattern_type glob -i "0*.png" 2d_field.mkv > /dev/null 2>&1
-ffmpeg -framerate 24 -pattern_type glob -i "t*.png" 3d_field.mkv > /dev/null 2>&1
+ffmpeg -framerate 24 -pattern_type glob -i "t_*.png" 3d_field.mkv > /dev/null 2>&1
 
 #rm -f 0*.png
 #rm -f gc_*.dat

@@ -34,8 +34,8 @@ double DT,DT_AUTO,RUN_TIME;
 // Phi, \epsilon and tolerance of the evolution
 double EPSILON,TOLERANCE;
 // Extra parameters/flags
-double HK_CUTOFF;
 double G_SIGMA;
+double H2_CUTOFF,K_CUTOFF;
 double CONSERVED=1;
 double SCALE_FACTOR=1;
 double LAGRANGE,PHI_AVG;
@@ -115,7 +115,6 @@ void init(int argc, char *argv[])
 	GAMMA_H=0;
 	GAMMA_H2=0;
 	GAMMA_KG=0;
-	HK_CUTOFF=0;
 	INT_FLAG=0;
 	SEED=0;
 	TOLERANCE=0;
@@ -270,10 +269,8 @@ void init(int argc, char *argv[])
 								n+=6;
 								break;
 						case 'w':
-								HK_CUTOFF=atof(argv[n+1]);
-								printf("Cut-off for curvatures\t: %lg\n",HK_CUTOFF);
+								printf("Cut-off curvatures so that they do not affect the stability of the potential");
 								CUTOFF_FLAG=1;
-								n++;
 								break;
 						case 'F':
 								printf("Use quintic interaction potential (unbounded, but does not affect Maxwell construction)\n");
@@ -652,22 +649,6 @@ void get_geometry()
 
 	};
 
-	if(CUTOFF_FLAG>0){
-
-		for (i=0; i<N_GRID_POINTS; i++){
-
-			vertex[i].h2=min(vertex[i].h2,HK_CUTOFF);
-			vertex[i].kg=min(vertex[i].kg,HK_CUTOFF);
-			vertex[i].kg=max(vertex[i].kg,-HK_CUTOFF);
-
-			vertex[i].h2_avg=min(vertex[i].h2_avg,HK_CUTOFF);
-			vertex[i].kg_avg=min(vertex[i].kg_avg,HK_CUTOFF);
-			vertex[i].kg_avg=max(vertex[i].kg_avg,-HK_CUTOFF);
-
-		}
-	
-	};
-
 	// Compute the geometrical center and the boxing size 
 
 	for (i=0; i<N_GRID_POINTS; i++){
@@ -802,7 +783,7 @@ void get_geometry()
 
 	if(V_FLAG==0 || V_FLAG ==2){
 		// Interface thickness can be computed independently of curvature only in the plynomial GL model
-		printf("\tInterface thickness\t\t: %lg (roughly %2.1f%% - %2.1f%% of membrane size)\n",3*sqrt(2/K_BARRIER)*EPSILON,3*sqrt(2/K_BARRIER/TOTAL_AREA)*EPSILON*100.,3*sqrt(2/K_BARRIER)*EPSILON/pow(TOTAL_VOLUME,1./3.)*100.);
+		printf("\tInterface thickness\t\t: %lg (roughly %2.1f%% (area scale) - %2.1f%% (volume scale) of the membrane)\n",3*sqrt(2/K_BARRIER)*EPSILON,3*sqrt(2/K_BARRIER/TOTAL_AREA)*EPSILON*100.,3*sqrt(2/K_BARRIER)*EPSILON/pow(TOTAL_VOLUME,1./3.)*100.);
 		// Line tension can be computed independently of curvature only in the polynomial GL model
 		printf("\tExpected line tension\t\t: %lg\n",2./3.*sqrt(2*K_BARRIER)*EPSILON);
 
@@ -829,11 +810,10 @@ void get_geometry()
 		printf("\tCouplings entering EOMs\t\t: (%lg H, %lg H^2, %lg KG)\n",GAMMA_H,GAMMA_H2,GAMMA_KG);
 	}
 
-	// The couplings in the \epsilon \to 0 are unbounded.s
+	// The couplings in the \epsilon \to 0 limit are unbounded.
 	// However, since numerically EPSILON is finite, this sets a bound on the magnitude of the curvature couplings in order to preserve the double-well structure of the potential	
 
-	if(V_FLAG==0){
-
+	if(V_FLAG==0 && CUTOFF_FLAG == 0){
 		
 		//printf("\tExtremal value of deltas \t: (%lg H, %lg H^2, %lg - %lg KG)\n",.75/K_BARRIER*GAMMA_H*EPSILON*sqrt(H2_MAX),.75/K_BARRIER*GAMMA_H2*EPSILON*H2_MAX,.75/K_BARRIER*GAMMA_KG*EPSILON*KG_MIN,.75/K_BARRIER*GAMMA_KG*EPSILON*KG_MAX);	
 	
@@ -842,12 +822,43 @@ void get_geometry()
 		printf("\tAllowed coupling ranges (NN avg): |g_H|<%lg, |Delta k|<%lg, |Delta k_b|<%lg\n",4./3.*K_BARRIER/EPSILON/sqrt(H2_AVG_MAX),4./3.*K_BARRIER/EPSILON/H2_AVG_MAX,4./3.*K_BARRIER/EPSILON/max(KG_AVG_MAX,sqrt(KG_AVG_MIN*KG_AVG_MIN))); 
 	}
 
-	if(V_FLAG==2){
+	if(V_FLAG==2 && CUTOFF_FLAG == 0){
 
 		printf("\tAllowed coupling ranges\t\t: |g_H|<%lg, |Delta k|<%lg, |Delta k_b|<%lg\n",1./2.*K_BARRIER/EPSILON/sqrt(H2_MAX),1./2.*K_BARRIER/EPSILON/H2_MAX,1./2.*K_BARRIER/EPSILON/max(KG_MAX,sqrt(KG_MIN*KG_MIN)));  
 
 		printf("\tAllowed coupling ranges (NN avg): |g_H|<%lg, |Delta k|<%lg, |Delta k_b|<%lg\n",1./2.*K_BARRIER/EPSILON/sqrt(H2_AVG_MAX),1./2.*K_BARRIER/EPSILON/H2_AVG_MAX,1./2.*K_BARRIER/EPSILON/max(KG_AVG_MAX,sqrt(KG_AVG_MIN*KG_AVG_MIN))); 
 	}
+
+	if(CUTOFF_FLAG == 1 && V_FLAG != 1){
+		      if(V_FLAG==0 && AVG_FLAG==0){
+			H2_CUTOFF=min((GAMMA_H2!=0)?4./3.*K_BARRIER/EPSILON/GAMMA_H2:H2_MAX,(GAMMA_H!=0)?pow(4./3.*K_BARRIER/EPSILON/GAMMA_H,2.):H2_MAX);
+			K_CUTOFF=max((GAMMA_KG!=0)?4./3.*K_BARRIER/EPSILON/abs(GAMMA_KG):KG_MAX,(GAMMA_KG!=0)?-4./3.*K_BARRIER/EPSILON/abs(GAMMA_KG):-KG_MIN);
+		}else if(V_FLAG==0 && AVG_FLAG==1){
+			H2_CUTOFF=min((GAMMA_H2!=0)?4./3.*K_BARRIER/EPSILON/GAMMA_H2:H2_AVG_MAX,(GAMMA_H!=0)?pow(4./3.*K_BARRIER/EPSILON/GAMMA_H,2.):H2_AVG_MAX);
+			K_CUTOFF=max((GAMMA_KG!=0)?4./3.*K_BARRIER/EPSILON/abs(GAMMA_KG):KG_AVG_MAX,(GAMMA_KG!=0)?-4./3.*K_BARRIER/EPSILON/abs(GAMMA_KG):-KG_AVG_MIN);
+		}else if(V_FLAG==2 && AVG_FLAG==0){
+			H2_CUTOFF=min((GAMMA_H2!=0)?1./2.*K_BARRIER/EPSILON/GAMMA_H2:H2_MAX,(GAMMA_H!=0)?pow(1./2.*K_BARRIER/EPSILON/GAMMA_H,2.):H2_MAX);
+			K_CUTOFF=max((GAMMA_KG!=0)?1./2.*K_BARRIER/EPSILON/abs(GAMMA_KG):KG_MAX,(GAMMA_KG!=0)?-1./2.*K_BARRIER/EPSILON/abs(GAMMA_KG):-KG_MIN);
+		}else if(V_FLAG==2 && AVG_FLAG==1){
+			H2_CUTOFF=min((GAMMA_H2!=0)?1./2.*K_BARRIER/EPSILON/GAMMA_H2:H2_AVG_MAX,(GAMMA_H!=0)?pow(1./2.*K_BARRIER/EPSILON/GAMMA_H,2.):H2_AVG_MAX);
+			K_CUTOFF=max((GAMMA_KG!=0)?1./2.*K_BARRIER/EPSILON/abs(GAMMA_KG):KG_AVG_MAX,(GAMMA_KG!=0)?-1./2.*K_BARRIER/EPSILON/abs(GAMMA_KG):-KG_AVG_MIN);
+		};
+
+		for (i=0; i<N_GRID_POINTS; i++){
+
+			vertex[i].h2=min(vertex[i].h2,H2_CUTOFF);
+			vertex[i].kg=min(vertex[i].kg,K_CUTOFF);
+			vertex[i].kg=max(vertex[i].kg,-K_CUTOFF);
+
+			vertex[i].h2_avg=min(vertex[i].h2_avg,H2_CUTOFF);
+			vertex[i].kg_avg=min(vertex[i].kg_avg,K_CUTOFF);
+			vertex[i].kg_avg=max(vertex[i].kg_avg,-K_CUTOFF);
+
+		};
+		(AVG_FLAG==0)?printf("\tCurvature cutoff set to \t: %lg H^2 (%2.1f%% of max) and %lg KG (%2.1f%% of max)\n",H2_CUTOFF,100*H2_CUTOFF/H2_MAX,K_CUTOFF,100*K_CUTOFF/max(KG_MAX,-KG_MIN)):printf("\tCurvature cutoff set to \t: %lg H^2 (%2.1f%% of max) and %lg KG (%2.1f%% of max)\n",H2_CUTOFF,100*H2_CUTOFF/H2_AVG_MAX,K_CUTOFF,100*K_CUTOFF/max(KG_AVG_MAX,-KG_AVG_MIN)); 
+		
+	
+	};
 
 	// For diffusion processes are stable only for DT/DX^2 \simeq 1/2:
 	DT_AUTO=.1*L_MIN*L_MIN/2;

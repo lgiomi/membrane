@@ -1,7 +1,5 @@
 #!/bin/bash
 
-rm -f 2d_field.mkv
-
 file=`ls gc_*.dat | sort -n -k 1.4`
 n_file=`ls gc_*.dat | wc -w`
 
@@ -30,6 +28,8 @@ for f in $file; do
 
 	n=$((n+1))
 done
+
+rm -f 2d_field.mkv
 
 echo -e \\n"Building movies..."
 

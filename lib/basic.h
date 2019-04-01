@@ -31,7 +31,7 @@ void progress_bar(long, long);
 
 void print_cmd_line()
 {
-	printf("membrane -m MESH_FILE -t RUN_TIME -I METHOD (-r SEED C0 | -p SEED C0 | -R START_FILE ) [-e EPSILON] [-T TOLERANCE] [-L LEVEL] [-x STEPS] [-i TOTAL_ITERATIONS] [-C GAMMA_H GAMMA_H^2 GAMMA_KG] [-P CX CY CZ] [-A NX NY NZ] [-k BARRIER] [-g SIGMA] [-l] [-M] [-a AREA] [-v VOL] [-u T J Lk Lkb Mk Mkb] [-w CUTOFF] [-F]\n\n");
+	printf("membrane -m MESH_FILE -t RUN_TIME -I METHOD (-r SEED C0 | -p SEED C0 | -R START_FILE ) [-e EPSILON] [-T TOLERANCE] [-L LEVEL] [-x STEPS] [-i TOTAL_ITERATIONS] [-C GAMMA_H GAMMA_H^2 GAMMA_KG] [-P CX CY CZ] [-A NX NY NZ] [-k BARRIER] [-g SIGMA] [-l] [-M] [-a AREA] [-v VOL] [-u T J Lk Lkb Mk Mkb] [-w] [-F]\n\n");
 }
 
 /*******************************************************************/
@@ -62,7 +62,7 @@ void help()
 	printf("\t -a AREA\t: rescale the mesh so that the total area is AREA\n");
 	printf("\t -v VOLUME\t: rescale the mesh so that the total volume is VOLUME (overrides -a)\n");
 	printf("\t -u $1-$6\t: use lattice-gas mean-field free energy with\n\t\t\t\t -temperature T ($1)\n\t\t\t\t -quadratic homogeneous coupling J ($2)\n\t\t\t\t -quadratic mean curvature squared interaction Lk ($3)\n\t\t\t\t -quadratic Gaussian curvature interaction Lkb ($4)\n\t\t\t\t -linear mean curvature squared interaction Mk ($5)\n\t\t\t\t -linear Gaussian curvature interaction Mkb ($6)\n");
-	printf("\t -w CUTOFF\t: add a cutoff for the H^2 and K absolute values (eventually NN averaged).\n");
+	printf("\t -w \t\t: cutoff H, H^2 and K to the maximally allowed values (eventually NN averaged).\n");
 	printf("\t -F \t\t: use quintic curvature coupling, which preserves the Maxwell values at ±1\n");
 
 	printf("\n");
