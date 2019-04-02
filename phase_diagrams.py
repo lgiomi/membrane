@@ -29,8 +29,8 @@ def tuples(A):
     except TypeError: return A
 
 # The structure of final.dat is of 13 columns, with the values:
-# 1	|2	    	|3	    |4		        |5			      	|6		|7		|8              |9              |10		|11		|12		|13
-# eta_k	|eta_kb		|c0	    |kinetic_energy	|phase_field_potential		|full_potential	|<phi^2>_c	|<phi H^2>_c	|<phi K_G>_c	|Lagrange	|N_domains	|total_time	|C0
+# 1	|2	|3	|4	        |5			|6		|7		|8              |9              |10		|11		|12	|13		|14		|15
+# eta_k	|eta_kb	|c0	|kinetic_energy	|phase_field_potential	|full_potential	|<phi^2>_c	|<phi H^2>	|<phi K_G>	|Lagrange	|N_domains	|C0	|kappa_avg	|kappa_sq_avg	|total_time
 # (note that c0 is an input from run_jobs and ranges [0,1], while C0 is computed from an integral of phi and ranges [-1,1])
 
 #if not os.path.exists("pd_images"):

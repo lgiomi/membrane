@@ -269,7 +269,7 @@ void init(int argc, char *argv[])
 								n+=6;
 								break;
 						case 'w':
-								printf("Cut-off curvatures so that they do not affect the stability of the potential");
+								printf("Cut-off curvatures so that they do not affect the stability of the potential\n");
 								CUTOFF_FLAG=1;
 								break;
 						case 'F':
