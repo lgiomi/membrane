@@ -54,7 +54,7 @@ while read -r line ; do
 	fi
 done < "$filename"
 
-rm -fR testconf
+#rm -fR testconf
 mkdir -p testconf
 
 
@@ -63,7 +63,8 @@ c0_c=0
 k_c=0
 kb_c=0
 rpp_c=0
-njob=1
+njob=0
+njobnow=0
 
 while [ $k_c -le $n_k ];
 	do
@@ -77,18 +78,21 @@ while [ $k_c -le $n_k ];
 				do
 				c0=$(echo "scale=3; $c0_i+$c0_f*$c0_c/$n_c0-$c0_i*$c0_c/$n_c0" | bc -l )
 				jobp=$(echo "scale=2; 100*$njob/$tot" | bc -l )
-				echo -ne "Processing ($k,$kb,$c0,$rpp_c) and found $njob/$tot ($jobp%)                                   "  \\r
+				echo -ne "Processing ($k,$kb,$c0,$rpp_c) and found $njob/$tot ($jobp%), of which $njobnow new          "  \\r
 
 				DIR=temp_${k}_${kb}_${c0}_${rpp_c}
 
 				if [ -d "$DIR" ]; then
 					if [ -e "$DIR/last.dat" ]; then
 						let njob=njob+1
-						cp $DIR/last.dat testconf/conf_${k}_${kb}_${c0}_${rpp_c}_last.dat
-						cat $DIR/final.dat | awk -v var1="$k" -v var2="$kb" -v var3="$c0" -F"\t" '{print var1,"\t", var2,"\t", var3,"\t", $2,"\t", $3,"\t", $4,"\t", $5,"\t", $6,"\t", $7,"\t", $8,"\t", $9,"\t", $1, "\t", $10, "\t", $11, "\t", $12, "\t", $1}'  >> testconf/final.dat
+		                                if [ ! -f "testconf/conf_${k}_${kb}_${c0}_${rpp_c}_last.dat" ]; then
+							cp $DIR/last.dat testconf/conf_${k}_${kb}_${c0}_${rpp_c}_last.dat
+							let njobnow=njobnow+1
+							cat $DIR/final.dat | awk -v var1="$k" -v var2="$kb" -v var3="$c0" -F"\t" '{print var1,"\t", var2,"\t", var3,"\t", $2,"\t", $3,"\t", $4,"\t", $5,"\t", $6,"\t", $7,"\t", $8,"\t", $9, "\t", $10, "\t", $11, "\t", $12, "\t", $1}'  >> testconf/final.dat
+						fi
 					fi
 				fi
-
+				
 				let rpp_c=rpp_c+1
 			done 
 			rpp_c=0

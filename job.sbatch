@@ -16,6 +16,4 @@ export MKL_NUM_THREADS=1
 
 echo "Launching task with arguments ($1, $2, $3)" >> ../run_stat.dat
 
-
-srun membrane -m ../mesh/dumbbell_8.msh -t 500 -I 5 -r $RANDOM $1 -C 0 $2 $3 -L 0 -M -v 21.39 -k 2 
-
+srun membrane -m ../mesh/sphere_2.msh -t 500 -I 5 -p $RANDOM $1 -C 0 $2 $3 -L 0 -M -a 44.58 -k 1 -w 

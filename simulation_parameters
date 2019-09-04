@@ -4,10 +4,10 @@
 # It consists of three lines where we specify first the start, end and the steps for the total concentration, with the format:
 # Concentration:
 # c0_i	c0_f	n_c0	rpp (runs per point)
-.5	.5	1	10
+0	1	30	2
 # Bending rigidtities:
 # k_i	k_f	n_k  
-0	1	20
+0.31	.31	1
 # Gaussian splay:
 # kb_i	kb_f	n_kb  
--1	1	40
+-.39	-.39	1
